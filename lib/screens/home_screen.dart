@@ -19,17 +19,21 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  PaginatedProducts? _paginatedProducts;
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+  // Product state for endless loading
+  List<MatchaProduct> _products = [];
   bool _isLoading = false;
+  bool _isLoadingMore = false;
+  bool _hasMoreProducts = true;
   bool _isServiceRunning = false;
   bool _isFullCheckRunning = false;
   bool _showFilters = false;
 
-  // Filter and pagination state
+  // Endless loading state
   ProductFilter _filter = ProductFilter();
   int _currentPage = 1;
   UserSettings _userSettings = UserSettings();
+  final ScrollController _scrollController = ScrollController();
 
   // Search state
   final TextEditingController _searchController = TextEditingController();
@@ -39,7 +43,12 @@ class _HomeScreenState extends State<HomeScreen> {
   List<String> _availableSites = ['All'];
   List<String> _availableCategories = [];
   Map<String, double> _priceRange = {'min': 0.0, 'max': 1000.0};
-  StorageInfo? _storageInfo;
+
+  // Speed dial state
+  bool _isSpeedDialOpen = false;
+  late AnimationController _animationController;
+  late Animation<double> _buttonAnimatedIcon;
+  late Animation<double> _translateButton;
 
   @override
   void initState() {
@@ -50,12 +59,29 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!kIsWeb) {
       _checkServiceStatus();
     }
-    _loadStorageInfo();
+
+    // Setup endless scroll listener
+    _scrollController.addListener(_onScroll);
+
+    // Initialize speed dial animations
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _buttonAnimatedIcon = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(_animationController);
+    _translateButton = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -68,7 +94,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadFilterOptions() async {
     try {
-      final sites = ['All', 'Nakamura', 'Marukyu-Koyamaen', 'Ippodo Tea'];
+      // Built-in sites
+      List<String> sites = [
+        'All',
+        'Nakamura',
+        'Marukyu-Koyamaen',
+        'Ippodo Tea',
+      ];
+
+      // Add custom websites
+      final customWebsites =
+          await DatabaseService.platformService.getCustomWebsites();
+      sites.addAll(customWebsites.map((w) => w.name).cast<String>());
+
       final categories =
           await DatabaseService.platformService.getAvailableCategories();
       final priceRange = await DatabaseService.platformService.getPriceRange();
@@ -83,23 +121,18 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _loadStorageInfo() async {
-    try {
-      final storageInfo = await DatabaseService.platformService.getStorageInfo(
-        _userSettings.maxStorageMB,
-      );
+  Future<void> _loadProducts({bool loadMore = false}) async {
+    if (loadMore) {
       setState(() {
-        _storageInfo = storageInfo;
+        _isLoadingMore = true;
       });
-    } catch (e) {
-      print('Error loading storage info: $e');
+    } else {
+      setState(() {
+        _isLoading = true;
+        _currentPage = 1;
+        _hasMoreProducts = true;
+      });
     }
-  }
-
-  Future<void> _loadProducts() async {
-    setState(() {
-      _isLoading = true;
-    });
 
     try {
       final paginatedProducts = await DatabaseService.platformService
@@ -112,14 +145,36 @@ class _HomeScreenState extends State<HomeScreen> {
           );
 
       setState(() {
-        _paginatedProducts = paginatedProducts;
+        if (loadMore) {
+          // Append new products to existing list
+          _products.addAll(paginatedProducts.products);
+          _currentPage++;
+        } else {
+          // Replace products with new ones (initial load or filter change)
+          _products = paginatedProducts.products;
+          _currentPage = 2; // Next page to load
+        }
+
+        // Check if there are more products to load
+        _hasMoreProducts = _currentPage <= paginatedProducts.totalPages;
       });
     } catch (e) {
       _showErrorSnackBar('Failed to load products: $e');
     } finally {
       setState(() {
         _isLoading = false;
+        _isLoadingMore = false;
       });
+    }
+  }
+
+  // Scroll listener for endless loading
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoadingMore &&
+        _hasMoreProducts) {
+      _loadProducts(loadMore: true);
     }
   }
 
@@ -151,7 +206,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Reload products
       await _loadProducts();
-      await _loadStorageInfo();
 
       _showSuccessSnackBar('Stock check completed!');
     } catch (e) {
@@ -180,7 +234,6 @@ class _HomeScreenState extends State<HomeScreen> {
       // Reload products and options
       await _loadProducts();
       await _loadFilterOptions();
-      await _loadStorageInfo();
     } catch (e) {
       _showErrorSnackBar('Failed to perform full check: $e');
     } finally {
@@ -208,9 +261,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onFilterChanged(ProductFilter newFilter) {
     setState(() {
       _filter = newFilter;
-      _currentPage = 1; // Reset to first page when filter changes
     });
-    _loadProducts();
+    _loadProducts(); // Reset products when filter changes
   }
 
   void _onSearchChanged(String query) {
@@ -218,9 +270,8 @@ class _HomeScreenState extends State<HomeScreen> {
       _searchQuery = query;
       // Update the filter with the search query
       _filter = _filter.copyWith(searchTerm: query);
-      _currentPage = 1; // Reset to first page when search changes
     });
-    _loadProducts();
+    _loadProducts(); // Reset products when search changes
   }
 
   void _clearSearch() {
@@ -228,11 +279,15 @@ class _HomeScreenState extends State<HomeScreen> {
     _onSearchChanged('');
   }
 
-  void _goToPage(int page) {
+  void _toggleSpeedDial() {
+    if (_isSpeedDialOpen) {
+      _animationController.reverse();
+    } else {
+      _animationController.forward();
+    }
     setState(() {
-      _currentPage = page;
+      _isSpeedDialOpen = !_isSpeedDialOpen;
     });
-    _loadProducts();
   }
 
   void _showErrorSnackBar(String message) {
@@ -281,29 +336,66 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          // Service status banner (mobile only)
-          if (!kIsWeb) _buildServiceStatusBanner(),
+          // Main content
+          Column(
+            children: [
+              // Service status banner (mobile only)
+              if (!kIsWeb) _buildServiceStatusBanner(),
 
-          // Storage info banner
-          if (_storageInfo != null) _buildStorageInfoBanner(),
+              // Search bar
+              _buildSearchBar(),
 
-          // Search bar
-          _buildSearchBar(),
+              // Products list with pagination
+              Expanded(child: _buildProductsList()),
+            ],
+          ),
 
-          // Filters panel
+          // Filter overlay
           if (_showFilters)
-            ProductFilters(
-              filter: _filter,
-              onFilterChanged: _onFilterChanged,
-              availableSites: _availableSites,
-              availableCategories: _availableCategories,
-              priceRange: _priceRange,
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _showFilters = false;
+                });
+              },
+              child: Container(
+                color: Colors.black54,
+                child: GestureDetector(
+                  onTap: () {}, // Prevent closing when tapping inside filter
+                  child: DraggableScrollableSheet(
+                    initialChildSize: 0.6,
+                    minChildSize: 0.3,
+                    maxChildSize: 0.9,
+                    builder: (context, scrollController) {
+                      return Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(20),
+                            topRight: Radius.circular(20),
+                          ),
+                        ),
+                        child: ProductFilters(
+                          filter: _filter,
+                          onFilterChanged: _onFilterChanged,
+                          availableSites: _availableSites,
+                          availableCategories: _availableCategories,
+                          priceRange: _priceRange,
+                          scrollController: scrollController,
+                          onClose: () {
+                            setState(() {
+                              _showFilters = false;
+                            });
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
             ),
-
-          // Products list with pagination
-          Expanded(child: _buildProductsList()),
         ],
       ),
       floatingActionButton: _buildFloatingActionButtons(),
@@ -361,118 +453,149 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              onChanged: _onSearchChanged,
-              decoration: InputDecoration(
-                hintText: 'Search matcha products...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon:
-                    _searchQuery.isNotEmpty
-                        ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: _clearSearch,
-                        )
-                        : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                  borderSide: BorderSide(color: Theme.of(context).primaryColor),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 12.0,
+          // Search input row
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  decoration: InputDecoration(
+                    hintText: 'Search matcha products...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon:
+                        _searchQuery.isNotEmpty
+                            ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: _clearSearch,
+                            )
+                            : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 12.0,
+                    ),
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(width: 12),
+              // Filter button
+              IconButton(
+                icon: Icon(
+                  _showFilters ? Icons.filter_list : Icons.filter_list_outlined,
+                  color: _showFilters ? Theme.of(context).primaryColor : null,
+                ),
+                tooltip: 'Filters',
+                onPressed: () {
+                  setState(() {
+                    _showFilters = !_showFilters;
+                  });
+                },
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          // Filter button
-          IconButton(
-            icon: Icon(
-              _showFilters ? Icons.filter_list : Icons.filter_list_outlined,
-              color: _showFilters ? Theme.of(context).primaryColor : null,
-            ),
-            tooltip: 'Filters',
-            onPressed: () {
-              setState(() {
-                _showFilters = !_showFilters;
-              });
-            },
-          ),
+
+          // Stock status chips
+          const SizedBox(height: 12),
+          _buildStockStatusChips(),
         ],
       ),
     );
   }
 
-  Widget _buildStorageInfoBanner() {
-    if (_storageInfo == null) return const SizedBox.shrink();
-
-    final info = _storageInfo!;
-    final isNearLimit = info.usagePercentage > 80;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12.0),
-      decoration: BoxDecoration(
-        color: isNearLimit ? Colors.orange.shade100 : Colors.blue.shade50,
-        border: Border(
-          bottom: BorderSide(
-            color: isNearLimit ? Colors.orange : Colors.blue,
-            width: 1,
+  Widget _buildStockStatusChips() {
+    return Row(
+      children: [
+        Expanded(
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              FilterChip(
+                label: const Text('All'),
+                selected: _filter.inStock == null,
+                onSelected: (selected) {
+                  // Always set to "All" when this chip is tapped
+                  setState(() {
+                    _filter = _filter.copyWith(inStock: null);
+                    _currentPage = 1;
+                    _hasMoreProducts = true;
+                  });
+                  _loadProducts();
+                },
+                selectedColor: Theme.of(
+                  context,
+                ).primaryColor.withValues(alpha: 0.2),
+                checkmarkColor: Theme.of(context).primaryColor,
+              ),
+              FilterChip(
+                label: const Text('In Stock'),
+                selected: _filter.inStock == true,
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      // Selecting "In Stock"
+                      _filter = _filter.copyWith(inStock: true);
+                    } else {
+                      // Deselecting "In Stock" - go back to "All"
+                      _filter = _filter.copyWith(inStock: null);
+                    }
+                    _currentPage = 1;
+                    _hasMoreProducts = true;
+                  });
+                  _loadProducts();
+                },
+                selectedColor: Colors.green.withValues(alpha: 0.2),
+                checkmarkColor: Colors.green,
+              ),
+              FilterChip(
+                label: const Text('Out of Stock'),
+                selected: _filter.inStock == false,
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      // Selecting "Out of Stock"
+                      _filter = _filter.copyWith(inStock: false);
+                    } else {
+                      // Deselecting "Out of Stock" - go back to "All"
+                      _filter = _filter.copyWith(inStock: null);
+                    }
+                    _currentPage = 1;
+                    _hasMoreProducts = true;
+                  });
+                  _loadProducts();
+                },
+                selectedColor: Colors.red.withValues(alpha: 0.2),
+                checkmarkColor: Colors.red,
+              ),
+            ],
           ),
         ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            isNearLimit ? Icons.warning : Icons.storage,
-            color: isNearLimit ? Colors.orange : Colors.blue,
-            size: 20,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Storage: ${info.formattedSize} / ${info.formattedMaxSize} (${info.usagePercentage.toStringAsFixed(1)}%) • ${info.totalProducts} products',
-              style: TextStyle(
-                color:
-                    isNearLimit ? Colors.orange.shade700 : Colors.blue.shade700,
-                fontSize: 12,
-              ),
-            ),
-          ),
-          if (isNearLimit)
-            TextButton(
-              onPressed: () async {
-                await DatabaseService.platformService.cleanupOldProducts(
-                  _userSettings.maxStorageMB,
-                );
-                await _loadStorageInfo();
-                _showSuccessSnackBar('Storage cleaned up!');
-              },
-              child: const Text('Clean Up', style: TextStyle(fontSize: 12)),
-            ),
-        ],
-      ),
+      ],
     );
   }
 
   Widget _buildProductsList() {
-    if (_isLoading) {
+    if (_isLoading && _products.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_paginatedProducts == null || _paginatedProducts!.products.isEmpty) {
+    if (_products.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -494,70 +617,28 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    return Column(
-      children: [
-        // Products grid/list
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: _loadProducts,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16.0),
-              itemCount: _paginatedProducts!.products.length,
-              itemBuilder: (context, index) {
-                return ProductCard(
-                  product: _paginatedProducts!.products[index],
-                  onTap: () {
-                    _showProductDetails(_paginatedProducts!.products[index]);
-                  },
-                );
-              },
-            ),
-          ),
-        ),
+    return RefreshIndicator(
+      onRefresh: () => _loadProducts(),
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.all(16.0),
+        itemCount: _products.length + (_hasMoreProducts ? 1 : 0),
+        itemBuilder: (context, index) {
+          // Show loading indicator at the bottom when loading more
+          if (index == _products.length) {
+            return const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
 
-        // Pagination controls
-        if (_paginatedProducts!.totalPages > 1) _buildPaginationControls(),
-      ],
-    );
-  }
-
-  Widget _buildPaginationControls() {
-    final pagination = _paginatedProducts!;
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        border: Border(top: BorderSide(color: Colors.grey[300]!)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Previous page button
-          ElevatedButton.icon(
-            onPressed:
-                pagination.currentPage > 1
-                    ? () => _goToPage(pagination.currentPage - 1)
-                    : null,
-            icon: const Icon(Icons.chevron_left),
-            label: const Text('Previous'),
-          ),
-
-          // Page indicator
-          Text(
-            'Page ${pagination.currentPage} of ${pagination.totalPages} (${pagination.totalItems} items)',
-            style: const TextStyle(fontWeight: FontWeight.w500),
-          ),
-
-          // Next page button
-          ElevatedButton.icon(
-            onPressed:
-                pagination.currentPage < pagination.totalPages
-                    ? () => _goToPage(pagination.currentPage + 1)
-                    : null,
-            icon: const Icon(Icons.chevron_right),
-            label: const Text('Next'),
-          ),
-        ],
+          return ProductCard(
+            product: _products[index],
+            onTap: () {
+              _showProductDetails(_products[index]);
+            },
+          );
+        },
       ),
     );
   }
@@ -565,48 +646,99 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildFloatingActionButtons() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
-      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        // Full Check FAB
-        FloatingActionButton.extended(
-          onPressed:
-              _isLoading || _isFullCheckRunning ? null : _performFullCheck,
-          heroTag: "fullCheck",
-          backgroundColor: Colors.deepPurple,
-          icon:
-              _isFullCheckRunning
-                  ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                  : const Icon(Icons.search, color: Colors.white),
-          label: Text(
-            _isFullCheckRunning ? 'Discovering...' : 'Run Full Check',
-            style: const TextStyle(color: Colors.white),
-          ),
+        // Full Check Button (when expanded)
+        AnimatedBuilder(
+          animation: _translateButton,
+          builder: (context, child) {
+            return Transform(
+              transform: Matrix4.translationValues(
+                0.0,
+                _translateButton.value * -80.0, // Reduced from -140.0
+                0.0,
+              ),
+              child: Opacity(
+                opacity: _translateButton.value,
+                child: FloatingActionButton.extended(
+                  onPressed:
+                      _isLoading || _isFullCheckRunning
+                          ? null
+                          : () {
+                            _toggleSpeedDial();
+                            _performFullCheck();
+                          },
+                  heroTag: "fullCheck",
+                  backgroundColor: Colors.deepPurple,
+                  icon:
+                      _isFullCheckRunning
+                          ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                          : const Icon(Icons.search, color: Colors.white),
+                  label: Text(
+                    _isFullCheckRunning ? 'Discovering...' : 'Run Full Check',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
-        const SizedBox(height: 12),
 
-        // Quick Check FAB
-        FloatingActionButton.extended(
-          onPressed:
-              _isLoading || _isFullCheckRunning
-                  ? null
-                  : _performLightweightCheck,
-          heroTag: "quickCheck",
-          icon:
-              _isLoading
-                  ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                  : const Icon(Icons.refresh),
-          label: Text(_isLoading ? 'Checking...' : 'Quick Check'),
+        // Quick Check Button (when expanded)
+        AnimatedBuilder(
+          animation: _translateButton,
+          builder: (context, child) {
+            return Transform(
+              transform: Matrix4.translationValues(
+                0.0,
+                _translateButton.value * -40.0, // Reduced from -70.0
+                0.0,
+              ),
+              child: Opacity(
+                opacity: _translateButton.value,
+                child: FloatingActionButton.extended(
+                  onPressed:
+                      _isLoading || _isFullCheckRunning
+                          ? null
+                          : () {
+                            _toggleSpeedDial();
+                            _performLightweightCheck();
+                          },
+                  heroTag: "quickCheck",
+                  icon:
+                      _isLoading
+                          ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : const Icon(Icons.refresh),
+                  label: Text(_isLoading ? 'Checking...' : 'Quick Check'),
+                ),
+              ),
+            );
+          },
+        ),
+
+        // Main Radar Button
+        FloatingActionButton(
+          onPressed: _toggleSpeedDial,
+          shape: const CircleBorder(), // Ensures perfectly round shape
+          child: AnimatedBuilder(
+            animation: _buttonAnimatedIcon,
+            builder: (context, child) {
+              return Icon(
+                _isSpeedDialOpen ? Icons.close : Icons.radar,
+                size: 28,
+              );
+            },
+          ),
         ),
       ],
     );

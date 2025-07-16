@@ -7,6 +7,8 @@ class ProductFilters extends StatefulWidget {
   final List<String> availableSites;
   final List<String> availableCategories;
   final Map<String, double> priceRange;
+  final ScrollController? scrollController;
+  final VoidCallback? onClose;
 
   const ProductFilters({
     super.key,
@@ -15,6 +17,8 @@ class ProductFilters extends StatefulWidget {
     required this.availableSites,
     required this.availableCategories,
     required this.priceRange,
+    this.scrollController,
+    this.onClose,
   });
 
   @override
@@ -44,76 +48,140 @@ class _ProductFiltersState extends State<ProductFilters> {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.all(16.0),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.filter_list),
-                const SizedBox(width: 8),
-                const Text(
-                  'Filters',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 600;
+
+    return SingleChildScrollView(
+      controller: widget.scrollController,
+      padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle bar for draggable sheet
+          if (widget.scrollController != null)
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                const Spacer(),
+              ),
+            ),
+
+          Row(
+            children: [
+              const Icon(Icons.filter_list),
+              const SizedBox(width: 8),
+              Text(
+                'Filters',
+                style: TextStyle(
+                  fontSize: isSmallScreen ? 16 : 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Spacer(),
+              if (widget.onClose != null)
+                IconButton(
+                  onPressed: widget.onClose,
+                  icon: const Icon(Icons.close),
+                  tooltip: 'Close filters',
+                )
+              else
                 TextButton(
                   onPressed: _clearFilters,
-                  child: const Text('Clear All'),
+                  child: Text(
+                    'Clear All',
+                    style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
+                  ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Site Filter
-            _buildSiteFilter(),
-            const SizedBox(height: 16),
-
-            // Stock Status Filter
-            _buildStockStatusFilter(),
-            const SizedBox(height: 16),
-
-            // Category Filter
-            if (widget.availableCategories.isNotEmpty) ...[
-              _buildCategoryFilter(),
-              const SizedBox(height: 16),
             ],
+          ),
+          const SizedBox(height: 16),
 
-            // Price Range Filter
-            _buildPriceRangeFilter(),
+          // Site Filter
+          _buildSiteFilter(isSmallScreen),
+          const SizedBox(height: 16),
+
+          // Category Filter
+          if (widget.availableCategories.isNotEmpty) ...[
+            _buildCategoryFilter(isSmallScreen),
             const SizedBox(height: 16),
-
-            // Search Filter
-            _buildSearchFilter(),
-            const SizedBox(height: 16),
-
-            // Discontinued Products Toggle
-            _buildDiscontinuedToggle(),
           ],
-        ),
+
+          // Price Range Filter
+          _buildPriceRangeFilter(isSmallScreen),
+          const SizedBox(height: 16),
+
+          // Discontinued Products Toggle
+          _buildDiscontinuedToggle(isSmallScreen),
+
+          // Clear all button at bottom for modal version
+          if (widget.onClose != null) ...[
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: _clearFilters,
+                child: Text(
+                  'Clear All Filters',
+                  style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                ),
+              ),
+            ),
+          ],
+
+          // Bottom padding for safe area
+          SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+        ],
       ),
     );
   }
 
-  Widget _buildSiteFilter() {
+  Widget _buildSiteFilter(bool isSmallScreen) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Site', style: TextStyle(fontWeight: FontWeight.w600)),
+        Text(
+          'Site',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: isSmallScreen ? 14 : 16,
+          ),
+        ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String?>(
           value: _currentFilter.site,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: InputDecoration(
+            border: const OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: isSmallScreen ? 6 : 8,
+            ),
+          ),
+          style: TextStyle(
+            fontSize: isSmallScreen ? 14 : 16,
+            color: Colors.black,
           ),
           items: [
-            const DropdownMenuItem(value: null, child: Text('All Sites')),
+            DropdownMenuItem(
+              value: null,
+              child: Text(
+                'All Sites',
+                style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+              ),
+            ),
             ...widget.availableSites.map(
-              (site) => DropdownMenuItem(value: site, child: Text(site)),
+              (site) => DropdownMenuItem(
+                value: site,
+                child: Text(
+                  site,
+                  style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                ),
+              ),
             ),
           ],
           onChanged: (value) {
@@ -124,73 +192,47 @@ class _ProductFiltersState extends State<ProductFilters> {
     );
   }
 
-  Widget _buildStockStatusFilter() {
+  Widget _buildCategoryFilter(bool isSmallScreen) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Stock Status',
-          style: TextStyle(fontWeight: FontWeight.w600),
+        Text(
+          'Category',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: isSmallScreen ? 14 : 16,
+          ),
         ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: RadioListTile<bool?>(
-                title: const Text('All'),
-                value: null,
-                groupValue: _currentFilter.inStock,
-                onChanged: (value) {
-                  _updateFilter(_currentFilter.copyWith(inStock: value));
-                },
-                dense: true,
-              ),
-            ),
-            Expanded(
-              child: RadioListTile<bool?>(
-                title: const Text('In Stock'),
-                value: true,
-                groupValue: _currentFilter.inStock,
-                onChanged: (value) {
-                  _updateFilter(_currentFilter.copyWith(inStock: value));
-                },
-                dense: true,
-              ),
-            ),
-            Expanded(
-              child: RadioListTile<bool?>(
-                title: const Text('Out of Stock'),
-                value: false,
-                groupValue: _currentFilter.inStock,
-                onChanged: (value) {
-                  _updateFilter(_currentFilter.copyWith(inStock: value));
-                },
-                dense: true,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategoryFilter() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Category', style: TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         DropdownButtonFormField<String?>(
           value: _currentFilter.category,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: InputDecoration(
+            border: const OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: isSmallScreen ? 6 : 8,
+            ),
+          ),
+          style: TextStyle(
+            fontSize: isSmallScreen ? 14 : 16,
+            color: Colors.black,
           ),
           items: [
-            const DropdownMenuItem(value: null, child: Text('All Categories')),
+            DropdownMenuItem(
+              value: null,
+              child: Text(
+                'All Categories',
+                style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+              ),
+            ),
             ...widget.availableCategories.map(
-              (category) =>
-                  DropdownMenuItem(value: category, child: Text(category)),
+              (category) => DropdownMenuItem(
+                value: category,
+                child: Text(
+                  category,
+                  style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                ),
+              ),
             ),
           ],
           onChanged: (value) {
@@ -201,7 +243,7 @@ class _ProductFiltersState extends State<ProductFilters> {
     );
   }
 
-  Widget _buildPriceRangeFilter() {
+  Widget _buildPriceRangeFilter(bool isSmallScreen) {
     final minPrice = widget.priceRange['min']!;
     final maxPrice = widget.priceRange['max']!;
 
@@ -210,9 +252,12 @@ class _ProductFiltersState extends State<ProductFilters> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Price Range',
-          style: TextStyle(fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: isSmallScreen ? 14 : 16,
+          ),
         ),
         const SizedBox(height: 8),
         RangeSlider(
@@ -249,41 +294,24 @@ class _ProductFiltersState extends State<ProductFilters> {
     );
   }
 
-  Widget _buildSearchFilter() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Search', style: TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        TextFormField(
-          initialValue: _currentFilter.searchTerm,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            hintText: 'Search products...',
-            prefixIcon: Icon(Icons.search),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          ),
-          onChanged: (value) {
-            _updateFilter(
-              _currentFilter.copyWith(searchTerm: value.isEmpty ? null : value),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDiscontinuedToggle() {
+  Widget _buildDiscontinuedToggle(bool isSmallScreen) {
     return CheckboxListTile(
-      title: const Text('Show discontinued products'),
-      subtitle: const Text('Include products that are no longer available'),
+      title: Text(
+        'Show discontinued products',
+        style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+      ),
+      subtitle: Text(
+        'Include products that are no longer available',
+        style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
+      ),
       value: _currentFilter.showDiscontinued,
+      dense: isSmallScreen,
+      contentPadding: EdgeInsets.zero,
       onChanged: (value) {
         _updateFilter(
           _currentFilter.copyWith(showDiscontinued: value ?? false),
         );
       },
-      dense: true,
     );
   }
 

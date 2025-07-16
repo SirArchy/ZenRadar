@@ -6,7 +6,7 @@ import '../models/matcha_product.dart';
 import '../services/notification_service.dart';
 import '../services/background_service.dart';
 import '../services/settings_service.dart';
-import '../services/database_service.dart';
+import 'website_management_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -18,13 +18,11 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   UserSettings _settings = UserSettings();
   bool _isLoading = true;
-  StorageInfo? _storageInfo;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
-    _loadStorageInfo();
   }
 
   Future<void> _loadSettings() async {
@@ -38,19 +36,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _isLoading = false;
       });
-    }
-  }
-
-  Future<void> _loadStorageInfo() async {
-    try {
-      final storageInfo = await DatabaseService.platformService.getStorageInfo(
-        _settings.maxStorageMB,
-      );
-      setState(() {
-        _storageInfo = storageInfo;
-      });
-    } catch (e) {
-      print('Error loading storage info: $e');
     }
   }
 
@@ -209,144 +194,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 16),
 
-          // Display & Performance Settings
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Display & Performance',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Items per page
-                  ListTile(
-                    title: const Text('Items per page'),
-                    subtitle: Text('${_settings.itemsPerPage} products'),
-                    trailing: const Icon(Icons.edit),
-                    onTap: () => _showItemsPerPageDialog(),
-                  ),
-
-                  const Divider(),
-
-                  // Sort settings
-                  ListTile(
-                    title: const Text('Sort by'),
-                    subtitle: Text(
-                      '${_settings.sortBy} (${_settings.sortAscending ? 'ascending' : 'descending'})',
-                    ),
-                    trailing: const Icon(Icons.edit),
-                    onTap: () => _showSortDialog(),
-                  ),
-
-                  const Divider(),
-
-                  // Show out of stock
-                  SwitchListTile(
-                    title: const Text('Show out of stock products'),
-                    subtitle: const Text(
-                      'Display products that are currently unavailable',
-                    ),
-                    value: _settings.showOutOfStock,
-                    onChanged: (value) {
-                      _updateSettings((s) => s.copyWith(showOutOfStock: value));
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Storage Settings
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Storage Management',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Storage limit
-                  ListTile(
-                    title: const Text('Storage Limit'),
-                    subtitle: Text('${_settings.maxStorageMB} MB maximum'),
-                    trailing: const Icon(Icons.edit),
-                    onTap: () => _showStorageLimitDialog(),
-                  ),
-
-                  if (_storageInfo != null) ...[
-                    const Divider(),
-                    ListTile(
-                      title: const Text('Current Usage'),
-                      subtitle: Text(
-                        '${_storageInfo!.formattedSize} / ${_storageInfo!.formattedMaxSize} '
-                        '(${_storageInfo!.usagePercentage.toStringAsFixed(1)}%)\n'
-                        '${_storageInfo!.totalProducts} products stored',
-                      ),
-                      trailing:
-                          _storageInfo!.usagePercentage > 80
-                              ? Icon(Icons.warning, color: Colors.orange)
-                              : Icon(Icons.check_circle, color: Colors.green),
-                    ),
-
-                    if (_storageInfo!.usagePercentage > 80) ...[
-                      const SizedBox(height: 8),
-                      ElevatedButton.icon(
-                        onPressed: () async {
-                          await DatabaseService.platformService
-                              .cleanupOldProducts(_settings.maxStorageMB);
-                          await _loadStorageInfo();
-                          _showSuccessSnackBar(
-                            'Storage cleaned up successfully!',
-                          );
-                        },
-                        icon: const Icon(Icons.cleaning_services),
-                        label: const Text('Clean Up Storage'),
-                      ),
-                    ],
-                  ],
-
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      border: Border.all(color: Colors.blue.shade200),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.info, color: Colors.blue.shade700, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'With 100MB, you can store approximately 50,000 products. '
-                            'Storage includes product details, images, and history.',
-                            style: TextStyle(
-                              color: Colors.blue.shade700,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
           // Monitoring Settings (mobile only)
           if (!kIsWeb)
             Card(
@@ -400,6 +247,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 16),
                   ..._buildSiteToggles(),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.web),
+                    title: const Text('Manage Custom Websites'),
+                    subtitle: const Text(
+                      'Add and configure custom websites to monitor',
+                    ),
+                    trailing: const Icon(Icons.arrow_forward_ios),
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const WebsiteManagementScreen(),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -496,182 +360,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     );
                   }).toList(),
             ),
-          ),
-    );
-  }
-
-  void _showItemsPerPageDialog() {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Items per page'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('Choose how many products to display per page:'),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<int>(
-                  value: _settings.itemsPerPage,
-                  items:
-                      [10, 20, 30, 50, 100]
-                          .map(
-                            (value) => DropdownMenuItem(
-                              value: value,
-                              child: Text('$value products'),
-                            ),
-                          )
-                          .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      _updateSettings((s) => s.copyWith(itemsPerPage: value));
-                    }
-                  },
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _saveSettings();
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          ),
-    );
-  }
-
-  void _showSortDialog() {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Sort Products'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('Sort by:'),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  value: _settings.sortBy,
-                  items:
-                      [
-                            {'value': 'name', 'label': 'Name'},
-                            {'value': 'lastChecked', 'label': 'Last Checked'},
-                            {'value': 'firstSeen', 'label': 'Date Added'},
-                            {'value': 'site', 'label': 'Site'},
-                            {'value': 'priceValue', 'label': 'Price'},
-                          ]
-                          .map(
-                            (item) => DropdownMenuItem(
-                              value: item['value'],
-                              child: Text(item['label']!),
-                            ),
-                          )
-                          .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      _updateSettings((s) => s.copyWith(sortBy: value));
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-                const Text('Order:'),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<bool>(
-                  value: _settings.sortAscending,
-                  items: const [
-                    DropdownMenuItem(
-                      value: true,
-                      child: Text('Ascending (A-Z, Low-High)'),
-                    ),
-                    DropdownMenuItem(
-                      value: false,
-                      child: Text('Descending (Z-A, High-Low)'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      _updateSettings((s) => s.copyWith(sortAscending: value));
-                    }
-                  },
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _saveSettings();
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          ),
-    );
-  }
-
-  void _showStorageLimitDialog() {
-    int tempLimit = _settings.maxStorageMB;
-
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Storage Limit'),
-            content: StatefulBuilder(
-              builder:
-                  (context, setState) => Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('Set maximum storage limit:'),
-                      const SizedBox(height: 16),
-                      Slider(
-                        value: tempLimit.toDouble(),
-                        min: 10,
-                        max: 500,
-                        divisions: 49,
-                        label: '${tempLimit}MB',
-                        onChanged: (value) {
-                          setState(() {
-                            tempLimit = value.round();
-                          });
-                        },
-                      ),
-                      Text('${tempLimit}MB'),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Estimated capacity: ${(tempLimit * 500).toStringAsFixed(0)} products',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      ),
-                    ],
-                  ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  _updateSettings((s) => s.copyWith(maxStorageMB: tempLimit));
-                  Navigator.pop(context);
-                  _saveSettings();
-                  _loadStorageInfo(); // Refresh storage info
-                },
-                child: const Text('Save'),
-              ),
-            ],
           ),
     );
   }

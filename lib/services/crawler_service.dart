@@ -58,6 +58,7 @@ class CrawlerService {
     _logger.logInfo('🚀 Starting crawl of all sites...');
     List<MatchaProduct> allProducts = [];
 
+    // Crawl built-in sites
     for (String siteKey in _siteConfigs.keys) {
       try {
         final config = _siteConfigs[siteKey]!;
@@ -76,8 +77,32 @@ class CrawlerService {
       } catch (e) {
         final siteName = _siteConfigs[siteKey]?.name ?? siteKey;
         _logger.logError('❌ Error crawling $siteName: $e', siteName: siteName);
-        print('Error crawling $siteKey: $e');
       }
+    }
+
+    // Crawl custom websites
+    try {
+      final customWebsites = await _db.getEnabledCustomWebsites();
+      for (CustomWebsite website in customWebsites) {
+        try {
+          _logger.logProgress(
+            '📡 Crawling ${website.name}...',
+            siteName: website.name,
+          );
+
+          List<MatchaProduct> siteProducts = await crawlCustomWebsite(website);
+          allProducts.addAll(siteProducts);
+
+          _logger.logSuccess(
+            '✅ Found ${siteProducts.length} products on ${website.name}',
+            siteName: website.name,
+          );
+        } catch (e) {
+          _logger.logError('❌ Error crawling ${website.name}: $e');
+        }
+      }
+    } catch (e) {
+      _logger.logError('❌ Error loading custom websites: $e');
     }
 
     _logger.logInfo(
@@ -186,6 +211,68 @@ class CrawlerService {
     return products;
   }
 
+  Future<List<MatchaProduct>> crawlCustomWebsite(CustomWebsite website) async {
+    List<MatchaProduct> products = [];
+    final client = http.Client();
+
+    try {
+      final response = await client
+          .get(
+            Uri.parse(website.baseUrl),
+            headers: {
+              'User-Agent':
+                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+              'Accept':
+                  'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+              'Accept-Language': 'en-US,en;q=0.5',
+              'Accept-Encoding': 'gzip, deflate',
+              'Connection': 'keep-alive',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache',
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        _logger.logInfo(
+          '📄 Page fetched successfully, parsing products...',
+          siteName: website.name,
+        );
+        products = await _parseCustomWebsiteProducts(response.body, website);
+
+        // Update test status on successful crawl
+        await _db.updateWebsiteTestStatus(website.id, 'success');
+      } else {
+        _logger.logError(
+          '🚫 Failed to fetch ${website.name}: HTTP ${response.statusCode}',
+          siteName: website.name,
+        );
+        await _db.updateWebsiteTestStatus(website.id, 'failed');
+      }
+    } catch (e) {
+      _logger.logError(
+        '💥 Network error fetching ${website.name}: $e',
+        siteName: website.name,
+      );
+      await _db.updateWebsiteTestStatus(website.id, 'failed');
+    } finally {
+      client.close();
+    }
+
+    // Save or update products
+    for (MatchaProduct product in products) {
+      await _db.insertProduct(product);
+
+      // Check for stock changes and send notifications
+      final existingProduct = await _db.getProduct(product.id);
+      if (existingProduct != null) {
+        await _checkStockChange(product);
+      }
+    }
+
+    return products;
+  }
+
   Future<List<MatchaProduct>> _parseProducts(
     String html,
     SiteConfig config,
@@ -255,6 +342,98 @@ class CrawlerService {
     }
 
     return products;
+  }
+
+  Future<List<MatchaProduct>> _parseCustomWebsiteProducts(
+    String html,
+    CustomWebsite website,
+  ) async {
+    final document = parse(html);
+    final productElements = document.querySelectorAll(website.productSelector);
+    List<MatchaProduct> products = [];
+
+    _logger.logProgress(
+      '🔍 Found ${productElements.length} product elements to parse...',
+      siteName: website.name,
+    );
+
+    for (Element productElement in productElements) {
+      try {
+        // Extract product information
+        final nameElement = productElement.querySelector(website.nameSelector);
+        final priceElement = productElement.querySelector(
+          website.priceSelector,
+        );
+        final linkElement = productElement.querySelector(website.linkSelector);
+
+        if (nameElement != null) {
+          String name = nameElement.text.trim();
+          String? price = priceElement?.text.trim();
+          String? href = linkElement?.attributes['href'];
+
+          // Determine stock status
+          bool isInStock = _determineCustomWebsiteStockStatus(
+            productElement,
+            website,
+          );
+
+          // Build full URL
+          String productUrl =
+              href != null
+                  ? (href.startsWith('http')
+                      ? href
+                      : _buildFullUrl(website.baseUrl, href))
+                  : website.baseUrl;
+
+          MatchaProduct product = MatchaProduct.create(
+            name: name,
+            site: website.name,
+            url: productUrl,
+            isInStock: isInStock,
+            price: price,
+          );
+
+          products.add(product);
+        }
+      } catch (e) {
+        _logger.logError('❌ Error parsing product element: $e');
+      }
+    }
+
+    return products;
+  }
+
+  bool _determineCustomWebsiteStockStatus(
+    Element productElement,
+    CustomWebsite website,
+  ) {
+    // If stock selector is provided, use it
+    if (website.stockSelector.isNotEmpty) {
+      final stockElement = productElement.querySelector(website.stockSelector);
+      return stockElement != null;
+    }
+
+    // Otherwise, check for common stock indicators in text
+    final elementText = productElement.text.toLowerCase();
+
+    // Check for out of stock indicators
+    if (elementText.contains('out of stock') ||
+        elementText.contains('sold out') ||
+        elementText.contains('unavailable') ||
+        elementText.contains('temporarily unavailable')) {
+      return false;
+    }
+
+    // Check for in stock indicators
+    if (elementText.contains('in stock') ||
+        elementText.contains('available') ||
+        elementText.contains('add to cart') ||
+        elementText.contains('buy now')) {
+      return true;
+    }
+
+    // Default to in stock if no clear indicators
+    return true;
   }
 
   bool _determineStockStatus(

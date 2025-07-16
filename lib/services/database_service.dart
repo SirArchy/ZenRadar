@@ -12,7 +12,7 @@ class DatabaseService {
   static DatabaseService get instance => _instance;
 
   Database? _database;
-  static const int _currentVersion = 2; // Increment for schema changes
+  static const int _currentVersion = 3; // Increment for schema changes
 
   Future<Database> get database async {
     if (kIsWeb) {
@@ -77,6 +77,23 @@ class DatabaseService {
       )
     ''');
 
+    await db.execute('''
+      CREATE TABLE custom_websites (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        baseUrl TEXT NOT NULL,
+        stockSelector TEXT NOT NULL,
+        productSelector TEXT NOT NULL,
+        nameSelector TEXT NOT NULL,
+        priceSelector TEXT NOT NULL,
+        linkSelector TEXT NOT NULL,
+        isEnabled INTEGER DEFAULT 1,
+        createdAt TEXT NOT NULL,
+        lastTested TEXT,
+        testStatus TEXT
+      )
+    ''');
+
     // Create indexes for better performance
     await db.execute('CREATE INDEX idx_site ON matcha_products(site)');
     await db.execute(
@@ -90,6 +107,9 @@ class DatabaseService {
     );
     await db.execute(
       'CREATE INDEX idx_discontinued ON matcha_products(isDiscontinued)',
+    );
+    await db.execute(
+      'CREATE INDEX idx_custom_website_enabled ON custom_websites(isEnabled)',
     );
   }
 
@@ -146,6 +166,29 @@ class DatabaseService {
       );
       await db.execute(
         'CREATE INDEX idx_discontinued ON matcha_products(isDiscontinued)',
+      );
+    }
+
+    if (oldVersion < 3) {
+      // Add custom websites table for version 3
+      await db.execute('''
+        CREATE TABLE custom_websites (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          baseUrl TEXT NOT NULL,
+          stockSelector TEXT NOT NULL,
+          productSelector TEXT NOT NULL,
+          nameSelector TEXT NOT NULL,
+          priceSelector TEXT NOT NULL,
+          linkSelector TEXT NOT NULL,
+          isEnabled INTEGER DEFAULT 1,
+          createdAt TEXT NOT NULL,
+          lastTested TEXT,
+          testStatus TEXT
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX idx_custom_website_enabled ON custom_websites(isEnabled)',
       );
     }
   }
@@ -430,6 +473,77 @@ class DatabaseService {
       'stock_history',
       where: 'timestamp < ?',
       whereArgs: [cutoffDate.toIso8601String()],
+    );
+  }
+
+  // Custom Website Management Methods
+  Future<void> insertCustomWebsite(CustomWebsite website) async {
+    final db = await database;
+    await db.insert(
+      'custom_websites',
+      website.toJson(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> updateCustomWebsite(CustomWebsite website) async {
+    final db = await database;
+    await db.update(
+      'custom_websites',
+      website.toJson(),
+      where: 'id = ?',
+      whereArgs: [website.id],
+    );
+  }
+
+  Future<void> deleteCustomWebsite(String id) async {
+    final db = await database;
+    await db.delete('custom_websites', where: 'id = ?', whereArgs: [id]);
+
+    // Also delete products from this website
+    await db.delete('matcha_products', where: 'site = ?', whereArgs: [id]);
+  }
+
+  Future<List<CustomWebsite>> getCustomWebsites() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('custom_websites');
+    return List.generate(maps.length, (i) {
+      return CustomWebsite.fromJson(maps[i]);
+    });
+  }
+
+  Future<List<CustomWebsite>> getEnabledCustomWebsites() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'custom_websites',
+      where: 'isEnabled = ?',
+      whereArgs: [1],
+    );
+    return List.generate(maps.length, (i) {
+      return CustomWebsite.fromJson(maps[i]);
+    });
+  }
+
+  Future<CustomWebsite?> getCustomWebsite(String id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'custom_websites',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isNotEmpty) {
+      return CustomWebsite.fromJson(maps.first);
+    }
+    return null;
+  }
+
+  Future<void> updateWebsiteTestStatus(String id, String status) async {
+    final db = await database;
+    await db.update(
+      'custom_websites',
+      {'lastTested': DateTime.now().toIso8601String(), 'testStatus': status},
+      where: 'id = ?',
+      whereArgs: [id],
     );
   }
 }

@@ -235,4 +235,44 @@ class WebDatabaseService {
       (history) => DateTime.parse(history['timestamp']).isBefore(cutoffDate),
     );
   }
+
+  // Custom Website Management Methods (Web Implementation)
+  final Map<String, CustomWebsite> _customWebsites = {};
+
+  Future<void> insertCustomWebsite(CustomWebsite website) async {
+    _customWebsites[website.id] = website;
+  }
+
+  Future<void> updateCustomWebsite(CustomWebsite website) async {
+    _customWebsites[website.id] = website;
+  }
+
+  Future<void> deleteCustomWebsite(String id) async {
+    _customWebsites.remove(id);
+
+    // Also delete products from this website
+    _products.removeWhere((key, product) => product.site == id);
+  }
+
+  Future<List<CustomWebsite>> getCustomWebsites() async {
+    return _customWebsites.values.toList();
+  }
+
+  Future<List<CustomWebsite>> getEnabledCustomWebsites() async {
+    return _customWebsites.values.where((w) => w.isEnabled).toList();
+  }
+
+  Future<CustomWebsite?> getCustomWebsite(String id) async {
+    return _customWebsites[id];
+  }
+
+  Future<void> updateWebsiteTestStatus(String id, String status) async {
+    final website = _customWebsites[id];
+    if (website != null) {
+      _customWebsites[id] = website.copyWith(
+        lastTested: DateTime.now(),
+        testStatus: status,
+      );
+    }
+  }
 }

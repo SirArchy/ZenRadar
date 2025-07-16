@@ -76,15 +76,6 @@ class SettingsService {
     );
   }
 
-  Future<bool> shouldShowOutOfStock() async {
-    final settings = await getSettings();
-    return settings.showOutOfStock;
-  }
-
-  Future<void> setShowOutOfStock(bool show) async {
-    await updateSettings((settings) => settings.copyWith(showOutOfStock: show));
-  }
-
   Future<String> getSortBy() async {
     final settings = await getSettings();
     return settings.sortBy;

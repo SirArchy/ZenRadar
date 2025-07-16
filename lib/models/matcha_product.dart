@@ -204,7 +204,6 @@ class UserSettings {
   final List<String> enabledSites;
   final int itemsPerPage; // Pagination
   final int maxStorageMB; // Storage limit in MB
-  final bool showOutOfStock; // Show/hide out of stock items
   final String sortBy; // "name", "price", "lastChecked", "site"
   final bool sortAscending;
 
@@ -217,7 +216,6 @@ class UserSettings {
     this.enabledSites = const ["tokichi", "marukyu", "ippodo"],
     this.itemsPerPage = 20,
     this.maxStorageMB = 100,
-    this.showOutOfStock = true,
     this.sortBy = "name",
     this.sortAscending = true,
   });
@@ -234,7 +232,6 @@ class UserSettings {
       ),
       itemsPerPage: json['itemsPerPage'] ?? 20,
       maxStorageMB: json['maxStorageMB'] ?? 100,
-      showOutOfStock: json['showOutOfStock'] ?? true,
       sortBy: json['sortBy'] ?? "name",
       sortAscending: json['sortAscending'] ?? true,
     );
@@ -250,7 +247,6 @@ class UserSettings {
       'enabledSites': enabledSites,
       'itemsPerPage': itemsPerPage,
       'maxStorageMB': maxStorageMB,
-      'showOutOfStock': showOutOfStock,
       'sortBy': sortBy,
       'sortAscending': sortAscending,
     };
@@ -265,7 +261,6 @@ class UserSettings {
     List<String>? enabledSites,
     int? itemsPerPage,
     int? maxStorageMB,
-    bool? showOutOfStock,
     String? sortBy,
     bool? sortAscending,
   }) {
@@ -278,7 +273,6 @@ class UserSettings {
       enabledSites: enabledSites ?? this.enabledSites,
       itemsPerPage: itemsPerPage ?? this.itemsPerPage,
       maxStorageMB: maxStorageMB ?? this.maxStorageMB,
-      showOutOfStock: showOutOfStock ?? this.showOutOfStock,
       sortBy: sortBy ?? this.sortBy,
       sortAscending: sortAscending ?? this.sortAscending,
     );
@@ -365,5 +359,102 @@ class StorageInfo {
     } else {
       return '$bytes B';
     }
+  }
+}
+
+class CustomWebsite {
+  final String id;
+  final String name;
+  final String baseUrl;
+  final String stockSelector;
+  final String productSelector;
+  final String nameSelector;
+  final String priceSelector;
+  final String linkSelector;
+  final bool isEnabled;
+  final DateTime createdAt;
+  final DateTime? lastTested;
+  final String? testStatus;
+
+  CustomWebsite({
+    required this.id,
+    required this.name,
+    required this.baseUrl,
+    required this.stockSelector,
+    required this.productSelector,
+    required this.nameSelector,
+    required this.priceSelector,
+    required this.linkSelector,
+    this.isEnabled = true,
+    required this.createdAt,
+    this.lastTested,
+    this.testStatus,
+  });
+
+  factory CustomWebsite.fromJson(Map<String, dynamic> json) {
+    return CustomWebsite(
+      id: json['id'],
+      name: json['name'],
+      baseUrl: json['baseUrl'],
+      stockSelector: json['stockSelector'],
+      productSelector: json['productSelector'],
+      nameSelector: json['nameSelector'],
+      priceSelector: json['priceSelector'],
+      linkSelector: json['linkSelector'],
+      isEnabled: json['isEnabled'] == 1,
+      createdAt: DateTime.parse(json['createdAt']),
+      lastTested:
+          json['lastTested'] != null
+              ? DateTime.parse(json['lastTested'])
+              : null,
+      testStatus: json['testStatus'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'baseUrl': baseUrl,
+      'stockSelector': stockSelector,
+      'productSelector': productSelector,
+      'nameSelector': nameSelector,
+      'priceSelector': priceSelector,
+      'linkSelector': linkSelector,
+      'isEnabled': isEnabled ? 1 : 0,
+      'createdAt': createdAt.toIso8601String(),
+      'lastTested': lastTested?.toIso8601String(),
+      'testStatus': testStatus,
+    };
+  }
+
+  CustomWebsite copyWith({
+    String? id,
+    String? name,
+    String? baseUrl,
+    String? stockSelector,
+    String? productSelector,
+    String? nameSelector,
+    String? priceSelector,
+    String? linkSelector,
+    bool? isEnabled,
+    DateTime? createdAt,
+    DateTime? lastTested,
+    String? testStatus,
+  }) {
+    return CustomWebsite(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      baseUrl: baseUrl ?? this.baseUrl,
+      stockSelector: stockSelector ?? this.stockSelector,
+      productSelector: productSelector ?? this.productSelector,
+      nameSelector: nameSelector ?? this.nameSelector,
+      priceSelector: priceSelector ?? this.priceSelector,
+      linkSelector: linkSelector ?? this.linkSelector,
+      isEnabled: isEnabled ?? this.isEnabled,
+      createdAt: createdAt ?? this.createdAt,
+      lastTested: lastTested ?? this.lastTested,
+      testStatus: testStatus ?? this.testStatus,
+    );
   }
 }
