@@ -1,0 +1,5 @@
+package com.zenradar.zenradar
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()
