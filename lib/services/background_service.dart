@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,8 +10,14 @@ import '../models/matcha_product.dart';
 import 'crawler_service.dart';
 import 'database_service.dart';
 import 'notification_service.dart';
+import 'web_background_service.dart';
 
 Future<void> initializeService() async {
+  // Skip background service initialization on web
+  if (kIsWeb) {
+    return;
+  }
+
   final service = FlutterBackgroundService();
 
   await service.configure(
@@ -37,7 +44,7 @@ void onStart(ServiceInstance service) async {
   DartPluginRegistrant.ensureInitialized();
 
   // Initialize services
-  await DatabaseService.instance.initDatabase();
+  await DatabaseService.platformService.initDatabase();
   await NotificationService.instance.init();
 
   // Get user settings
@@ -105,7 +112,7 @@ Future<void> _performStockCheck() async {
     print('Stock check completed. Found ${products.length} products.');
 
     // Clean up old history records
-    await DatabaseService.instance.deleteOldHistory();
+    await DatabaseService.platformService.deleteOldHistory();
   } catch (e) {
     print('Error during stock check: $e');
   }
@@ -157,25 +164,53 @@ class BackgroundServiceController {
 
   static BackgroundServiceController get instance => _instance;
 
-  final FlutterBackgroundService _service = FlutterBackgroundService();
+  // Use platform-specific service
+  dynamic get _service {
+    if (kIsWeb) {
+      return WebBackgroundServiceController.instance;
+    } else {
+      return FlutterBackgroundService();
+    }
+  }
 
   Future<void> startService() async {
-    await _service.startService();
+    if (kIsWeb) {
+      await (_service as WebBackgroundServiceController).startService();
+    } else {
+      await (_service as FlutterBackgroundService).startService();
+    }
   }
 
   Future<void> stopService() async {
-    _service.invoke('stopService');
+    if (kIsWeb) {
+      (_service as WebBackgroundServiceController).stopService();
+    } else {
+      (_service as FlutterBackgroundService).invoke('stopService');
+    }
   }
 
   Future<void> triggerManualCheck() async {
-    _service.invoke('manualCheck');
+    if (kIsWeb) {
+      await (_service as WebBackgroundServiceController).triggerManualCheck();
+    } else {
+      (_service as FlutterBackgroundService).invoke('manualCheck');
+    }
   }
 
   Future<void> updateSettings() async {
-    _service.invoke('updateSettings');
+    if (kIsWeb) {
+      await (_service as WebBackgroundServiceController).updateSettings();
+    } else {
+      (_service as FlutterBackgroundService).invoke('updateSettings');
+    }
   }
 
   Future<bool> isServiceRunning() async {
-    return await _service.isRunning();
+    if (kIsWeb) {
+      return await (_service as WebBackgroundServiceController)
+          .isServiceRunning();
+    } else {
+      return await (_service as FlutterBackgroundService).isRunning();
+    }
   }
 }

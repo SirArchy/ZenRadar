@@ -1,25 +1,36 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'services/notification_service.dart';
 import 'services/background_service.dart';
 import 'services/database_service.dart';
+import 'services/crawler_logger.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize services
-  await DatabaseService.instance.initDatabase();
-  await NotificationService.instance.init();
-  await initializeService();
+  await DatabaseService.platformService.initDatabase();
 
-  // Request permissions
-  await requestPermissions();
+  // Only initialize mobile-specific services on mobile platforms
+  if (!kIsWeb) {
+    await NotificationService.instance.init();
+    await initializeService();
+
+    // Request permissions (mobile only)
+    await requestPermissions();
+  }
+
+  // Initialize crawler logger (disabled by default)
+  CrawlerLogger.instance.setHeadMode(false);
 
   runApp(const ZenRadarApp());
 }
 
 Future<void> requestPermissions() async {
+  if (kIsWeb) return; // Skip permissions on web
+
   // Request notification permission
   await Permission.notification.isDenied.then((value) {
     if (value) {

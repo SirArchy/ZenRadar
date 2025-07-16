@@ -6,6 +6,7 @@ import 'package:html/dom.dart';
 import '../models/matcha_product.dart';
 import 'database_service.dart';
 import 'notification_service.dart';
+import 'crawler_logger.dart';
 
 class CrawlerService {
   static final CrawlerService _instance = CrawlerService._internal();
@@ -14,8 +15,9 @@ class CrawlerService {
 
   static CrawlerService get instance => _instance;
 
-  final DatabaseService _db = DatabaseService.instance;
+  final dynamic _db = DatabaseService.platformService;
   final NotificationService _notifications = NotificationService.instance;
+  final CrawlerLogger _logger = CrawlerLogger.instance;
 
   // Site configurations
   final Map<String, SiteConfig> _siteConfigs = {
@@ -50,17 +52,34 @@ class CrawlerService {
   };
 
   Future<List<MatchaProduct>> crawlAllSites() async {
+    _logger.logInfo('🚀 Starting crawl of all sites...');
     List<MatchaProduct> allProducts = [];
 
     for (String siteKey in _siteConfigs.keys) {
       try {
+        final config = _siteConfigs[siteKey]!;
+        _logger.logProgress(
+          '📡 Crawling ${config.name}...',
+          siteName: config.name,
+        );
+
         List<MatchaProduct> siteProducts = await crawlSite(siteKey);
         allProducts.addAll(siteProducts);
+
+        _logger.logSuccess(
+          '✅ Found ${siteProducts.length} products on ${config.name}',
+          siteName: config.name,
+        );
       } catch (e) {
+        final siteName = _siteConfigs[siteKey]?.name ?? siteKey;
+        _logger.logError('❌ Error crawling $siteName: $e', siteName: siteName);
         print('Error crawling $siteKey: $e');
       }
     }
 
+    _logger.logInfo(
+      '🏁 Crawl completed. Total products found: ${allProducts.length}',
+    );
     return allProducts;
   }
 
@@ -73,6 +92,11 @@ class CrawlerService {
     List<MatchaProduct> products = [];
 
     try {
+      _logger.logProgress(
+        '🌐 Fetching ${config.name} page...',
+        siteName: config.name,
+      );
+
       // Make HTTP request with proper headers
       final response = await http.get(
         Uri.parse(config.baseUrl),
@@ -88,11 +112,23 @@ class CrawlerService {
       );
 
       if (response.statusCode == 200) {
+        _logger.logInfo(
+          '📄 Page fetched successfully, parsing products...',
+          siteName: config.name,
+        );
         products = await _parseProducts(response.body, config, siteKey);
       } else {
+        _logger.logError(
+          '🚫 Failed to fetch ${config.name}: HTTP ${response.statusCode}',
+          siteName: config.name,
+        );
         print('Failed to fetch ${config.name}: ${response.statusCode}');
       }
     } catch (e) {
+      _logger.logError(
+        '💥 Network error fetching ${config.name}: $e',
+        siteName: config.name,
+      );
       print('Error fetching ${config.name}: $e');
     }
 
@@ -108,6 +144,11 @@ class CrawlerService {
     final productElements = document.querySelectorAll(config.productSelector);
     List<MatchaProduct> products = [];
 
+    _logger.logProgress(
+      '🔍 Found ${productElements.length} product elements to parse...',
+      siteName: config.name,
+    );
+
     for (Element productElement in productElements) {
       try {
         // Extract product information
@@ -122,9 +163,6 @@ class CrawlerService {
           String? href = linkElement?.attributes['href'];
           bool isInStock = stockElement != null;
 
-          // Generate unique ID
-          String productId = '${siteKey}_${name.hashCode}';
-
           // Build full URL
           String productUrl =
               href != null
@@ -133,22 +171,29 @@ class CrawlerService {
                       : _buildFullUrl(config.baseUrl, href))
                   : config.baseUrl;
 
-          MatchaProduct product = MatchaProduct(
-            id: productId,
+          MatchaProduct product = MatchaProduct.create(
             name: name,
             site: config.name,
             url: productUrl,
             isInStock: isInStock,
-            lastChecked: DateTime.now(),
             price: price,
           );
 
           products.add(product);
 
+          _logger.logProgress(
+            '📦 Parsed: $name - ${isInStock ? "✅ In Stock" : "❌ Out of Stock"}',
+            siteName: config.name,
+          );
+
           // Check for stock changes
           await _checkStockChange(product);
         }
       } catch (e) {
+        _logger.logError(
+          '⚠️ Error parsing product element: $e',
+          siteName: config.name,
+        );
         print('Error parsing product element: $e');
       }
     }
@@ -170,6 +215,11 @@ class CrawlerService {
       // Check if stock status changed
       if (!existingProduct.isInStock && newProduct.isInStock) {
         // Product came back in stock - send notification
+        _logger.logSuccess(
+          '🎉 STOCK ALERT: ${newProduct.name} is back in stock!',
+          siteName: newProduct.site,
+        );
+
         await _notifications.showStockAlert(
           productName: newProduct.name,
           siteName: newProduct.site,
@@ -182,18 +232,15 @@ class CrawlerService {
         // Product went out of stock
         await _db.recordStockChange(newProduct.id, false);
       }
-
-      // Update product in database
-      await _db.updateProduct(newProduct);
     } else {
-      // New product - insert into database
-      await _db.insertProduct(newProduct);
-
-      // If it's in stock, optionally send notification for new product
+      // New product - record initial stock status
       if (newProduct.isInStock) {
         await _db.recordStockChange(newProduct.id, true);
       }
     }
+
+    // Insert or update product in database (this handles both cases)
+    await _db.insertOrUpdateProduct(newProduct);
   }
 
   Future<void> testCrawl() async {

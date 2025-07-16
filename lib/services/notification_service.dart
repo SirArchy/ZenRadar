@@ -1,6 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'web_notification_service.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -13,6 +14,11 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
+    if (kIsWeb) {
+      await WebNotificationService.instance.init();
+      return;
+    }
+
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
@@ -64,6 +70,15 @@ class NotificationService {
     required String siteName,
     required String productId,
   }) async {
+    if (kIsWeb) {
+      await WebNotificationService.instance.showStockAlert(
+        productName: productName,
+        siteName: siteName,
+        productId: productId,
+      );
+      return;
+    }
+
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
           'stock_alerts',
@@ -103,6 +118,14 @@ class NotificationService {
     required List<String> productNames,
     required String siteName,
   }) async {
+    if (kIsWeb) {
+      await WebNotificationService.instance.showSummaryNotification(
+        productNames: productNames,
+        siteName: siteName,
+      );
+      return;
+    }
+
     if (productNames.isEmpty) return;
 
     String title = '🍵 New Matcha Available!';
@@ -155,6 +178,11 @@ class NotificationService {
   }
 
   Future<void> showTestNotification() async {
+    if (kIsWeb) {
+      await WebNotificationService.instance.showTestNotification();
+      return;
+    }
+
     await showStockAlert(
       productName: 'Test Matcha',
       siteName: 'Test Site',
@@ -163,10 +191,20 @@ class NotificationService {
   }
 
   Future<void> cancelAll() async {
+    if (kIsWeb) {
+      await WebNotificationService.instance.cancelAll();
+      return;
+    }
+
     await _flutterLocalNotificationsPlugin.cancelAll();
   }
 
   Future<void> cancelNotification(int id) async {
+    if (kIsWeb) {
+      await WebNotificationService.instance.cancelNotification(id);
+      return;
+    }
+
     await _flutterLocalNotificationsPlugin.cancel(id);
   }
 }
