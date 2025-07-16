@@ -6,6 +6,7 @@ import '../models/matcha_product.dart';
 import '../services/database_service.dart';
 import '../services/background_service.dart';
 import '../services/settings_service.dart';
+import '../services/crawler_service.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_filters.dart';
 import 'settings_screen.dart';
@@ -30,6 +31,10 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentPage = 1;
   UserSettings _userSettings = UserSettings();
 
+  // Search state
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   // Available filter options
   List<String> _availableSites = ['All'];
   List<String> _availableCategories = [];
@@ -46,6 +51,12 @@ class _HomeScreenState extends State<HomeScreen> {
       _checkServiceStatus();
     }
     _loadStorageInfo();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSettings() async {
@@ -126,8 +137,14 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      // Trigger lightweight check via background service (existing products only)
-      await BackgroundServiceController.instance.triggerManualCheck();
+      // On web or when testing: Direct crawler call
+      if (kIsWeb) {
+        final crawler = CrawlerService.instance;
+        await crawler.crawlAllSites();
+      } else {
+        // On mobile: Use background service
+        await BackgroundServiceController.instance.triggerManualCheck();
+      }
 
       // Wait a moment for the check to complete
       await Future.delayed(const Duration(seconds: 2));
@@ -152,14 +169,18 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      await Future.delayed(const Duration(seconds: 5));
+      // Perform a comprehensive crawl of all sites
+      final crawler = CrawlerService.instance;
+      List<MatchaProduct> products = await crawler.crawlAllSites();
+
+      _showSuccessSnackBar(
+        'Full discovery completed! Found ${products.length} products.',
+      );
 
       // Reload products and options
       await _loadProducts();
       await _loadFilterOptions();
       await _loadStorageInfo();
-
-      _showSuccessSnackBar('Full discovery completed! Found new products.');
     } catch (e) {
       _showErrorSnackBar('Failed to perform full check: $e');
     } finally {
@@ -192,6 +213,21 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadProducts();
   }
 
+  void _onSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+      // Update the filter with the search query
+      _filter = _filter.copyWith(searchTerm: query);
+      _currentPage = 1; // Reset to first page when search changes
+    });
+    _loadProducts();
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    _onSearchChanged('');
+  }
+
   void _goToPage(int page) {
     setState(() {
       _currentPage = page;
@@ -218,25 +254,6 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('ZenRadar'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Quick Stock Check',
-            onPressed:
-                _isLoading || _isFullCheckRunning
-                    ? null
-                    : _performLightweightCheck,
-          ),
-          IconButton(
-            icon: Icon(
-              _showFilters ? Icons.filter_list : Icons.filter_list_outlined,
-            ),
-            tooltip: 'Filters',
-            onPressed: () {
-              setState(() {
-                _showFilters = !_showFilters;
-              });
-            },
-          ),
           if (_userSettings.headModeEnabled && !kIsWeb)
             IconButton(
               icon: const Icon(Icons.timeline),
@@ -271,6 +288,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Storage info banner
           if (_storageInfo != null) _buildStorageInfoBanner(),
+
+          // Search bar
+          _buildSearchBar(),
 
           // Filters panel
           if (_showFilters)
@@ -328,6 +348,67 @@ class _HomeScreenState extends State<HomeScreen> {
           ElevatedButton(
             onPressed: _toggleBackgroundService,
             child: Text(_isServiceRunning ? 'Stop' : 'Start'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
+              decoration: InputDecoration(
+                hintText: 'Search matcha products...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon:
+                    _searchQuery.isNotEmpty
+                        ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: _clearSearch,
+                        )
+                        : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                  borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 12.0,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Filter button
+          IconButton(
+            icon: Icon(
+              _showFilters ? Icons.filter_list : Icons.filter_list_outlined,
+              color: _showFilters ? Theme.of(context).primaryColor : null,
+            ),
+            tooltip: 'Filters',
+            onPressed: () {
+              setState(() {
+                _showFilters = !_showFilters;
+              });
+            },
           ),
         ],
       ),
