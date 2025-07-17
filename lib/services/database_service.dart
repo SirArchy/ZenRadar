@@ -14,7 +14,7 @@ class DatabaseService {
   static DatabaseService get instance => _instance;
 
   Database? _database;
-  static const int _currentVersion = 3; // Increment for schema changes
+  static const int _currentVersion = 4; // Increment for schema changes
 
   Future<Database> get database async {
     if (kIsWeb) {
@@ -56,6 +56,7 @@ class DatabaseService {
         url TEXT NOT NULL,
         isInStock INTEGER NOT NULL,
         isDiscontinued INTEGER DEFAULT 0,
+        missedScans INTEGER DEFAULT 0,
         lastChecked TEXT NOT NULL,
         firstSeen TEXT NOT NULL,
         price TEXT,
@@ -191,6 +192,13 @@ class DatabaseService {
       ''');
       await db.execute(
         'CREATE INDEX idx_custom_website_enabled ON custom_websites(isEnabled)',
+      );
+    }
+
+    if (oldVersion < 4) {
+      // Add missedScans column for version 4
+      await db.execute(
+        'ALTER TABLE matcha_products ADD COLUMN missedScans INTEGER DEFAULT 0',
       );
     }
   }

@@ -5,8 +5,57 @@ import 'matcha_icon.dart';
 class ProductCard extends StatelessWidget {
   final MatchaProduct product;
   final VoidCallback? onTap;
+  final String? preferredCurrency;
 
-  const ProductCard({super.key, required this.product, this.onTap});
+  const ProductCard({
+    super.key,
+    required this.product,
+    this.onTap,
+    this.preferredCurrency = 'EUR',
+  });
+
+  /// Extracts the price for the preferred currency from a multi-currency price string
+  String? _extractPriceForCurrency(String? priceString, String currency) {
+    if (priceString == null || priceString.isEmpty) return null;
+
+    // Common currency symbols and patterns
+    final Map<String, List<String>> currencyPatterns = {
+      'EUR': ['€', 'EUR'],
+      'USD': ['\$', 'USD'],
+      'JPY': ['¥', '円', 'JPY'],
+      'GBP': ['£', 'GBP'],
+      'CHF': ['CHF'],
+      'CAD': ['CAD'],
+      'AUD': ['AUD'],
+    };
+
+    final patterns = currencyPatterns[currency] ?? [currency];
+
+    // Split by common separators and look for the currency
+    final parts = priceString.split(RegExp(r'[|,;/\n\r]+'));
+
+    for (final part in parts) {
+      final trimmed = part.trim();
+      if (trimmed.isEmpty) continue;
+
+      // Check if this part contains our currency
+      for (final pattern in patterns) {
+        if (trimmed.contains(pattern)) {
+          return trimmed;
+        }
+      }
+    }
+
+    // If no specific currency found, return the first non-empty part
+    for (final part in parts) {
+      final trimmed = part.trim();
+      if (trimmed.isNotEmpty) {
+        return trimmed;
+      }
+    }
+
+    return priceString;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +122,11 @@ class ProductCard extends StatelessWidget {
                       const Spacer(),
                       if (product.price != null) ...[
                         Text(
-                          product.price!,
+                          _extractPriceForCurrency(
+                                product.price!,
+                                preferredCurrency ?? 'EUR',
+                              ) ??
+                              product.price!,
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 14,

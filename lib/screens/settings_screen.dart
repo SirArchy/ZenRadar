@@ -44,23 +44,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _saveSettings() async {
-    try {
-      await SettingsService.instance.saveSettings(_settings);
-
-      // Notify background service of settings update
-      await BackgroundServiceController.instance.updateSettings();
-
-      _showSuccessSnackBar('Settings saved successfully');
-    } catch (e) {
-      _showErrorSnackBar('Failed to save settings: $e');
-    }
-  }
-
-  void _updateSettings(UserSettings Function(UserSettings) updater) {
+  void _updateSettings(UserSettings Function(UserSettings) updater) async {
     setState(() {
       _settings = updater(_settings);
     });
+
+    // Auto-save settings immediately
+    try {
+      await SettingsService.instance.saveSettings(_settings);
+      // Notify background service of settings update
+      await BackgroundServiceController.instance.updateSettings();
+    } catch (e) {
+      _showErrorSnackBar('Failed to save settings: $e');
+    }
   }
 
   void _showErrorSnackBar(String message) {
@@ -91,9 +87,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
-          IconButton(icon: const Icon(Icons.save), onPressed: _saveSettings),
-        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
@@ -143,67 +136,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
 
           if (!kIsWeb) const SizedBox(height: 16),
-
-          // Debug Settings
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Debug Mode',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  SwitchListTile(
-                    title: const Text('Head Mode'),
-                    subtitle: const Text(
-                      'Show crawler activity and progress in real-time',
-                    ),
-                    value: _settings.headModeEnabled,
-                    onChanged: (value) {
-                      _updateSettings(
-                        (s) => s.copyWith(headModeEnabled: value),
-                      );
-                    },
-                  ),
-                  if (_settings.headModeEnabled) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
-                        border: Border.all(color: Colors.orange.shade200),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.info,
-                            color: Colors.orange.shade700,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Head mode shows detailed crawler activity. This may impact performance.',
-                              style: TextStyle(
-                                color: Colors.orange.shade700,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
 
           // Background Service Status (mobile only)
           if (!kIsWeb) _buildBackgroundServiceStatus(),
@@ -278,6 +210,68 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           if (!kIsWeb) const SizedBox(height: 16),
 
+          // Background Service Testing (mobile only)
+          if (!kIsWeb)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Background Service Testing',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ListTile(
+                      leading: const Icon(Icons.bug_report),
+                      title: const Text('Test Manual Check'),
+                      subtitle: const Text(
+                        'Trigger immediate background check',
+                      ),
+                      trailing: const Icon(Icons.play_arrow),
+                      onTap: () => _testManualCheck(),
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.schedule),
+                      title: const Text('Test Active Hours'),
+                      subtitle: const Text(
+                        'Check if current time is within active hours',
+                      ),
+                      trailing: const Icon(Icons.info),
+                      onTap: () => _testActiveHours(),
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.timer),
+                      title: const Text('View Timer Info'),
+                      subtitle: const Text(
+                        'Check current background service frequency',
+                      ),
+                      trailing: const Icon(Icons.info),
+                      onTap: () => _showTimerInfo(),
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.refresh),
+                      title: const Text('Force Settings Update'),
+                      subtitle: const Text(
+                        'Send settings update to background service',
+                      ),
+                      trailing: const Icon(Icons.send),
+                      onTap: () => _updateBackgroundSettings(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          if (!kIsWeb) const SizedBox(height: 16),
+
           // Site Settings
           Card(
             child: Padding(
@@ -290,7 +284,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
-                  ..._buildSiteToggles(),
+                  ListTile(
+                    leading: const Icon(Icons.language),
+                    title: const Text('Built-in Websites'),
+                    subtitle: Text(
+                      '${_settings.enabledSites.where((site) => _getBuiltInSites().any((builtIn) => builtIn['key'] == site)).length} of ${_getBuiltInSites().length} enabled',
+                    ),
+                    trailing: const Icon(Icons.arrow_forward_ios),
+                    onTap: () => _showBuiltInWebsitesDialog(),
+                  ),
                   const Divider(),
                   ListTile(
                     leading: const Icon(Icons.web),
@@ -307,6 +309,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       );
                     },
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Display Settings
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Display Settings',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    leading: const Icon(Icons.attach_money),
+                    title: const Text('Preferred Currency'),
+                    subtitle: Text(
+                      'Show prices in ${_settings.preferredCurrency}',
+                    ),
+                    trailing: const Icon(Icons.edit),
+                    onTap: () => _showCurrencyDialog(),
                   ),
                 ],
               ),
@@ -338,7 +368,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     leading: Icon(Icons.language),
                     title: Text('Monitored Sites'),
                     subtitle: Text(
-                      'Tokichi Global, Marukyu-Koyamaen, Ippodo Tea',
+                      'Nakamura Tokichi, Marukyu-Koyamaen, Ippodo Tea,\nYoshi En, Matcha Kāru, Sho-Cha, Sazen Tea,\nMamecha, Enjoyemeri + Custom websites',
                     ),
                   ),
                 ],
@@ -350,33 +380,152 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  List<Widget> _buildSiteToggles() {
-    const sites = [
-      {'key': 'tokichi', 'name': 'Tokichi Global'},
-      {'key': 'marukyu', 'name': 'Marukyu-Koyamaen'},
-      {'key': 'ippodo', 'name': 'Ippodo Tea'},
+  List<Map<String, String>> _getBuiltInSites() {
+    return [
+      {
+        'key': 'tokichi',
+        'name': 'Nakamura Tokichi',
+        'url': 'global.tokichi.jp',
+      },
+      {
+        'key': 'marukyu',
+        'name': 'Marukyu-Koyamaen',
+        'url': 'marukyu-koyamaen.co.jp',
+      },
+      {'key': 'ippodo', 'name': 'Ippodo Tea', 'url': 'global.ippodo-tea.co.jp'},
+      {'key': 'yoshien', 'name': 'Yoshi En', 'url': 'yoshien.co.jp'},
+      {'key': 'matcha-karu', 'name': 'Matcha Kāru', 'url': 'matchakaru.com'},
+      {'key': 'sho-cha', 'name': 'Sho-Cha', 'url': 'sho-cha.com'},
+      {'key': 'sazentea', 'name': 'Sazen Tea', 'url': 'sazentea.com'},
+      {'key': 'mamecha', 'name': 'Mamecha', 'url': 'mamecha.co.jp'},
+      {'key': 'enjoyemeri', 'name': 'Enjoyemeri', 'url': 'enjoyemeri.com'},
     ];
+  }
 
-    return sites.map((site) {
-      bool isEnabled = _settings.enabledSites.contains(site['key']);
-      return SwitchListTile(
-        title: Text(site['name']!),
-        value: isEnabled,
-        onChanged: (value) {
-          setState(() {
-            List<String> newEnabledSites = List.from(_settings.enabledSites);
-            if (value) {
-              if (!newEnabledSites.contains(site['key'])) {
-                newEnabledSites.add(site['key']!);
-              }
-            } else {
-              newEnabledSites.remove(site['key']);
-            }
-            _settings = _settings.copyWith(enabledSites: newEnabledSites);
-          });
-        },
-      );
-    }).toList();
+  void _showBuiltInWebsitesDialog() {
+    final sites = _getBuiltInSites();
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setDialogState) => AlertDialog(
+                  title: const Row(
+                    children: [
+                      Icon(Icons.language),
+                      SizedBox(width: 8),
+                      Text('Built-in Matcha Websites'),
+                    ],
+                  ),
+                  content: SizedBox(
+                    width: double.maxFinite,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Enable or disable monitoring for built-in matcha websites:',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        const SizedBox(height: 16),
+                        Flexible(
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: sites.length,
+                            itemBuilder: (context, index) {
+                              final site = sites[index];
+                              final isEnabled = _settings.enabledSites.contains(
+                                site['key'],
+                              );
+
+                              return SwitchListTile(
+                                title: Text(site['name']!),
+                                subtitle: Text(
+                                  site['url']!,
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                value: isEnabled,
+                                onChanged: (value) {
+                                  _updateSettings((settings) {
+                                    List<String> newEnabledSites = List.from(
+                                      settings.enabledSites,
+                                    );
+                                    if (value) {
+                                      if (!newEnabledSites.contains(
+                                        site['key'],
+                                      )) {
+                                        newEnabledSites.add(site['key']!);
+                                      }
+                                    } else {
+                                      newEnabledSites.remove(site['key']);
+                                    }
+                                    return settings.copyWith(
+                                      enabledSites: newEnabledSites,
+                                    );
+                                  });
+                                  setDialogState(() {}); // Update dialog state
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        // Enable all sites
+                        _updateSettings((settings) {
+                          final allSiteKeys =
+                              sites.map((site) => site['key']!).toList();
+                          List<String> newEnabledSites = List.from(
+                            settings.enabledSites,
+                          );
+                          for (final key in allSiteKeys) {
+                            if (!newEnabledSites.contains(key)) {
+                              newEnabledSites.add(key);
+                            }
+                          }
+                          return settings.copyWith(
+                            enabledSites: newEnabledSites,
+                          );
+                        });
+                        setDialogState(() {});
+                      },
+                      child: const Text('Enable All'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        // Disable all built-in sites
+                        _updateSettings((settings) {
+                          final allSiteKeys =
+                              sites.map((site) => site['key']!).toList();
+                          List<String> newEnabledSites = List.from(
+                            settings.enabledSites,
+                          );
+                          newEnabledSites.removeWhere(
+                            (key) => allSiteKeys.contains(key),
+                          );
+                          return settings.copyWith(
+                            enabledSites: newEnabledSites,
+                          );
+                        });
+                        setDialogState(() {});
+                      },
+                      child: const Text('Disable All'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Done'),
+                    ),
+                  ],
+                ),
+          ),
+    );
   }
 
   void _showFrequencyDialog() {
@@ -395,11 +544,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     value: minutes,
                     groupValue: _settings.checkFrequencyMinutes,
                     onChanged: (value) {
-                      setState(() {
-                        _settings = _settings.copyWith(
-                          checkFrequencyMinutes: value!,
-                        );
-                      });
+                      _updateSettings(
+                        (settings) =>
+                            settings.copyWith(checkFrequencyMinutes: value!),
+                      );
                       Navigator.pop(context);
                     },
                   );
@@ -412,17 +560,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     value: minutes,
                     groupValue: _settings.checkFrequencyMinutes,
                     onChanged: (value) {
-                      setState(() {
-                        _settings = _settings.copyWith(
-                          checkFrequencyMinutes: value!,
-                        );
-                      });
+                      _updateSettings(
+                        (settings) =>
+                            settings.copyWith(checkFrequencyMinutes: value!),
+                      );
                       Navigator.pop(context);
                     },
                   );
                 }),
               ],
             ),
+          ),
+    );
+  }
+
+  void _showCurrencyDialog() {
+    const currencies = [
+      {'code': 'EUR', 'name': 'Euro (€)', 'symbol': '€'},
+      {'code': 'USD', 'name': 'US Dollar (\$)', 'symbol': '\$'},
+      {'code': 'JPY', 'name': 'Japanese Yen (¥)', 'symbol': '¥'},
+      {'code': 'GBP', 'name': 'British Pound (£)', 'symbol': '£'},
+      {'code': 'CHF', 'name': 'Swiss Franc (CHF)', 'symbol': 'CHF'},
+      {'code': 'CAD', 'name': 'Canadian Dollar (CAD)', 'symbol': 'CAD'},
+      {'code': 'AUD', 'name': 'Australian Dollar (AUD)', 'symbol': 'AUD'},
+    ];
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Preferred Currency'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Select your preferred currency for price display:',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 16),
+                  Flexible(
+                    child: ListView(
+                      shrinkWrap: true,
+                      children:
+                          currencies.map((currency) {
+                            return RadioListTile<String>(
+                              title: Text(currency['name']!),
+                              value: currency['code']!,
+                              groupValue: _settings.preferredCurrency,
+                              onChanged: (value) {
+                                _updateSettings(
+                                  (settings) => settings.copyWith(
+                                    preferredCurrency: value!,
+                                  ),
+                                );
+                                Navigator.pop(context);
+                                _showSuccessSnackBar(
+                                  'Currency updated to ${currency['name']}',
+                                );
+                              },
+                            );
+                          }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+            ],
           ),
     );
   }
@@ -522,12 +732,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         final newStartTime = _formatTimeOfDay(startTime);
                         final newEndTime = _formatTimeOfDay(endTime);
 
-                        setState(() {
-                          _settings = _settings.copyWith(
+                        _updateSettings(
+                          (settings) => settings.copyWith(
                             startTime: newStartTime,
                             endTime: newEndTime,
-                          );
-                        });
+                          ),
+                        );
 
                         await SettingsService.instance.setActiveHours(
                           newStartTime,
@@ -663,5 +873,132 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  // Background Service Testing Methods
+  Future<void> _testManualCheck() async {
+    try {
+      await BackgroundServiceController.instance.triggerManualCheck();
+      _showSuccessSnackBar(
+        'Manual check triggered! Check notifications for results.',
+      );
+    } catch (e) {
+      _showErrorSnackBar('Failed to trigger manual check: $e');
+    }
+  }
+
+  Future<void> _testActiveHours() async {
+    try {
+      final isWithinHours =
+          await SettingsService.instance.isWithinActiveHours();
+      final now = DateTime.now();
+      final timeStr =
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+      showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: const Text('Active Hours Test'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Current Time: $timeStr'),
+                  Text(
+                    'Active Hours: ${_settings.startTime} - ${_settings.endTime}',
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(
+                        isWithinHours ? Icons.check_circle : Icons.cancel,
+                        color: isWithinHours ? Colors.green : Colors.red,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        isWithinHours
+                            ? 'Within Active Hours'
+                            : 'Outside Active Hours',
+                        style: TextStyle(
+                          color: isWithinHours ? Colors.green : Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    isWithinHours
+                        ? 'Background checks will run automatically'
+                        : 'Background checks are paused',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+      );
+    } catch (e) {
+      _showErrorSnackBar('Failed to check active hours: $e');
+    }
+  }
+
+  void _showTimerInfo() {
+    final frequencyText =
+        _settings.checkFrequencyMinutes >= 60
+            ? '${_settings.checkFrequencyMinutes ~/ 60} hour${_settings.checkFrequencyMinutes ~/ 60 == 1 ? '' : 's'}'
+            : '${_settings.checkFrequencyMinutes} minute${_settings.checkFrequencyMinutes == 1 ? '' : 's'}';
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Background Service Timer'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Check Frequency: Every $frequencyText'),
+                Text(
+                  'Active Hours: ${_settings.startTime} - ${_settings.endTime}',
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'How it works:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '• Timer runs continuously in background\n'
+                  '• Checks are only performed within active hours\n'
+                  '• Outside active hours, timer still runs but skips checks\n'
+                  '• Manual checks ignore active hours',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _updateBackgroundSettings() async {
+    try {
+      await BackgroundServiceController.instance.updateSettings();
+      _showSuccessSnackBar('Settings update sent to background service');
+    } catch (e) {
+      _showErrorSnackBar('Failed to update background settings: $e');
+    }
   }
 }

@@ -4,7 +4,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'services/notification_service.dart';
 import 'services/background_service.dart';
 import 'services/database_service.dart';
-import 'services/crawler_logger.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
@@ -21,9 +20,6 @@ void main() async {
     // Request permissions (mobile only)
     await requestPermissions();
   }
-
-  // Initialize crawler logger (disabled by default)
-  CrawlerLogger.instance.setHeadMode(false);
 
   runApp(const ZenRadarApp());
 }

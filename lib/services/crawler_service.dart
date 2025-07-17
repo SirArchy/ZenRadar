@@ -8,6 +8,7 @@ import '../models/matcha_product.dart';
 import 'database_service.dart';
 import 'notification_service.dart';
 import 'crawler_logger.dart';
+import 'settings_service.dart';
 
 class CrawlerService {
   static final CrawlerService _instance = CrawlerService._internal();
@@ -35,7 +36,7 @@ class CrawlerService {
     'marukyu': SiteConfig(
       name: 'Marukyu-Koyamaen',
       baseUrl:
-          'https://www.marukyu-koyamaen.co.jp/english/shop/products/catalog/matcha',
+          'https://www.marukyu-koyamaen.co.jp/english/shop/products/catalog/matcha?currency=USD',
       stockSelector:
           '.cart-form button:not([disabled]), .add-to-cart:not(.disabled)',
       productSelector: '.item, .product-item, .product',
@@ -56,18 +57,86 @@ class CrawlerService {
           '.price__current .price-item--regular, .price .price-item, .price, .cost',
       linkSelector: '.card__heading a, h3 a, .product-link, a',
     ),
+    'yoshien': SiteConfig(
+      name: 'Yoshi En',
+      baseUrl: 'https://www.yoshien.com/matcha/',
+      stockSelector: '.price', // If price is present, item is in stock
+      productSelector: '.product, .item, .product-item',
+      nameSelector: 'h3 a, .product-title a, .name a',
+      priceSelector: '.price, .angebotspreis, .product-price',
+      linkSelector: 'a',
+    ),
+    'matcha-karu': SiteConfig(
+      name: 'Matcha Kāru',
+      baseUrl: 'https://matcha-karu.com/collections/matcha-tee',
+      stockSelector:
+          '.angebotspreis, .price', // If price is present, item is in stock
+      productSelector: '.product-item, .card, .product',
+      nameSelector: '.product-title, h3, .card-title',
+      priceSelector: '.angebotspreis, .price, .product-price',
+      linkSelector: 'a',
+    ),
+    'sho-cha': SiteConfig(
+      name: 'Sho-Cha',
+      baseUrl: 'https://www.sho-cha.com/teeshop',
+      stockSelector: '.add-to-cart, .price',
+      productSelector: '.product, .item, .product-item',
+      nameSelector: '.product-title, h3, .name',
+      priceSelector: '.price, .product-price, .cost',
+      linkSelector: 'a',
+    ),
+    'sazentea': SiteConfig(
+      name: 'Sazen Tea',
+      baseUrl: 'https://www.sazentea.com/en/products/c21-matcha',
+      stockSelector: 'form[action*="add-to-basket"], .add-to-cart',
+      productSelector: '.product, .item',
+      nameSelector: 'a[href*="/products/"]',
+      priceSelector: '.price, .cost',
+      linkSelector: 'a[href*="/products/"]',
+    ),
+    'mamecha': SiteConfig(
+      name: 'Mamecha',
+      baseUrl: 'https://www.mamecha.com/online-shopping-1/',
+      stockSelector: '.add-to-cart, .price',
+      productSelector: '.product, .item, .product-item',
+      nameSelector: '.product-title, h3, .name',
+      priceSelector: '.price, .product-price, .cost',
+      linkSelector: 'a',
+    ),
+    'enjoyemeri': SiteConfig(
+      name: 'Enjoyemeri',
+      baseUrl: 'https://www.enjoyemeri.com/collections/shop-all',
+      stockSelector: '.add-to-cart, .price',
+      productSelector: '.product-item, .card, .product',
+      nameSelector: '.product-title, .card-title, h3',
+      priceSelector: '.price, .product-price, .cost',
+      linkSelector: 'a',
+    ),
   };
 
   Future<List<MatchaProduct>> crawlAllSites() async {
     _logger.logInfo('🚀 Starting comprehensive crawl of all sites...');
     List<MatchaProduct> allProducts = [];
 
+    // Get user settings to check which sites are enabled
+    final userSettings = await SettingsService.instance.getSettings();
+    final enabledSiteKeys = userSettings.enabledSites;
+
+    _logger.logInfo('📋 Enabled sites: ${enabledSiteKeys.join(', ')}');
+
     // Get existing products to track what we find vs what we don't
     List<MatchaProduct> existingProducts = await _db.getAllProducts();
     Set<String> foundProductIds = {};
 
-    // Crawl built-in sites
+    // Crawl built-in sites (only enabled ones)
     for (String siteKey in _siteConfigs.keys) {
+      // Skip sites that are not enabled in user settings
+      if (!enabledSiteKeys.contains(siteKey)) {
+        final siteName = _siteConfigs[siteKey]?.name ?? siteKey;
+        _logger.logInfo('⏭️ Skipping disabled site: $siteName');
+        continue;
+      }
+
       try {
         final config = _siteConfigs[siteKey]!;
         _logger.logProgress(
@@ -593,6 +662,64 @@ class CrawlerService {
         final stockElement = productElement.querySelector(config.stockSelector);
         return stockElement != null;
 
+      case 'yoshien':
+        // For Yoshi En, check if price is present and no "ausverkauft" text
+        final elementText = productElement.text.toLowerCase();
+        if (elementText.contains('ausverkauft') ||
+            elementText.contains('out of stock')) {
+          return false;
+        }
+        final priceElement = productElement.querySelector(config.priceSelector);
+        return priceElement != null;
+
+      case 'matcha-karu':
+        // For Matcha Kāru, check if price is present and no "ausverkauft" text
+        final elementText = productElement.text.toLowerCase();
+        if (elementText.contains('ausverkauft') ||
+            elementText.contains('out of stock')) {
+          return false;
+        }
+        final priceElement = productElement.querySelector(config.priceSelector);
+        return priceElement != null;
+
+      case 'sho-cha':
+        // For Sho-Cha, check for add to cart button or price presence
+        final stockElement = productElement.querySelector(config.stockSelector);
+        if (stockElement != null) return true;
+
+        final elementText = productElement.text.toLowerCase();
+        return !elementText.contains('out of stock') &&
+            !elementText.contains('sold out');
+
+      case 'sazentea':
+        // For Sazen Tea, check for add to cart form
+        final stockElement = productElement.querySelector(config.stockSelector);
+        if (stockElement != null) return true;
+
+        final elementText = productElement.text.toLowerCase();
+        return !elementText.contains('out of stock') &&
+            !elementText.contains('sold out');
+
+      case 'mamecha':
+        // For Mamecha, check for price presence and no out of stock text
+        final elementText = productElement.text.toLowerCase();
+        if (elementText.contains('out of stock') ||
+            elementText.contains('sold out')) {
+          return false;
+        }
+        final priceElement = productElement.querySelector(config.priceSelector);
+        return priceElement != null;
+
+      case 'enjoyemeri':
+        // For Enjoyemeri, check for price presence and no out of stock text
+        final elementText = productElement.text.toLowerCase();
+        if (elementText.contains('out of stock') ||
+            elementText.contains('sold out')) {
+          return false;
+        }
+        final priceElement = productElement.querySelector(config.priceSelector);
+        return priceElement != null;
+
       default:
         // Fallback: check for generic stock indicators
         final stockElement = productElement.querySelector(config.stockSelector);
@@ -758,6 +885,187 @@ class CrawlerService {
             firstSeen: now,
             category: 'Premium Grade',
             description: 'Premium matcha with exceptional quality and taste.',
+            imageUrl: '',
+            weight: 40,
+          ),
+        ];
+
+      case 'Yoshi En':
+        return [
+          MatchaProduct(
+            id: 'yoshien_demo_1',
+            name: 'Matcha Tee Okinami Bio',
+            normalizedName: 'matcha tee okinami bio',
+            site: siteName,
+            url: 'https://www.yoshien.com/matcha-okinami-bio-tee.html',
+            price: '14,90 €',
+            priceValue: 14.90,
+            currency: 'EUR',
+            isInStock: true,
+            lastChecked: now,
+            firstSeen: now,
+            category: 'Premium Grade',
+            description: 'Organic premium matcha from Kagoshima.',
+            imageUrl: '',
+            weight: 40,
+          ),
+          MatchaProduct(
+            id: 'yoshien_demo_2',
+            name: 'Matcha Tee Rikyū Bio',
+            normalizedName: 'matcha tee rikyu bio',
+            site: siteName,
+            url: 'https://www.yoshien.com/matcha-rikyu-bio.html',
+            price: '58,90 €',
+            priceValue: 58.90,
+            currency: 'EUR',
+            isInStock: true,
+            lastChecked: now,
+            firstSeen: now,
+            category: 'Contest Grade',
+            description: 'Premium ceremonial grade matcha from Uji.',
+            imageUrl: '',
+            weight: 20,
+          ),
+        ];
+
+      case 'Matcha Kāru':
+        return [
+          MatchaProduct(
+            id: 'karu_demo_1',
+            name: 'Bio Matcha Itsutsu',
+            normalizedName: 'bio matcha itsutsu',
+            site: siteName,
+            url: 'https://matcha-karu.com/products/bio-matcha-itsutsu',
+            price: '19,00 €',
+            priceValue: 19.00,
+            currency: 'EUR',
+            isInStock: true,
+            lastChecked: now,
+            firstSeen: now,
+            category: 'Organic Matcha',
+            description: 'Certified organic matcha with intense flavor.',
+            imageUrl: '',
+            weight: 30,
+          ),
+          MatchaProduct(
+            id: 'karu_demo_2',
+            name: 'Bio Matcha Hitotsu',
+            normalizedName: 'bio matcha hitotsu',
+            site: siteName,
+            url: 'https://matcha-karu.com/products/bio-matcha-hitotsu',
+            price: '35,00 €',
+            priceValue: 35.00,
+            currency: 'EUR',
+            isInStock: false,
+            lastChecked: now,
+            firstSeen: now,
+            category: 'Premium Organic',
+            description: 'Top quality organic ceremonial matcha.',
+            imageUrl: '',
+            weight: 30,
+          ),
+        ];
+
+      case 'Sho-Cha':
+        return [
+          MatchaProduct(
+            id: 'shocha_demo_1',
+            name: 'Premium Matcha Powder',
+            normalizedName: 'premium matcha powder',
+            site: siteName,
+            url: 'https://www.sho-cha.com/products/premium-matcha',
+            price: '€25.00',
+            priceValue: 25.00,
+            currency: 'EUR',
+            isInStock: true,
+            lastChecked: now,
+            firstSeen: now,
+            category: 'Premium Grade',
+            description: 'High quality matcha for daily enjoyment.',
+            imageUrl: '',
+            weight: 40,
+          ),
+        ];
+
+      case 'Sazen Tea':
+        return [
+          MatchaProduct(
+            id: 'sazen_demo_1',
+            name: 'Usucha Aya no Mori',
+            normalizedName: 'usucha aya no mori',
+            site: siteName,
+            url:
+                'https://www.sazentea.com/en/products/p1602-usucha-aya-no-mori.html',
+            price: '\$6.48',
+            priceValue: 6.48,
+            currency: 'USD',
+            isInStock: true,
+            lastChecked: now,
+            firstSeen: now,
+            category: 'Usucha Grade',
+            description:
+                'Uji matcha for making usucha from Kanbayashi Shunsho.',
+            imageUrl: '',
+            weight: 20,
+          ),
+          MatchaProduct(
+            id: 'sazen_demo_2',
+            name: 'Koicha Matsukazemukashi',
+            normalizedName: 'koicha matsukazemukashi',
+            site: siteName,
+            url:
+                'https://www.sazentea.com/en/products/p1596-koicha-matsukazemukashi.html',
+            price: '\$9.18',
+            priceValue: 9.18,
+            currency: 'USD',
+            isInStock: true,
+            lastChecked: now,
+            firstSeen: now,
+            category: 'Koicha Grade',
+            description:
+                'Uji matcha for making koicha from Kanbayashi Shunsho.',
+            imageUrl: '',
+            weight: 20,
+          ),
+        ];
+
+      case 'Mamecha':
+        return [
+          MatchaProduct(
+            id: 'mamecha_demo_1',
+            name: 'Traditional Matcha Blend',
+            normalizedName: 'traditional matcha blend',
+            site: siteName,
+            url: 'https://www.mamecha.com/products/traditional-matcha',
+            price: '¥2,800',
+            priceValue: 2800.0,
+            currency: 'JPY',
+            isInStock: true,
+            lastChecked: now,
+            firstSeen: now,
+            category: 'Traditional Grade',
+            description: 'Authentic Japanese matcha blend.',
+            imageUrl: '',
+            weight: 30,
+          ),
+        ];
+
+      case 'Enjoyemeri':
+        return [
+          MatchaProduct(
+            id: 'enjoyemeri_demo_1',
+            name: 'Artisan Matcha Collection',
+            normalizedName: 'artisan matcha collection',
+            site: siteName,
+            url: 'https://www.enjoyemeri.com/products/artisan-matcha',
+            price: '\$32.00',
+            priceValue: 32.00,
+            currency: 'USD',
+            isInStock: true,
+            lastChecked: now,
+            firstSeen: now,
+            category: 'Artisan Grade',
+            description: 'Handcrafted matcha from select Japanese gardens.',
             imageUrl: '',
             weight: 40,
           ),

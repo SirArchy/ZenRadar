@@ -30,21 +30,8 @@ class CrawlerLogger {
   final List<CrawlerActivity> _activities = [];
   static const int _maxActivities = 100;
 
-  bool _headModeEnabled = false;
-
   Stream<CrawlerActivity> get activityStream => _activityController.stream;
   List<CrawlerActivity> get activities => List.unmodifiable(_activities);
-
-  bool get isHeadModeEnabled => _headModeEnabled;
-
-  void setHeadMode(bool enabled) {
-    _headModeEnabled = enabled;
-    if (enabled) {
-      logInfo('Head mode enabled - showing crawler activity');
-    } else {
-      logInfo('Head mode disabled - hiding crawler activity');
-    }
-  }
 
   void _addActivity(CrawlerActivity activity) {
     _activities.insert(0, activity);
@@ -63,8 +50,6 @@ class CrawlerLogger {
   }
 
   void logInfo(String message, {String? siteName}) {
-    if (!_headModeEnabled) return;
-
     _addActivity(
       CrawlerActivity(
         message: message,
@@ -76,8 +61,6 @@ class CrawlerLogger {
   }
 
   void logSuccess(String message, {String? siteName}) {
-    if (!_headModeEnabled) return;
-
     _addActivity(
       CrawlerActivity(
         message: message,
@@ -89,8 +72,6 @@ class CrawlerLogger {
   }
 
   void logWarning(String message, {String? siteName}) {
-    if (!_headModeEnabled) return;
-
     _addActivity(
       CrawlerActivity(
         message: message,
@@ -102,8 +83,6 @@ class CrawlerLogger {
   }
 
   void logError(String message, {String? siteName}) {
-    if (!_headModeEnabled) return;
-
     _addActivity(
       CrawlerActivity(
         message: message,
@@ -115,8 +94,6 @@ class CrawlerLogger {
   }
 
   void logProgress(String message, {String? siteName}) {
-    if (!_headModeEnabled) return;
-
     _addActivity(
       CrawlerActivity(
         message: message,

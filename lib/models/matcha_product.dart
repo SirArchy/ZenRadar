@@ -206,24 +206,24 @@ class UserSettings {
   final String startTime; // "08:00"
   final String endTime; // "20:00"
   final bool notificationsEnabled;
-  final bool headModeEnabled; // Show crawler activity
   final List<String> enabledSites;
   final int itemsPerPage; // Pagination
   final int maxStorageMB; // Storage limit in MB
   final String sortBy; // "name", "price", "lastChecked", "site"
   final bool sortAscending;
+  final String preferredCurrency; // "EUR", "USD", "JPY", etc.
 
   UserSettings({
     this.checkFrequencyMinutes = 360, // Default 6 hours = 360 minutes
     this.startTime = "08:00",
     this.endTime = "20:00",
     this.notificationsEnabled = true,
-    this.headModeEnabled = false,
     this.enabledSites = const ["tokichi", "marukyu", "ippodo"],
     this.itemsPerPage = 20,
     this.maxStorageMB = 100,
     this.sortBy = "name",
     this.sortAscending = true,
+    this.preferredCurrency = "EUR",
   });
 
   factory UserSettings.fromJson(Map<String, dynamic> json) {
@@ -236,7 +236,6 @@ class UserSettings {
       startTime: json['startTime'] ?? "08:00",
       endTime: json['endTime'] ?? "20:00",
       notificationsEnabled: json['notificationsEnabled'] ?? true,
-      headModeEnabled: json['headModeEnabled'] ?? false,
       enabledSites: List<String>.from(
         json['enabledSites'] ?? ["tokichi", "marukyu", "ippodo"],
       ),
@@ -244,6 +243,7 @@ class UserSettings {
       maxStorageMB: json['maxStorageMB'] ?? 100,
       sortBy: json['sortBy'] ?? "name",
       sortAscending: json['sortAscending'] ?? true,
+      preferredCurrency: json['preferredCurrency'] ?? "EUR",
     );
   }
 
@@ -253,12 +253,12 @@ class UserSettings {
       'startTime': startTime,
       'endTime': endTime,
       'notificationsEnabled': notificationsEnabled,
-      'headModeEnabled': headModeEnabled,
       'enabledSites': enabledSites,
       'itemsPerPage': itemsPerPage,
       'maxStorageMB': maxStorageMB,
       'sortBy': sortBy,
       'sortAscending': sortAscending,
+      'preferredCurrency': preferredCurrency,
     };
   }
 
@@ -267,12 +267,12 @@ class UserSettings {
     String? startTime,
     String? endTime,
     bool? notificationsEnabled,
-    bool? headModeEnabled,
     List<String>? enabledSites,
     int? itemsPerPage,
     int? maxStorageMB,
     String? sortBy,
     bool? sortAscending,
+    String? preferredCurrency,
   }) {
     return UserSettings(
       checkFrequencyMinutes:
@@ -280,12 +280,12 @@ class UserSettings {
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
-      headModeEnabled: headModeEnabled ?? this.headModeEnabled,
       enabledSites: enabledSites ?? this.enabledSites,
       itemsPerPage: itemsPerPage ?? this.itemsPerPage,
       maxStorageMB: maxStorageMB ?? this.maxStorageMB,
       sortBy: sortBy ?? this.sortBy,
       sortAscending: sortAscending ?? this.sortAscending,
+      preferredCurrency: preferredCurrency ?? this.preferredCurrency,
     );
   }
 }

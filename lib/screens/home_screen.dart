@@ -1,6 +1,5 @@
 // ignore_for_file: avoid_print, use_build_context_synchronously
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/matcha_product.dart';
@@ -12,7 +11,6 @@ import '../widgets/product_card.dart';
 import '../widgets/product_filters.dart';
 import '../widgets/matcha_icon.dart';
 import 'settings_screen.dart';
-import 'crawler_activity_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -75,9 +73,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       // Built-in sites
       List<String> sites = [
         'All',
-        'Nakamura',
+        'Nakamura Tokichi',
         'Marukyu-Koyamaen',
         'Ippodo Tea',
+        'Yoshi En',
+        'Matcha Kāru',
+        'Sho-Cha',
+        'Sazen Tea',
+        'Mamecha',
+        'Enjoyemeri',
       ];
 
       // Add custom websites
@@ -182,8 +186,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       // Dismiss loading dialog
       Navigator.of(context).pop();
 
+      // Show success message with more details about enabled sites
+      final enabledSiteCount = _userSettings.enabledSites.length;
       _showSuccessSnackBar(
-        'Scan completed! Found ${products.length} products.',
+        'Scan completed! Found ${products.length} products from $enabledSiteCount enabled sites.',
       );
 
       // Reload products and options
@@ -203,6 +209,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _showScanProgressDialog() {
+    // Count enabled sites for better user feedback
+    final enabledBuiltInSites = _userSettings.enabledSites.length;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -211,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             stream: CrawlerLogger.instance.activityStream,
             builder: (context, snapshot) {
               String currentSite = 'Initializing...';
-              String status = 'Preparing to scan all sites...';
+              String status = 'Preparing to scan enabled sites...';
 
               if (snapshot.hasData) {
                 final activity = snapshot.data!;
@@ -235,6 +244,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(
+                      'Enabled Sites: $enabledBuiltInSites built-in sites',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue[700],
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     Text(
                       'Current Site:',
                       style: TextStyle(
@@ -306,19 +324,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          if (_userSettings.headModeEnabled && !kIsWeb)
-            IconButton(
-              icon: const Icon(Icons.timeline),
-              tooltip: 'Crawler Activity',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CrawlerActivityScreen(),
-                  ),
-                );
-              },
-            ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () async {
@@ -484,16 +489,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             children: [
               FilterChip(
                 label: const Text('All'),
-                selected: _filter.inStock == null,
+                selected:
+                    _filter.inStock == null &&
+                    _filter.site == null &&
+                    _filter.category == null &&
+                    _filter.minPrice == null &&
+                    _filter.maxPrice == null &&
+                    (_filter.searchTerm == null || _filter.searchTerm!.isEmpty),
                 onSelected: (_) {
-                  if (_filter.inStock != null) {
-                    setState(() {
-                      _filter = _filter.copyWith(inStock: null);
-                      _currentPage = 1;
-                      _hasMoreProducts = true;
-                    });
-                    _loadProducts();
-                  }
+                  // Clear all filters to show all products
+                  setState(() {
+                    _filter = ProductFilter(); // Reset to default empty filter
+                    _searchQuery = '';
+                    _searchController.clear();
+                    _currentPage = 1;
+                    _hasMoreProducts = true;
+                  });
+                  _loadProducts();
                 },
                 selectedColor: Theme.of(
                   context,
@@ -583,6 +595,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
           return ProductCard(
             product: _products[index],
+            preferredCurrency: _userSettings.preferredCurrency,
             onTap: () {
               _showProductDetails(_products[index]);
             },
@@ -627,7 +640,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 8),
                 if (product.price != null) ...[
-                  Text('Price: ${product.price}'),
+                  Text(
+                    'Price: ${_extractPriceForCurrency(product.price!, _userSettings.preferredCurrency) ?? product.price!}',
+                  ),
                   const SizedBox(height: 8),
                 ],
                 Text(
@@ -651,6 +666,49 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ],
           ),
     );
+  }
+
+  /// Extracts the price for the preferred currency from a multi-currency price string
+  String? _extractPriceForCurrency(String? priceString, String currency) {
+    if (priceString == null || priceString.isEmpty) return null;
+
+    // Common currency symbols and patterns
+    final Map<String, List<String>> currencyPatterns = {
+      'EUR': ['€', 'EUR'],
+      'USD': ['\$', 'USD'],
+      'JPY': ['¥', '円', 'JPY'],
+      'GBP': ['£', 'GBP'],
+      'CHF': ['CHF'],
+      'CAD': ['CAD'],
+      'AUD': ['AUD'],
+    };
+
+    final patterns = currencyPatterns[currency] ?? [currency];
+
+    // Split by common separators and look for the currency
+    final parts = priceString.split(RegExp(r'[|,;/\n\r]+'));
+
+    for (final part in parts) {
+      final trimmed = part.trim();
+      if (trimmed.isEmpty) continue;
+
+      // Check if this part contains our currency
+      for (final pattern in patterns) {
+        if (trimmed.contains(pattern)) {
+          return trimmed;
+        }
+      }
+    }
+
+    // If no specific currency found, return the first non-empty part
+    for (final part in parts) {
+      final trimmed = part.trim();
+      if (trimmed.isNotEmpty) {
+        return trimmed;
+      }
+    }
+
+    return priceString;
   }
 
   Future<void> _openProductUrl(String url) async {

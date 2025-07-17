@@ -43,17 +43,6 @@ class SettingsService {
   }
 
   // Convenience methods for common settings
-  Future<bool> isHeadModeEnabled() async {
-    final settings = await getSettings();
-    return settings.headModeEnabled;
-  }
-
-  Future<void> setHeadModeEnabled(bool enabled) async {
-    await updateSettings(
-      (settings) => settings.copyWith(headModeEnabled: enabled),
-    );
-  }
-
   Future<int> getItemsPerPage() async {
     final settings = await getSettings();
     return settings.itemsPerPage;
