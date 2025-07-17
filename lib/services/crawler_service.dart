@@ -69,47 +69,46 @@ class CrawlerService {
     'matcha-karu': SiteConfig(
       name: 'Matcha Kāru',
       baseUrl: 'https://matcha-karu.com/collections/matcha-tee',
-      stockSelector:
-          '.angebotspreis, .price', // If price is present, item is in stock
-      productSelector: '.product-item, .card, .product',
-      nameSelector: '.product-title, h3, .card-title',
-      priceSelector: '.angebotspreis, .price, .product-price',
-      linkSelector: 'a',
+      stockSelector: '.price',
+      productSelector: '.product-item',
+      nameSelector: 'a[href*="/products/"]', // Extract from href
+      priceSelector: '.price',
+      linkSelector: 'a[href*="/products/"]',
     ),
     'sho-cha': SiteConfig(
       name: 'Sho-Cha',
       baseUrl: 'https://www.sho-cha.com/teeshop',
-      stockSelector: '.add-to-cart, .price',
-      productSelector: '.product, .item, .product-item',
-      nameSelector: '.product-title, h3, .name',
-      priceSelector: '.price, .product-price, .cost',
-      linkSelector: 'a',
+      stockSelector: '[class*="price"], .AddToCartForm',
+      productSelector: '.ProductList-item',
+      nameSelector: '.ProductList-title a, .ProductList-title',
+      priceSelector: '[class*="price"], .ProductList-price',
+      linkSelector: '.ProductList-title a, a',
     ),
     'sazentea': SiteConfig(
       name: 'Sazen Tea',
       baseUrl: 'https://www.sazentea.com/en/products/c21-matcha',
-      stockSelector: 'form[action*="add-to-basket"], .add-to-cart',
-      productSelector: '.product, .item',
-      nameSelector: 'a[href*="/products/"]',
-      priceSelector: '.price, .cost',
-      linkSelector: 'a[href*="/products/"]',
+      stockSelector: 'table tbody tr', // Use row presence as stock indicator
+      productSelector: 'table tbody tr',
+      nameSelector: 'a[href*="product"]',
+      priceSelector: 'td', // Price is in a table cell
+      linkSelector: 'a[href*="product"]',
     ),
     'mamecha': SiteConfig(
       name: 'Mamecha',
       baseUrl: 'https://www.mamecha.com/online-shopping-1/',
-      stockSelector: '.add-to-cart, .price',
-      productSelector: '.product, .item, .product-item',
-      nameSelector: '.product-title, h3, .name',
-      priceSelector: '.price, .product-price, .cost',
-      linkSelector: 'a',
+      stockSelector: '.summary-item, .ProductList-item',
+      productSelector: '.summary-item, .ProductList-item',
+      nameSelector: '.summary-title a, .ProductList-title a',
+      priceSelector: '.summary-price, .ProductList-price',
+      linkSelector: '.summary-title a, .ProductList-title a, a',
     ),
     'enjoyemeri': SiteConfig(
       name: 'Enjoyemeri',
       baseUrl: 'https://www.enjoyemeri.com/collections/shop-all',
-      stockSelector: '.add-to-cart, .price',
-      productSelector: '.product-item, .card, .product',
-      nameSelector: '.product-title, .card-title, h3',
-      priceSelector: '.price, .product-price, .cost',
+      stockSelector: '.price',
+      productSelector: '.product-card',
+      nameSelector: 'h3',
+      priceSelector: '.price',
       linkSelector: 'a',
     ),
   };
@@ -478,6 +477,23 @@ class CrawlerService {
           String? price = priceElement?.text.trim().replaceAll('\$', '');
           String? href = linkElement?.attributes['href'];
 
+          // Special handling for sites where name needs to be extracted from URL
+          if (name.isEmpty && href != null && siteKey == 'matcha-karu') {
+            // Extract product name from Matcha Kāru URL path
+            final urlPath = href.split('/').last;
+            name = urlPath
+                .replaceAll('-', ' ')
+                .replaceAll('_', ' ')
+                .split(' ')
+                .map(
+                  (word) =>
+                      word.isNotEmpty
+                          ? word[0].toUpperCase() + word.substring(1)
+                          : word,
+                )
+                .join(' ');
+          }
+
           // Determine stock status based on site
           bool isInStock = _determineStockStatus(
             productElement,
@@ -673,52 +689,71 @@ class CrawlerService {
         return priceElement != null;
 
       case 'matcha-karu':
-        // For Matcha Kāru, check if price is present and no "ausverkauft" text
-        final elementText = productElement.text.toLowerCase();
-        if (elementText.contains('ausverkauft') ||
-            elementText.contains('out of stock')) {
+        // For Matcha Kāru (Shopify), check if price is present
+        final priceElement = productElement.querySelector(config.priceSelector);
+        if (priceElement == null || priceElement.text.trim().isEmpty) {
           return false;
         }
-        final priceElement = productElement.querySelector(config.priceSelector);
-        return priceElement != null;
+
+        final elementText = productElement.text.toLowerCase();
+        return !elementText.contains('ausverkauft') &&
+            !elementText.contains('out of stock') &&
+            !elementText.contains('sold out');
 
       case 'sho-cha':
-        // For Sho-Cha, check for add to cart button or price presence
-        final stockElement = productElement.querySelector(config.stockSelector);
-        if (stockElement != null) return true;
+        // For Sho-Cha (Squarespace), check for price presence
+        final priceElement = productElement.querySelector(config.priceSelector);
+        if (priceElement != null && priceElement.text.trim().isNotEmpty) {
+          return true;
+        }
 
         final elementText = productElement.text.toLowerCase();
         return !elementText.contains('out of stock') &&
-            !elementText.contains('sold out');
+            !elementText.contains('sold out') &&
+            !elementText.contains('ausverkauft');
 
       case 'sazentea':
-        // For Sazen Tea, check for add to cart form
-        final stockElement = productElement.querySelector(config.stockSelector);
-        if (stockElement != null) return true;
+        // For Sazen Tea, if we found the product row, it's likely in stock
+        // Check for any price indicators or purchase options
+        final elementText = productElement.text.toLowerCase();
+        if (elementText.contains('out of stock') ||
+            elementText.contains('sold out') ||
+            elementText.isEmpty) {
+          return false;
+        }
+
+        // Look for price patterns in the row
+        final hasPrice = RegExp(r'[\$€£¥]\s*\d+[.,]\d+').hasMatch(elementText);
+        return hasPrice;
+
+      case 'mamecha':
+        // For Mamecha (Squarespace), check for price and title presence
+        final nameElement = productElement.querySelector(config.nameSelector);
+        final priceElement = productElement.querySelector(config.priceSelector);
+
+        if (nameElement == null || nameElement.text.trim().isEmpty) {
+          return false;
+        }
+
+        final elementText = productElement.text.toLowerCase();
+        if (elementText.contains('out of stock') ||
+            elementText.contains('sold out') ||
+            elementText.contains('ausverkauft')) {
+          return false;
+        }
+
+        return priceElement != null && priceElement.text.trim().isNotEmpty;
+
+      case 'enjoyemeri':
+        // For Enjoyemeri (Shopify), check for price presence and no out of stock text
+        final priceElement = productElement.querySelector(config.priceSelector);
+        if (priceElement == null || priceElement.text.trim().isEmpty) {
+          return false;
+        }
 
         final elementText = productElement.text.toLowerCase();
         return !elementText.contains('out of stock') &&
             !elementText.contains('sold out');
-
-      case 'mamecha':
-        // For Mamecha, check for price presence and no out of stock text
-        final elementText = productElement.text.toLowerCase();
-        if (elementText.contains('out of stock') ||
-            elementText.contains('sold out')) {
-          return false;
-        }
-        final priceElement = productElement.querySelector(config.priceSelector);
-        return priceElement != null;
-
-      case 'enjoyemeri':
-        // For Enjoyemeri, check for price presence and no out of stock text
-        final elementText = productElement.text.toLowerCase();
-        if (elementText.contains('out of stock') ||
-            elementText.contains('sold out')) {
-          return false;
-        }
-        final priceElement = productElement.querySelector(config.priceSelector);
-        return priceElement != null;
 
       default:
         // Fallback: check for generic stock indicators
