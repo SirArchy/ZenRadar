@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as parse;
 
@@ -106,8 +108,9 @@ Future<void> findCorrectSelectors(String name, String url) async {
                 }
               }
             }
-            if (elements.isNotEmpty)
+            if (elements.isNotEmpty) {
               break; // Found products, no need to check other selectors
+            }
           }
         }
       }

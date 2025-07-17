@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as parse;
 
@@ -41,7 +43,7 @@ Future<void> checkMamecha() async {
           if (products.isNotEmpty) {
             final firstProduct = products[0];
             print('Sample HTML structure:');
-            print(firstProduct.outerHtml.substring(0, 300) + '...');
+            print('${firstProduct.outerHtml.substring(0, 300)}...');
           }
           break;
         }

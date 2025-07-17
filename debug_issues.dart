@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as parse;
 
@@ -25,7 +27,7 @@ Future<void> debugMatcharuNames() async {
       if (products.isNotEmpty) {
         final firstProduct = products[0];
         print('\nFirst product HTML structure:');
-        print(firstProduct.outerHtml.substring(0, 500) + '...');
+        print('${firstProduct.outerHtml.substring(0, 500)}...');
 
         // Try different name selectors
         final nameSelectors = [
@@ -103,7 +105,7 @@ Future<void> debugShochaPrices() async {
 
         // Also check the full HTML of the product
         print('\nFull product HTML (first 800 chars):');
-        print(firstProduct.outerHtml.substring(0, 800) + '...');
+        print('${firstProduct.outerHtml.substring(0, 800)}...');
       }
     }
 

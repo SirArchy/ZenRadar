@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../models/matcha_product.dart';
 import '../services/database_service.dart';
 import '../services/smart_selector_service.dart';
-import '../widgets/matcha_icon.dart';
 
 class WebsiteManagementScreen extends StatefulWidget {
   const WebsiteManagementScreen({super.key});
@@ -163,13 +162,7 @@ class _WebsiteManagementScreenState extends State<WebsiteManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            const MatchaIcon(size: 20, withSteam: false),
-            const SizedBox(width: 8),
-            const Text('Website Management'),
-          ],
-        ),
+        title: Row(children: [const Text('Website Management')]),
         actions: [
           IconButton(
             icon: const Icon(Icons.help_outline),
@@ -197,7 +190,6 @@ class _WebsiteManagementScreenState extends State<WebsiteManagementScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          MatchaIcon(size: 64, color: Colors.blue[400], withSteam: true),
           const SizedBox(height: 16),
           const Text(
             'No custom matcha websites added',
