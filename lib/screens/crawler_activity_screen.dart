@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../services/crawler_logger.dart';
+import '../widgets/matcha_icon.dart';
 
 class CrawlerActivityScreen extends StatefulWidget {
   const CrawlerActivityScreen({super.key});
@@ -58,7 +59,13 @@ class _CrawlerActivityScreenState extends State<CrawlerActivityScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Crawler Activity'),
+        title: Row(
+          children: [
+            const MatchaIcon(size: 20, withSteam: false),
+            const SizedBox(width: 8),
+            const Text('Crawler Activity'),
+          ],
+        ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(

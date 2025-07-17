@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/matcha_product.dart';
 import '../services/database_service.dart';
+import '../services/smart_selector_service.dart';
+import '../widgets/matcha_icon.dart';
 
 class WebsiteManagementScreen extends StatefulWidget {
   const WebsiteManagementScreen({super.key});
@@ -116,13 +118,36 @@ class _WebsiteManagementScreenState extends State<WebsiteManagementScreen> {
 
   Future<void> _testWebsite(CustomWebsite website) async {
     try {
-      // For now, just mark as tested - we'll implement the actual test later
+      final smartSelector = SmartSelectorService.instance;
+
+      // Test the existing selectors
+      final selectors = {
+        'productSelector': website.productSelector,
+        'nameSelector': website.nameSelector,
+        'priceSelector': website.priceSelector,
+        'linkSelector': website.linkSelector,
+        'stockSelector': website.stockSelector,
+      };
+
+      final testResults = await smartSelector.testSelectors(
+        website.baseUrl,
+        selectors,
+      );
+
       await _db.updateWebsiteTestStatus(website.id, 'success');
       await _loadWebsites();
+
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Website test completed')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Test completed! Found ${testResults['productCount']} products.\n'
+              'Name: ${testResults['nameFound'] ? "✓" : "✗"} '
+              'Price: ${testResults['priceFound'] ? "✓" : "✗"} '
+              'Link: ${testResults['linkFound'] ? "✓" : "✗"}',
+            ),
+          ),
+        );
       }
     } catch (e) {
       await _db.updateWebsiteTestStatus(website.id, 'failed');
@@ -138,7 +163,13 @@ class _WebsiteManagementScreenState extends State<WebsiteManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Website Management'),
+        title: Row(
+          children: [
+            const MatchaIcon(size: 20, withSteam: false),
+            const SizedBox(width: 8),
+            const Text('Website Management'),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.help_outline),
@@ -166,22 +197,33 @@ class _WebsiteManagementScreenState extends State<WebsiteManagementScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.web, size: 64, color: Colors.grey[400]),
+          MatchaIcon(size: 64, color: Colors.blue[400], withSteam: true),
           const SizedBox(height: 16),
-          Text(
-            'No custom websites added',
-            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+          const Text(
+            'No custom matcha websites added',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
-            'Add a website to start monitoring its products',
-            style: TextStyle(color: Colors.grey[500]),
+            'Add a matcha website to start monitoring its products',
+            style: TextStyle(color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '✨ Now with smart auto-detection!',
+            style: TextStyle(
+              color: Colors.blue[600],
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: _addWebsite,
             icon: const Icon(Icons.add),
             label: const Text('Add Website'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
           ),
         ],
       ),
@@ -326,8 +368,21 @@ class _WebsiteManagementScreenState extends State<WebsiteManagementScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'CSS Selectors Guide:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    '🎯 Smart Auto-Detection',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    '• Simply enter the website URL and click "Auto-Detect Settings"',
+                  ),
+                  Text(
+                    '• Our AI will automatically find the best CSS selectors',
+                  ),
+                  Text('• Review and adjust the results if needed'),
+                  SizedBox(height: 16),
+                  Text(
+                    '🛠️ Manual Configuration',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   SizedBox(height: 8),
                   Text(
@@ -342,10 +397,16 @@ class _WebsiteManagementScreenState extends State<WebsiteManagementScreen> {
                     '• Stock Selector: Select elements that indicate if item is in stock',
                   ),
                   SizedBox(height: 16),
-                  Text('Tips:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '💡 Tips:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
                   SizedBox(height: 8),
-                  Text('• Use browser developer tools to find CSS selectors'),
-                  Text('• Test your website configuration before enabling'),
+                  Text(
+                    '• Try auto-detection first - it works for most websites',
+                  ),
+                  Text('• Use browser developer tools for manual selectors'),
+                  Text('• Test your configuration before saving'),
                   Text(
                     '• Stock selector can be empty if stock is determined by text content',
                   ),
@@ -355,7 +416,7 @@ class _WebsiteManagementScreenState extends State<WebsiteManagementScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
+                child: const Text('Got it!'),
               ),
             ],
           ),
@@ -381,8 +442,12 @@ class _AddEditWebsiteScreenState extends State<AddEditWebsiteScreen> {
   final _priceSelectorController = TextEditingController();
   final _linkSelectorController = TextEditingController();
   final _stockSelectorController = TextEditingController();
+  final SmartSelectorService _smartSelector = SmartSelectorService.instance;
 
   bool get _isEditing => widget.website != null;
+  bool _isAnalyzing = false;
+  bool _showAdvanced = false;
+  Map<String, dynamic>? _testResults;
 
   String _generateId() {
     final random = DateTime.now().millisecondsSinceEpoch;
@@ -401,6 +466,7 @@ class _AddEditWebsiteScreenState extends State<AddEditWebsiteScreen> {
       _priceSelectorController.text = website.priceSelector;
       _linkSelectorController.text = website.linkSelector;
       _stockSelectorController.text = website.stockSelector;
+      _showAdvanced = true; // Show advanced for existing websites
     }
   }
 
@@ -414,6 +480,70 @@ class _AddEditWebsiteScreenState extends State<AddEditWebsiteScreen> {
     _linkSelectorController.dispose();
     _stockSelectorController.dispose();
     super.dispose();
+  }
+
+  Future<void> _analyzeWebsite() async {
+    if (_urlController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter a URL first')));
+      return;
+    }
+
+    setState(() {
+      _isAnalyzing = true;
+      _testResults = null;
+    });
+
+    try {
+      final selectors = await _smartSelector.analyzeWebsite(
+        _urlController.text.trim(),
+      );
+
+      _productSelectorController.text = selectors['productSelector'] ?? '';
+      _nameSelectorController.text = selectors['nameSelector'] ?? '';
+      _priceSelectorController.text = selectors['priceSelector'] ?? '';
+      _linkSelectorController.text = selectors['linkSelector'] ?? '';
+      _stockSelectorController.text = selectors['stockSelector'] ?? '';
+
+      // Test the selectors
+      final testResults = await _smartSelector.testSelectors(
+        _urlController.text.trim(),
+        selectors,
+      );
+
+      setState(() {
+        _testResults = testResults;
+        _showAdvanced = true;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Found ${testResults['productCount']} products! Review the settings below.',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Analysis failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _showAdvanced = true; // Show manual configuration on failure
+        });
+      }
+    } finally {
+      setState(() {
+        _isAnalyzing = false;
+      });
+    }
   }
 
   void _save() {
@@ -449,123 +579,291 @@ class _AddEditWebsiteScreenState extends State<AddEditWebsiteScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Website Name',
-                border: OutlineInputBorder(),
-                hintText: 'e.g., My Tea Shop',
-              ),
-              validator: (value) {
-                if (value?.trim().isEmpty ?? true) {
-                  return 'Please enter a website name';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _urlController,
-              decoration: const InputDecoration(
-                labelText: 'Base URL',
-                border: OutlineInputBorder(),
-                hintText: 'https://example.com/products',
-              ),
-              validator: (value) {
-                if (value?.trim().isEmpty ?? true) {
-                  return 'Please enter a URL';
-                }
-                final uri = Uri.tryParse(value!);
-                if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
-                  return 'Please enter a valid URL';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'CSS Selectors',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Use browser developer tools to find the correct CSS selectors for each element.',
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _productSelectorController,
-              decoration: const InputDecoration(
-                labelText: 'Product Selector',
-                border: OutlineInputBorder(),
-                hintText: '.product-item, .card-wrapper',
-              ),
-              validator: (value) {
-                if (value?.trim().isEmpty ?? true) {
-                  return 'Please enter a product selector';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _nameSelectorController,
-              decoration: const InputDecoration(
-                labelText: 'Name Selector',
-                border: OutlineInputBorder(),
-                hintText: '.product-name, h3',
-              ),
-              validator: (value) {
-                if (value?.trim().isEmpty ?? true) {
-                  return 'Please enter a name selector';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _priceSelectorController,
-              decoration: const InputDecoration(
-                labelText: 'Price Selector',
-                border: OutlineInputBorder(),
-                hintText: '.price, .cost',
-              ),
-              validator: (value) {
-                if (value?.trim().isEmpty ?? true) {
-                  return 'Please enter a price selector';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _linkSelectorController,
-              decoration: const InputDecoration(
-                labelText: 'Link Selector',
-                border: OutlineInputBorder(),
-                hintText: 'a, .product-link',
-              ),
-              validator: (value) {
-                if (value?.trim().isEmpty ?? true) {
-                  return 'Please enter a link selector';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _stockSelectorController,
-              decoration: const InputDecoration(
-                labelText: 'Stock Selector (Optional)',
-                border: OutlineInputBorder(),
-                hintText: '.in-stock, .add-to-cart',
-                helperText:
-                    'Leave empty if stock status is determined by text content',
+            // Basic Information
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Website Information',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Website Name',
+                        border: OutlineInputBorder(),
+                        hintText: 'e.g., My Tea Shop',
+                        prefixIcon: Icon(Icons.store),
+                      ),
+                      validator: (value) {
+                        if (value?.trim().isEmpty ?? true) {
+                          return 'Please enter a website name';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _urlController,
+                      decoration: const InputDecoration(
+                        labelText: 'Website URL',
+                        border: OutlineInputBorder(),
+                        hintText: 'https://example.com/products',
+                        prefixIcon: Icon(Icons.link),
+                      ),
+                      validator: (value) {
+                        if (value?.trim().isEmpty ?? true) {
+                          return 'Please enter a URL';
+                        }
+                        final uri = Uri.tryParse(value!);
+                        if (uri == null ||
+                            !uri.hasScheme ||
+                            !uri.hasAuthority) {
+                          return 'Please enter a valid URL';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    if (!_showAdvanced)
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _isAnalyzing ? null : _analyzeWebsite,
+                          icon:
+                              _isAnalyzing
+                                  ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                  : const Icon(Icons.auto_fix_high),
+                          label: Text(
+                            _isAnalyzing
+                                ? 'Analyzing...'
+                                : 'Auto-Detect Settings',
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.all(16),
+                          ),
+                        ),
+                      ),
+                    if (!_showAdvanced) const SizedBox(height: 8),
+                    if (!_showAdvanced)
+                      TextButton.icon(
+                        onPressed: () => setState(() => _showAdvanced = true),
+                        icon: const Icon(Icons.settings),
+                        label: const Text('Manual Configuration'),
+                      ),
+                  ],
+                ),
               ),
             ),
+
+            // Test Results
+            if (_testResults != null) ...[
+              const SizedBox(height: 16),
+              Card(
+                color:
+                    _testResults!['productCount'] > 0
+                        ? Colors.green.shade50
+                        : Colors.red.shade50,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            _testResults!['productCount'] > 0
+                                ? Icons.check_circle
+                                : Icons.error,
+                            color:
+                                _testResults!['productCount'] > 0
+                                    ? Colors.green
+                                    : Colors.red,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Analysis Results',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text('Products found: ${_testResults!['productCount']}'),
+                      if (_testResults!['sampleName'].isNotEmpty)
+                        Text('Sample name: "${_testResults!['sampleName']}"'),
+                      if (_testResults!['samplePrice'].isNotEmpty)
+                        Text('Sample price: "${_testResults!['samplePrice']}"'),
+
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          _buildStatusChip('Name', _testResults!['nameFound']),
+                          _buildStatusChip(
+                            'Price',
+                            _testResults!['priceFound'],
+                          ),
+                          _buildStatusChip('Link', _testResults!['linkFound']),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+
+            // Advanced Configuration
+            if (_showAdvanced) ...[
+              const SizedBox(height: 16),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.code),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'CSS Selectors',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Spacer(),
+                          if (_showAdvanced && !_isEditing)
+                            TextButton.icon(
+                              onPressed:
+                                  () => setState(() {
+                                    _showAdvanced = false;
+                                    _testResults = null;
+                                  }),
+                              icon: const Icon(Icons.auto_fix_high),
+                              label: const Text('Auto-Detect'),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Use browser developer tools to find the correct CSS selectors for each element.',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildSelectorField(
+                        controller: _productSelectorController,
+                        label: 'Product Selector',
+                        hint: '.product-item, .card-wrapper',
+                        description: 'Selects individual product containers',
+                        isRequired: true,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildSelectorField(
+                        controller: _nameSelectorController,
+                        label: 'Name Selector',
+                        hint: '.product-name, h3',
+                        description: 'Selects product name elements',
+                        isRequired: true,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildSelectorField(
+                        controller: _priceSelectorController,
+                        label: 'Price Selector',
+                        hint: '.price, .cost',
+                        description: 'Selects price elements',
+                        isRequired: true,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildSelectorField(
+                        controller: _linkSelectorController,
+                        label: 'Link Selector',
+                        hint: 'a, .product-link',
+                        description: 'Selects link elements for product URLs',
+                        isRequired: true,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildSelectorField(
+                        controller: _stockSelectorController,
+                        label: 'Stock Selector (Optional)',
+                        hint: '.in-stock, .add-to-cart',
+                        description:
+                            'Selects elements that indicate if item is in stock. Leave empty if stock is determined by text content.',
+                        isRequired: false,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildStatusChip(String label, bool found) {
+    return Chip(
+      label: Text(label),
+      avatar: Icon(
+        found ? Icons.check : Icons.close,
+        size: 16,
+        color: found ? Colors.green : Colors.red,
+      ),
+      backgroundColor: found ? Colors.green.shade100 : Colors.red.shade100,
+    );
+  }
+
+  Widget _buildSelectorField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required String description,
+    required bool isRequired,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: controller,
+          decoration: InputDecoration(
+            labelText: label,
+            border: const OutlineInputBorder(),
+            hintText: hint,
+            prefixIcon: const Icon(Icons.code),
+          ),
+          validator:
+              isRequired
+                  ? (value) {
+                    if (value?.trim().isEmpty ?? true) {
+                      return 'Please enter a ${label.toLowerCase()}';
+                    }
+                    return null;
+                  }
+                  : null,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          description,
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+        ),
+      ],
     );
   }
 }

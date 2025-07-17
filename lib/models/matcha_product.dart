@@ -6,6 +6,7 @@ class MatchaProduct {
   final String url;
   final bool isInStock;
   final bool isDiscontinued; // New field for discontinued products
+  final int missedScans; // Track consecutive scans where product wasn't found
   final DateTime lastChecked;
   final DateTime firstSeen; // When product was first discovered
   final String? price;
@@ -25,6 +26,7 @@ class MatchaProduct {
     required this.url,
     required this.isInStock,
     this.isDiscontinued = false,
+    this.missedScans = 0,
     required this.lastChecked,
     required this.firstSeen,
     this.price,
@@ -47,6 +49,7 @@ class MatchaProduct {
       url: json['url'],
       isInStock: json['isInStock'] == 1,
       isDiscontinued: json['isDiscontinued'] == 1,
+      missedScans: json['missedScans'] ?? 0,
       lastChecked: DateTime.parse(json['lastChecked']),
       firstSeen:
           json['firstSeen'] != null
@@ -77,6 +80,7 @@ class MatchaProduct {
       'url': url,
       'isInStock': isInStock ? 1 : 0,
       'isDiscontinued': isDiscontinued ? 1 : 0,
+      'missedScans': missedScans,
       'lastChecked': lastChecked.toIso8601String(),
       'firstSeen': firstSeen.toIso8601String(),
       'price': price,
@@ -98,6 +102,7 @@ class MatchaProduct {
     String? url,
     bool? isInStock,
     bool? isDiscontinued,
+    int? missedScans,
     DateTime? lastChecked,
     DateTime? firstSeen,
     String? price,
@@ -117,6 +122,7 @@ class MatchaProduct {
       url: url ?? this.url,
       isInStock: isInStock ?? this.isInStock,
       isDiscontinued: isDiscontinued ?? this.isDiscontinued,
+      missedScans: missedScans ?? this.missedScans,
       lastChecked: lastChecked ?? this.lastChecked,
       firstSeen: firstSeen ?? this.firstSeen,
       price: price ?? this.price,
@@ -196,7 +202,7 @@ class MatchaProduct {
 }
 
 class UserSettings {
-  final int checkFrequencyHours;
+  final int checkFrequencyMinutes; // Changed from hours to minutes
   final String startTime; // "08:00"
   final String endTime; // "20:00"
   final bool notificationsEnabled;
@@ -208,7 +214,7 @@ class UserSettings {
   final bool sortAscending;
 
   UserSettings({
-    this.checkFrequencyHours = 6,
+    this.checkFrequencyMinutes = 360, // Default 6 hours = 360 minutes
     this.startTime = "08:00",
     this.endTime = "20:00",
     this.notificationsEnabled = true,
@@ -222,7 +228,11 @@ class UserSettings {
 
   factory UserSettings.fromJson(Map<String, dynamic> json) {
     return UserSettings(
-      checkFrequencyHours: json['checkFrequencyHours'] ?? 6,
+      checkFrequencyMinutes:
+          json['checkFrequencyMinutes'] ??
+          (json['checkFrequencyHours'] != null
+              ? json['checkFrequencyHours'] * 60
+              : 360), // Migration support
       startTime: json['startTime'] ?? "08:00",
       endTime: json['endTime'] ?? "20:00",
       notificationsEnabled: json['notificationsEnabled'] ?? true,
@@ -239,7 +249,7 @@ class UserSettings {
 
   Map<String, dynamic> toJson() {
     return {
-      'checkFrequencyHours': checkFrequencyHours,
+      'checkFrequencyMinutes': checkFrequencyMinutes,
       'startTime': startTime,
       'endTime': endTime,
       'notificationsEnabled': notificationsEnabled,
@@ -253,7 +263,7 @@ class UserSettings {
   }
 
   UserSettings copyWith({
-    int? checkFrequencyHours,
+    int? checkFrequencyMinutes,
     String? startTime,
     String? endTime,
     bool? notificationsEnabled,
@@ -265,7 +275,8 @@ class UserSettings {
     bool? sortAscending,
   }) {
     return UserSettings(
-      checkFrequencyHours: checkFrequencyHours ?? this.checkFrequencyHours,
+      checkFrequencyMinutes:
+          checkFrequencyMinutes ?? this.checkFrequencyMinutes,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
@@ -316,6 +327,11 @@ class ProductFilter {
       searchTerm: searchTerm ?? this.searchTerm,
       showDiscontinued: showDiscontinued ?? this.showDiscontinued,
     );
+  }
+
+  @override
+  String toString() {
+    return 'ProductFilter(site: $site, inStock: $inStock, minPrice: $minPrice, maxPrice: $maxPrice, category: $category, searchTerm: $searchTerm, showDiscontinued: $showDiscontinued)';
   }
 }
 

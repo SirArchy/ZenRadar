@@ -35,28 +35,36 @@ class CrawlerService {
     'marukyu': SiteConfig(
       name: 'Marukyu-Koyamaen',
       baseUrl:
-          'https://www.marukyu-koyamaen.co.jp/english/shop/products/catalog/matcha?viewall=1',
-      stockSelector: '.add-to-cart:not(.disabled)',
-      productSelector: '.product-item',
-      nameSelector: '.product-name',
-      priceSelector: '.price',
-      linkSelector: 'a',
+          'https://www.marukyu-koyamaen.co.jp/english/shop/products/catalog/matcha',
+      stockSelector:
+          '.cart-form button:not([disabled]), .add-to-cart:not(.disabled)',
+      productSelector: '.item, .product-item, .product',
+      nameSelector: '.item-name, .product-name, .name, h3',
+      priceSelector: '.price, .item-price, .cost',
+      linkSelector: 'a, .item-link',
     ),
     'ippodo': SiteConfig(
       name: 'Ippodo Tea',
       baseUrl: 'https://global.ippodo-tea.co.jp/collections/matcha',
       stockSelector:
           '', // We'll determine stock by checking for "Add to Cart" vs "Out of Stock"
-      productSelector: '.grid__item', // Updated selector for Shopify theme
-      nameSelector: '.card__heading a, h3 a',
-      priceSelector: '.price__current .price-item--regular, .price .price-item',
-      linkSelector: '.card__heading a, h3 a',
+      productSelector:
+          '.grid__item, .product-item, .card-wrapper', // Multiple selectors for fallback
+      nameSelector:
+          '.card__heading a, .card__heading, h3 a, h3, .product-title',
+      priceSelector:
+          '.price__current .price-item--regular, .price .price-item, .price, .cost',
+      linkSelector: '.card__heading a, h3 a, .product-link, a',
     ),
   };
 
   Future<List<MatchaProduct>> crawlAllSites() async {
-    _logger.logInfo('🚀 Starting crawl of all sites...');
+    _logger.logInfo('🚀 Starting comprehensive crawl of all sites...');
     List<MatchaProduct> allProducts = [];
+
+    // Get existing products to track what we find vs what we don't
+    List<MatchaProduct> existingProducts = await _db.getAllProducts();
+    Set<String> foundProductIds = {};
 
     // Crawl built-in sites
     for (String siteKey in _siteConfigs.keys) {
@@ -69,6 +77,11 @@ class CrawlerService {
 
         List<MatchaProduct> siteProducts = await crawlSite(siteKey);
         allProducts.addAll(siteProducts);
+
+        // Track which products we found
+        for (var product in siteProducts) {
+          foundProductIds.add(product.id);
+        }
 
         _logger.logSuccess(
           '✅ Found ${siteProducts.length} products on ${config.name}',
@@ -93,6 +106,11 @@ class CrawlerService {
           List<MatchaProduct> siteProducts = await crawlCustomWebsite(website);
           allProducts.addAll(siteProducts);
 
+          // Track which products we found
+          for (var product in siteProducts) {
+            foundProductIds.add(product.id);
+          }
+
           _logger.logSuccess(
             '✅ Found ${siteProducts.length} products on ${website.name}',
             siteName: website.name,
@@ -105,9 +123,64 @@ class CrawlerService {
       _logger.logError('❌ Error loading custom websites: $e');
     }
 
-    _logger.logInfo(
-      '🏁 Crawl completed. Total products found: ${allProducts.length}',
+    // Process discontinuation tracking
+    _logger.logProgress(
+      '🔍 Processing product availability...',
+      siteName: 'System',
     );
+
+    for (var existingProduct in existingProducts) {
+      if (!foundProductIds.contains(existingProduct.id)) {
+        // Product not found in current scan
+        int newMissedScans = existingProduct.missedScans + 1;
+        bool shouldMarkDiscontinued =
+            newMissedScans >= 3 && !existingProduct.isDiscontinued;
+
+        MatchaProduct updatedProduct = existingProduct.copyWith(
+          missedScans: newMissedScans,
+          isDiscontinued:
+              shouldMarkDiscontinued ? true : existingProduct.isDiscontinued,
+          isInStock: false, // Mark as out of stock since we didn't find it
+          lastChecked: DateTime.now(),
+        );
+
+        await _db.insertOrUpdateProduct(updatedProduct);
+
+        if (shouldMarkDiscontinued) {
+          _logger.logInfo(
+            '⚠️ Marked ${existingProduct.name} as discontinued after 3 missed scans',
+          );
+        }
+      } else {
+        // Product was found, reset missed scans and discontinuation if it was marked
+        var currentProduct = allProducts.firstWhere(
+          (p) => p.id == existingProduct.id,
+        );
+        if (existingProduct.missedScans > 0 || existingProduct.isDiscontinued) {
+          MatchaProduct updatedProduct = currentProduct.copyWith(
+            missedScans: 0,
+            isDiscontinued: false,
+          );
+
+          // Update the product in our results
+          int index = allProducts.indexWhere((p) => p.id == existingProduct.id);
+          if (index != -1) {
+            allProducts[index] = updatedProduct;
+          }
+
+          if (existingProduct.isDiscontinued) {
+            _logger.logInfo(
+              '✅ Removed discontinued mark from ${existingProduct.name}',
+            );
+          }
+        }
+      }
+    }
+
+    _logger.logInfo(
+      '🏁 Comprehensive crawl completed. Total products found: ${allProducts.length}',
+    );
+
     return allProducts;
   }
 
@@ -169,7 +242,7 @@ class CrawlerService {
           );
           print('Failed to fetch ${config.name}: ${response.statusCode}');
 
-          // On web, provide more helpful error message
+          // On web, provide more helpful error message and use sample data
           if (kIsWeb) {
             print(
               'This is likely due to CORS policy restrictions in the browser.',
@@ -177,6 +250,33 @@ class CrawlerService {
             print(
               'Consider using a mobile app or desktop version for full functionality.',
             );
+
+            // Use sample data as fallback for failed HTTP requests
+            _logger.logWarning(
+              '🌐 Using sample data due to HTTP error',
+              siteName: config.name,
+            );
+            products = _getSampleProducts(config.name);
+            if (products.isNotEmpty) {
+              _logger.logInfo(
+                '📦 Generated ${products.length} sample products for ${config.name}',
+                siteName: config.name,
+              );
+              print(
+                'Added ${products.length} sample ${config.name} products for web demo.',
+              );
+
+              // Store sample products in the database
+              for (MatchaProduct product in products) {
+                await _checkStockChange(product);
+              }
+            } else {
+              _logger.logWarning(
+                '⚠️ No sample products available for ${config.name}',
+                siteName: config.name,
+              );
+              print('Warning: No sample products found for ${config.name}');
+            }
           }
         }
       } finally {
@@ -196,14 +296,30 @@ class CrawlerService {
         print('The crawler works on mobile devices where CORS doesn\'t apply.');
 
         // For web demo purposes, add some sample data
+        _logger.logWarning(
+          '🌐 Using sample data due to CORS restrictions',
+          siteName: config.name,
+        );
         products = _getSampleProducts(config.name);
         if (products.isNotEmpty) {
-          print('Added sample ${config.name} products for web demo.');
+          _logger.logInfo(
+            '📦 Generated ${products.length} sample products for ${config.name}',
+            siteName: config.name,
+          );
+          print(
+            'Added ${products.length} sample ${config.name} products for web demo.',
+          );
 
           // Store sample products in the database
           for (MatchaProduct product in products) {
             await _checkStockChange(product);
           }
+        } else {
+          _logger.logWarning(
+            '⚠️ No sample products available for ${config.name}',
+            siteName: config.name,
+          );
+          print('Warning: No sample products found for ${config.name}');
         }
       }
     }
@@ -259,15 +375,9 @@ class CrawlerService {
       client.close();
     }
 
-    // Save or update products
+    // Save or update products and check for stock changes
     for (MatchaProduct product in products) {
-      await _db.insertProduct(product);
-
-      // Check for stock changes and send notifications
-      final existingProduct = await _db.getProduct(product.id);
-      if (existingProduct != null) {
-        await _checkStockChange(product);
-      }
+      await _checkStockChange(product);
     }
 
     return products;
@@ -296,7 +406,7 @@ class CrawlerService {
 
         if (nameElement != null) {
           String name = nameElement.text.trim();
-          String? price = priceElement?.text.trim();
+          String? price = priceElement?.text.trim().replaceAll('\$', '');
           String? href = linkElement?.attributes['href'];
 
           // Determine stock status based on site
@@ -341,6 +451,23 @@ class CrawlerService {
       }
     }
 
+    // If no products were parsed and we're on web, use sample data as fallback
+    if (products.isEmpty && kIsWeb) {
+      _logger.logWarning(
+        '⚠️ No products parsed from HTML, using sample data as fallback',
+        siteName: config.name,
+      );
+      print(
+        'Warning: No products parsed for ${config.name}, using sample data',
+      );
+
+      final sampleProducts = _getSampleProducts(config.name);
+      for (MatchaProduct product in sampleProducts) {
+        await _checkStockChange(product);
+      }
+      return sampleProducts;
+    }
+
     return products;
   }
 
@@ -368,7 +495,7 @@ class CrawlerService {
 
         if (nameElement != null) {
           String name = nameElement.text.trim();
-          String? price = priceElement?.text.trim();
+          String? price = priceElement?.text.trim().replaceAll('\$', '');
           String? href = linkElement?.attributes['href'];
 
           // Determine stock status
@@ -643,10 +770,31 @@ class CrawlerService {
 
   Future<void> testCrawl() async {
     print('Starting test crawl...');
-    List<MatchaProduct> products = await crawlAllSites();
-    print('Found ${products.length} products:');
 
-    for (MatchaProduct product in products) {
+    // Test each site individually
+    for (String siteKey in _siteConfigs.keys) {
+      final config = _siteConfigs[siteKey]!;
+      print('\n=== Testing ${config.name} ===');
+
+      try {
+        List<MatchaProduct> products = await crawlSite(siteKey);
+        print('✅ ${config.name}: Found ${products.length} products');
+
+        for (MatchaProduct product in products) {
+          print(
+            '  - ${product.name} (${product.isInStock ? "In Stock" : "Out of Stock"})',
+          );
+        }
+      } catch (e) {
+        print('❌ ${config.name}: Error - $e');
+      }
+    }
+
+    print('\n=== Full Crawl Test ===');
+    List<MatchaProduct> allProducts = await crawlAllSites();
+    print('Found ${allProducts.length} products total:');
+
+    for (MatchaProduct product in allProducts) {
       print(
         '${product.site}: ${product.name} - ${product.isInStock ? "In Stock" : "Out of Stock"}',
       );

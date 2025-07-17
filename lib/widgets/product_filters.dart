@@ -167,16 +167,9 @@ class _ProductFiltersState extends State<ProductFilters> {
             color: Colors.black,
           ),
           items: [
-            DropdownMenuItem(
-              value: null,
-              child: Text(
-                'All Sites',
-                style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
-              ),
-            ),
             ...widget.availableSites.map(
               (site) => DropdownMenuItem(
-                value: site,
+                value: site == 'All' ? null : site,
                 child: Text(
                   site,
                   style: TextStyle(fontSize: isSmallScreen ? 14 : 16),

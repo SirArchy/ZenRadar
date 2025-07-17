@@ -91,4 +91,93 @@ class SettingsService {
       (settings) => settings.copyWith(sortBy: sortBy, sortAscending: ascending),
     );
   }
+
+  Future<String> getStartTime() async {
+    final settings = await getSettings();
+    return settings.startTime;
+  }
+
+  Future<String> getEndTime() async {
+    final settings = await getSettings();
+    return settings.endTime;
+  }
+
+  Future<void> setActiveHours(String startTime, String endTime) async {
+    await updateSettings(
+      (settings) => settings.copyWith(startTime: startTime, endTime: endTime),
+    );
+  }
+
+  Future<int> getCheckFrequencyMinutes() async {
+    final settings = await getSettings();
+    return settings.checkFrequencyMinutes;
+  }
+
+  Future<void> setCheckFrequencyMinutes(int minutes) async {
+    await updateSettings(
+      (settings) => settings.copyWith(checkFrequencyMinutes: minutes),
+    );
+  }
+
+  Future<bool> isNotificationsEnabled() async {
+    final settings = await getSettings();
+    return settings.notificationsEnabled;
+  }
+
+  Future<void> setNotificationsEnabled(bool enabled) async {
+    await updateSettings(
+      (settings) => settings.copyWith(notificationsEnabled: enabled),
+    );
+  }
+
+  /// Check if current time is within active hours
+  Future<bool> isWithinActiveHours() async {
+    final settings = await getSettings();
+    final now = DateTime.now();
+
+    try {
+      // Parse start and end times
+      final startParts = settings.startTime.split(':');
+      final endParts = settings.endTime.split(':');
+
+      if (startParts.length != 2 || endParts.length != 2) {
+        return true; // Default to allowing if time format is invalid
+      }
+
+      final startHour = int.parse(startParts[0]);
+      final startMinute = int.parse(startParts[1]);
+      final endHour = int.parse(endParts[0]);
+      final endMinute = int.parse(endParts[1]);
+
+      // Validate hour and minute ranges
+      if (startHour < 0 ||
+          startHour > 23 ||
+          endHour < 0 ||
+          endHour > 23 ||
+          startMinute < 0 ||
+          startMinute > 59 ||
+          endMinute < 0 ||
+          endMinute > 59) {
+        return true;
+      }
+
+      // Create DateTime objects for today's start and end times
+      final today = DateTime(now.year, now.month, now.day);
+      final startTime = today.add(
+        Duration(hours: startHour, minutes: startMinute),
+      );
+      var endTime = today.add(Duration(hours: endHour, minutes: endMinute));
+
+      // Handle overnight periods (e.g., 22:00 to 06:00)
+      if (endTime.isBefore(startTime) || endTime.isAtSameMomentAs(startTime)) {
+        // End time is next day
+        endTime = endTime.add(const Duration(days: 1));
+      }
+
+      // Check if current time is within the active period
+      return now.isAfter(startTime) && now.isBefore(endTime);
+    } catch (e) {
+      return true; // Default to allowing if parsing fails
+    }
+  }
 }

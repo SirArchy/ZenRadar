@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, use_build_context_synchronously
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +6,7 @@ import '../models/matcha_product.dart';
 import '../services/notification_service.dart';
 import '../services/background_service.dart';
 import '../services/settings_service.dart';
+import '../widgets/matcha_icon.dart';
 import 'website_management_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -18,11 +19,15 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   UserSettings _settings = UserSettings();
   bool _isLoading = true;
+  bool _isServiceRunning = false;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
+    if (!kIsWeb) {
+      _checkServiceStatus();
+    }
   }
 
   Future<void> _loadSettings() async {
@@ -78,7 +83,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Row(
+          children: [
+            const MatchaIcon(size: 20, withSteam: false),
+            const SizedBox(width: 8),
+            const Text('Settings'),
+          ],
+        ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(icon: const Icon(Icons.save), onPressed: _saveSettings),
@@ -194,6 +205,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 16),
 
+          // Background Service Status (mobile only)
+          if (!kIsWeb) _buildBackgroundServiceStatus(),
+
+          const SizedBox(height: 16),
+
           // Monitoring Settings (mobile only)
           if (!kIsWeb)
             Card(
@@ -213,7 +229,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ListTile(
                       title: const Text('Check Frequency'),
                       subtitle: Text(
-                        'Every ${_settings.checkFrequencyHours} hours',
+                        _settings.checkFrequencyMinutes >= 60
+                            ? 'Every ${_settings.checkFrequencyMinutes ~/ 60} hours'
+                            : 'Every ${_settings.checkFrequencyMinutes} minutes',
                       ),
                       trailing: const Icon(Icons.edit),
                       onTap: () => _showFrequencyDialog(),
@@ -221,8 +239,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const Divider(),
                     ListTile(
                       title: const Text('Active Hours'),
-                      subtitle: Text(
-                        '${_settings.startTime} - ${_settings.endTime}',
+                      subtitle: FutureBuilder<bool>(
+                        future: SettingsService.instance.isWithinActiveHours(),
+                        builder: (context, snapshot) {
+                          final isWithinHours = snapshot.data ?? false;
+                          final status =
+                              isWithinHours
+                                  ? 'Currently active'
+                                  : 'Currently paused';
+                          final statusColor =
+                              isWithinHours ? Colors.green : Colors.orange;
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${_settings.startTime} - ${_settings.endTime}',
+                              ),
+                              Text(
+                                status,
+                                style: TextStyle(
+                                  color: statusColor,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                       trailing: const Icon(Icons.edit),
                       onTap: () => _showActiveHoursDialog(),
@@ -343,43 +387,281 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('Check Frequency'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
-              children:
-                  [1, 2, 4, 6, 8, 12, 24].map((hours) {
-                    return RadioListTile<int>(
-                      title: Text('Every $hours hour${hours == 1 ? '' : 's'}'),
-                      value: hours,
-                      groupValue: _settings.checkFrequencyHours,
-                      onChanged: (value) {
-                        setState(() {
-                          _settings = _settings.copyWith(
-                            checkFrequencyHours: value!,
-                          );
-                        });
-                        Navigator.pop(context);
-                      },
-                    );
-                  }).toList(),
+              children: [
+                // Quick monitoring options (minutes)
+                ...[10, 15, 30, 45].map((minutes) {
+                  return RadioListTile<int>(
+                    title: Text('Every $minutes minutes'),
+                    value: minutes,
+                    groupValue: _settings.checkFrequencyMinutes,
+                    onChanged: (value) {
+                      setState(() {
+                        _settings = _settings.copyWith(
+                          checkFrequencyMinutes: value!,
+                        );
+                      });
+                      Navigator.pop(context);
+                    },
+                  );
+                }),
+                // Hour-based options (converted to minutes)
+                ...[1, 2, 4, 6, 8, 12, 24].map((hours) {
+                  int minutes = hours * 60;
+                  return RadioListTile<int>(
+                    title: Text('Every $hours hour${hours == 1 ? '' : 's'}'),
+                    value: minutes,
+                    groupValue: _settings.checkFrequencyMinutes,
+                    onChanged: (value) {
+                      setState(() {
+                        _settings = _settings.copyWith(
+                          checkFrequencyMinutes: value!,
+                        );
+                      });
+                      Navigator.pop(context);
+                    },
+                  );
+                }),
+              ],
             ),
           ),
     );
   }
 
   void _showActiveHoursDialog() {
+    TimeOfDay startTime = _parseTimeOfDay(_settings.startTime);
+    TimeOfDay endTime = _parseTimeOfDay(_settings.endTime);
+
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
-            title: const Text('Active Hours'),
-            content: const Text(
-              'Feature coming soon!\nFor now, monitoring is active 24/7.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
+          (context) => StatefulBuilder(
+            builder:
+                (context, setDialogState) => AlertDialog(
+                  title: const Text('Active Hours'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Set the hours when background monitoring should be active.\n'
+                        'Outside these hours, no stock checks will be performed.',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          const Text('Start: '),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () async {
+                              final picked = await showTimePicker(
+                                context: context,
+                                initialTime: startTime,
+                                builder: (context, child) {
+                                  return MediaQuery(
+                                    data: MediaQuery.of(
+                                      context,
+                                    ).copyWith(alwaysUse24HourFormat: true),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (picked != null) {
+                                setDialogState(() {
+                                  startTime = picked;
+                                });
+                              }
+                            },
+                            child: Text(_formatTimeOfDay(startTime)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          const Text('End:   '),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () async {
+                              final picked = await showTimePicker(
+                                context: context,
+                                initialTime: endTime,
+                                builder: (context, child) {
+                                  return MediaQuery(
+                                    data: MediaQuery.of(
+                                      context,
+                                    ).copyWith(alwaysUse24HourFormat: true),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (picked != null) {
+                                setDialogState(() {
+                                  endTime = picked;
+                                });
+                              }
+                            },
+                            child: Text(_formatTimeOfDay(endTime)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (_isTimesOverlapping(startTime, endTime))
+                        const Text(
+                          'Note: End time is before start time, monitoring will span overnight.',
+                          style: TextStyle(fontSize: 12, color: Colors.orange),
+                        ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        final newStartTime = _formatTimeOfDay(startTime);
+                        final newEndTime = _formatTimeOfDay(endTime);
+
+                        setState(() {
+                          _settings = _settings.copyWith(
+                            startTime: newStartTime,
+                            endTime: newEndTime,
+                          );
+                        });
+
+                        await SettingsService.instance.setActiveHours(
+                          newStartTime,
+                          newEndTime,
+                        );
+
+                        // Notify background service of settings change
+                        if (!kIsWeb) {
+                          await BackgroundServiceController.instance
+                              .updateSettings();
+                        }
+
+                        Navigator.pop(context);
+                        _showSuccessSnackBar('Active hours updated');
+                      },
+                      child: const Text('Save'),
+                    ),
+                  ],
+                ),
           ),
+    );
+  }
+
+  TimeOfDay _parseTimeOfDay(String timeString) {
+    final parts = timeString.split(':');
+    if (parts.length == 2) {
+      try {
+        final hour = int.parse(parts[0]);
+        final minute = int.parse(parts[1]);
+        return TimeOfDay(hour: hour, minute: minute);
+      } catch (e) {
+        // Invalid format, return default
+      }
+    }
+    return const TimeOfDay(hour: 8, minute: 0);
+  }
+
+  String _formatTimeOfDay(TimeOfDay time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  bool _isTimesOverlapping(TimeOfDay start, TimeOfDay end) {
+    final startMinutes = start.hour * 60 + start.minute;
+    final endMinutes = end.hour * 60 + end.minute;
+    return endMinutes <= startMinutes;
+  }
+
+  Future<void> _checkServiceStatus() async {
+    try {
+      bool isRunning =
+          await BackgroundServiceController.instance.isServiceRunning();
+      setState(() {
+        _isServiceRunning = isRunning;
+      });
+    } catch (e) {
+      // Service status check failed, assume it's not running
+      setState(() {
+        _isServiceRunning = false;
+      });
+    }
+  }
+
+  Future<void> _toggleBackgroundService() async {
+    try {
+      if (_isServiceRunning) {
+        await BackgroundServiceController.instance.stopService();
+        _showSuccessSnackBar('Background monitoring stopped');
+      } else {
+        await BackgroundServiceController.instance.startService();
+        _showSuccessSnackBar('Background monitoring started');
+      }
+      await _checkServiceStatus();
+    } catch (e) {
+      _showErrorSnackBar('Failed to toggle service: $e');
+    }
+  }
+
+  Widget _buildBackgroundServiceStatus() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Background Monitoring',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12.0),
+              decoration: BoxDecoration(
+                color:
+                    _isServiceRunning
+                        ? Colors.green.shade100
+                        : Colors.orange.shade100,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: _isServiceRunning ? Colors.green : Colors.orange,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    _isServiceRunning ? Icons.check_circle : Icons.warning,
+                    color: _isServiceRunning ? Colors.green : Colors.orange,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _isServiceRunning
+                          ? 'Background monitoring is active'
+                          : 'Background monitoring is paused',
+                      style: TextStyle(
+                        color:
+                            _isServiceRunning
+                                ? Colors.green.shade700
+                                : Colors.orange.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: _toggleBackgroundService,
+                    child: Text(_isServiceRunning ? 'Stop' : 'Start'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

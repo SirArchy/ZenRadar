@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/matcha_product.dart';
+import 'matcha_icon.dart';
 
 class ProductCard extends StatelessWidget {
   final MatchaProduct product;
@@ -31,6 +32,15 @@ class ProductCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
+                      MatchaIcon(
+                        size: 18,
+                        color:
+                            isUnavailable
+                                ? Colors.grey[400]
+                                : const Color(0xFF9DBE87),
+                        withSteam: false,
+                      ),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           product.name,
@@ -62,11 +72,6 @@ class ProductCard extends StatelessWidget {
                       ),
                       const Spacer(),
                       if (product.price != null) ...[
-                        Icon(
-                          Icons.attach_money,
-                          size: 16,
-                          color: Colors.grey[600],
-                        ),
                         Text(
                           product.price!,
                           style: TextStyle(

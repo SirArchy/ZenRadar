@@ -1,14 +1,16 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, use_build_context_synchronously
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/matcha_product.dart';
 import '../services/database_service.dart';
-import '../services/background_service.dart';
 import '../services/settings_service.dart';
 import '../services/crawler_service.dart';
+import '../services/crawler_logger.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_filters.dart';
+import '../widgets/matcha_icon.dart';
 import 'settings_screen.dart';
 import 'crawler_activity_screen.dart';
 
@@ -25,7 +27,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isLoading = false;
   bool _isLoadingMore = false;
   bool _hasMoreProducts = true;
-  bool _isServiceRunning = false;
   bool _isFullCheckRunning = false;
   bool _showFilters = false;
 
@@ -44,44 +45,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   List<String> _availableCategories = [];
   Map<String, double> _priceRange = {'min': 0.0, 'max': 1000.0};
 
-  // Speed dial state
-  bool _isSpeedDialOpen = false;
-  late AnimationController _animationController;
-  late Animation<double> _buttonAnimatedIcon;
-  late Animation<double> _translateButton;
-
   @override
   void initState() {
     super.initState();
     _loadSettings();
     _loadFilterOptions();
     _loadProducts();
-    if (!kIsWeb) {
-      _checkServiceStatus();
-    }
 
     // Setup endless scroll listener
     _scrollController.addListener(_onScroll);
-
-    // Initialize speed dial animations
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    );
-    _buttonAnimatedIcon = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(_animationController);
-    _translateButton = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
-    _animationController.dispose();
     super.dispose();
   }
 
@@ -135,6 +113,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
 
     try {
+      print('Loading products with filter: ${_filter.toString()}');
+
       final paginatedProducts = await DatabaseService.platformService
           .getProductsPaginated(
             page: _currentPage,
@@ -143,6 +123,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             sortBy: _userSettings.sortBy,
             sortAscending: _userSettings.sortAscending,
           );
+
+      print(
+        'Found ${paginatedProducts.products.length} products on page $_currentPage',
+      );
+      print(
+        'Total pages: ${paginatedProducts.totalPages}, Total items: ${paginatedProducts.totalItems}',
+      );
 
       setState(() {
         if (loadMore) {
@@ -159,6 +146,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         _hasMoreProducts = _currentPage <= paginatedProducts.totalPages;
       });
     } catch (e) {
+      print('Error loading products: $e');
       _showErrorSnackBar('Failed to load products: $e');
     } finally {
       setState(() {
@@ -178,64 +166,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _checkServiceStatus() async {
-    bool isRunning =
-        await BackgroundServiceController.instance.isServiceRunning();
-    setState(() {
-      _isServiceRunning = isRunning;
-    });
-  }
-
-  Future<void> _performLightweightCheck() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // On web or when testing: Direct crawler call
-      if (kIsWeb) {
-        final crawler = CrawlerService.instance;
-        await crawler.crawlAllSites();
-      } else {
-        // On mobile: Use background service
-        await BackgroundServiceController.instance.triggerManualCheck();
-      }
-
-      // Wait a moment for the check to complete
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Reload products
-      await _loadProducts();
-
-      _showSuccessSnackBar('Stock check completed!');
-    } catch (e) {
-      _showErrorSnackBar('Failed to check stock: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _performFullCheck() async {
+  Future<void> _performComprehensiveScan() async {
     setState(() {
       _isFullCheckRunning = true;
     });
 
     try {
+      // Show loading dialog with site progress
+      _showScanProgressDialog();
+
       // Perform a comprehensive crawl of all sites
       final crawler = CrawlerService.instance;
       List<MatchaProduct> products = await crawler.crawlAllSites();
 
+      // Dismiss loading dialog
+      Navigator.of(context).pop();
+
       _showSuccessSnackBar(
-        'Full discovery completed! Found ${products.length} products.',
+        'Scan completed! Found ${products.length} products.',
       );
 
       // Reload products and options
       await _loadProducts();
       await _loadFilterOptions();
     } catch (e) {
-      _showErrorSnackBar('Failed to perform full check: $e');
+      // Dismiss loading dialog if still open
+      if (Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
+      _showErrorSnackBar('Failed to perform scan: $e');
     } finally {
       setState(() {
         _isFullCheckRunning = false;
@@ -243,19 +202,62 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _toggleBackgroundService() async {
-    try {
-      if (_isServiceRunning) {
-        await BackgroundServiceController.instance.stopService();
-        _showSuccessSnackBar('Background monitoring stopped');
-      } else {
-        await BackgroundServiceController.instance.startService();
-        _showSuccessSnackBar('Background monitoring started');
-      }
-      await _checkServiceStatus();
-    } catch (e) {
-      _showErrorSnackBar('Failed to toggle service: $e');
-    }
+  void _showScanProgressDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => StreamBuilder<CrawlerActivity>(
+            stream: CrawlerLogger.instance.activityStream,
+            builder: (context, snapshot) {
+              String currentSite = 'Initializing...';
+              String status = 'Preparing to scan all sites...';
+
+              if (snapshot.hasData) {
+                final activity = snapshot.data!;
+                currentSite = activity.siteName ?? 'System';
+                status = activity.message;
+              }
+
+              return AlertDialog(
+                title: Row(
+                  children: [
+                    const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text('Scanning Sites'),
+                  ],
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Current Site:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    Text(currentSite, style: const TextStyle(fontSize: 16)),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Status:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    Text(status, style: const TextStyle(fontSize: 14)),
+                  ],
+                ),
+              );
+            },
+          ),
+    );
   }
 
   void _onFilterChanged(ProductFilter newFilter) {
@@ -279,17 +281,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _onSearchChanged('');
   }
 
-  void _toggleSpeedDial() {
-    if (_isSpeedDialOpen) {
-      _animationController.reverse();
-    } else {
-      _animationController.forward();
-    }
-    setState(() {
-      _isSpeedDialOpen = !_isSpeedDialOpen;
-    });
-  }
-
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red),
@@ -306,7 +297,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ZenRadar'),
+        title: Row(
+          children: [
+            const MatchaIcon(size: 24, withSteam: false),
+            const SizedBox(width: 8),
+            const Text('ZenRadar'),
+          ],
+        ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           if (_userSettings.headModeEnabled && !kIsWeb)
@@ -341,15 +338,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           // Main content
           Column(
             children: [
-              // Service status banner (mobile only)
-              if (!kIsWeb) _buildServiceStatusBanner(),
-
               // Search bar
               _buildSearchBar(),
 
               // Products list with pagination
               Expanded(child: _buildProductsList()),
             ],
+          ),
+
+          // Floating Action Button positioned in the stack
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: _buildFloatingActionButtons(),
           ),
 
           // Filter overlay
@@ -396,51 +397,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ),
             ),
-        ],
-      ),
-      floatingActionButton: _buildFloatingActionButtons(),
-    );
-  }
-
-  Widget _buildServiceStatusBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12.0),
-      decoration: BoxDecoration(
-        color:
-            _isServiceRunning ? Colors.green.shade100 : Colors.orange.shade100,
-        border: Border(
-          bottom: BorderSide(
-            color: _isServiceRunning ? Colors.green : Colors.orange,
-            width: 1,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            _isServiceRunning ? Icons.check_circle : Icons.warning,
-            color: _isServiceRunning ? Colors.green : Colors.orange,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              _isServiceRunning
-                  ? 'Background monitoring is active'
-                  : 'Background monitoring is paused',
-              style: TextStyle(
-                color:
-                    _isServiceRunning
-                        ? Colors.green.shade700
-                        : Colors.orange.shade700,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: _toggleBackgroundService,
-            child: Text(_isServiceRunning ? 'Stop' : 'Start'),
-          ),
         ],
       ),
     );
@@ -529,14 +485,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               FilterChip(
                 label: const Text('All'),
                 selected: _filter.inStock == null,
-                onSelected: (selected) {
-                  // Always set to "All" when this chip is tapped
-                  setState(() {
-                    _filter = _filter.copyWith(inStock: null);
-                    _currentPage = 1;
-                    _hasMoreProducts = true;
-                  });
-                  _loadProducts();
+                onSelected: (_) {
+                  if (_filter.inStock != null) {
+                    setState(() {
+                      _filter = _filter.copyWith(inStock: null);
+                      _currentPage = 1;
+                      _hasMoreProducts = true;
+                    });
+                    _loadProducts();
+                  }
                 },
                 selectedColor: Theme.of(
                   context,
@@ -546,15 +503,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               FilterChip(
                 label: const Text('In Stock'),
                 selected: _filter.inStock == true,
-                onSelected: (selected) {
+                onSelected: (_) {
                   setState(() {
-                    if (selected) {
-                      // Selecting "In Stock"
-                      _filter = _filter.copyWith(inStock: true);
-                    } else {
-                      // Deselecting "In Stock" - go back to "All"
-                      _filter = _filter.copyWith(inStock: null);
-                    }
+                    _filter = _filter.copyWith(
+                      inStock: _filter.inStock == true ? null : true,
+                    );
                     _currentPage = 1;
                     _hasMoreProducts = true;
                   });
@@ -566,15 +519,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               FilterChip(
                 label: const Text('Out of Stock'),
                 selected: _filter.inStock == false,
-                onSelected: (selected) {
+                onSelected: (_) {
                   setState(() {
-                    if (selected) {
-                      // Selecting "Out of Stock"
-                      _filter = _filter.copyWith(inStock: false);
-                    } else {
-                      // Deselecting "Out of Stock" - go back to "All"
-                      _filter = _filter.copyWith(inStock: null);
-                    }
+                    _filter = _filter.copyWith(
+                      inStock: _filter.inStock == false ? null : false,
+                    );
                     _currentPage = 1;
                     _hasMoreProducts = true;
                   });
@@ -600,15 +549,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[400]),
+            MatchaIcon(size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
-              'No products found',
+              'No matcha products found',
               style: TextStyle(fontSize: 18, color: Colors.grey[600]),
             ),
             const SizedBox(height: 8),
             Text(
-              'Try adjusting your filters or run a full check to discover new products',
+              'Try adjusting your filters or run a full check to discover new matcha products',
               style: TextStyle(color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
@@ -644,103 +593,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildFloatingActionButtons() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        // Full Check Button (when expanded)
-        AnimatedBuilder(
-          animation: _translateButton,
-          builder: (context, child) {
-            return Transform(
-              transform: Matrix4.translationValues(
-                0.0,
-                _translateButton.value * -80.0, // Reduced from -140.0
-                0.0,
-              ),
-              child: Opacity(
-                opacity: _translateButton.value,
-                child: FloatingActionButton.extended(
-                  onPressed:
-                      _isLoading || _isFullCheckRunning
-                          ? null
-                          : () {
-                            _toggleSpeedDial();
-                            _performFullCheck();
-                          },
-                  heroTag: "fullCheck",
-                  backgroundColor: Colors.deepPurple,
-                  icon:
-                      _isFullCheckRunning
-                          ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                          : const Icon(Icons.search, color: Colors.white),
-                  label: Text(
-                    _isFullCheckRunning ? 'Discovering...' : 'Run Full Check',
-                    style: const TextStyle(color: Colors.white),
-                  ),
+    return FloatingActionButton(
+      onPressed: _isFullCheckRunning ? null : _performComprehensiveScan,
+      shape: const CircleBorder(),
+      child:
+          _isFullCheckRunning
+              ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
                 ),
-              ),
-            );
-          },
-        ),
-
-        // Quick Check Button (when expanded)
-        AnimatedBuilder(
-          animation: _translateButton,
-          builder: (context, child) {
-            return Transform(
-              transform: Matrix4.translationValues(
-                0.0,
-                _translateButton.value * -40.0, // Reduced from -70.0
-                0.0,
-              ),
-              child: Opacity(
-                opacity: _translateButton.value,
-                child: FloatingActionButton.extended(
-                  onPressed:
-                      _isLoading || _isFullCheckRunning
-                          ? null
-                          : () {
-                            _toggleSpeedDial();
-                            _performLightweightCheck();
-                          },
-                  heroTag: "quickCheck",
-                  icon:
-                      _isLoading
-                          ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                          : const Icon(Icons.refresh),
-                  label: Text(_isLoading ? 'Checking...' : 'Quick Check'),
-                ),
-              ),
-            );
-          },
-        ),
-
-        // Main Radar Button
-        FloatingActionButton(
-          onPressed: _toggleSpeedDial,
-          shape: const CircleBorder(), // Ensures perfectly round shape
-          child: AnimatedBuilder(
-            animation: _buttonAnimatedIcon,
-            builder: (context, child) {
-              return Icon(
-                _isSpeedDialOpen ? Icons.close : Icons.radar,
-                size: 28,
-              );
-            },
-          ),
-        ),
-      ],
+              )
+              : const Icon(Icons.radar, size: 28),
     );
   }
 
@@ -776,15 +642,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
               if (product.url.isNotEmpty)
                 TextButton(
-                  onPressed: () {
-                    // In a real app, you'd open the URL
+                  onPressed: () async {
                     Navigator.pop(context);
-                    _showSuccessSnackBar('Would open: ${product.url}');
+                    await _openProductUrl(product.url);
                   },
                   child: const Text('View Product'),
                 ),
             ],
           ),
     );
+  }
+
+  Future<void> _openProductUrl(String url) async {
+    try {
+      final Uri uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        _showSuccessSnackBar('Opening product page...');
+      } else {
+        _showErrorSnackBar('Could not open product page');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error opening URL: $e');
+    }
   }
 }

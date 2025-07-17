@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -316,6 +318,10 @@ class DatabaseService {
     );
     int totalItems = countResult.first['count'] as int;
     int totalPages = (totalItems / itemsPerPage).ceil();
+
+    print('Database query - WHERE: $whereClause');
+    print('Database query - ARGS: $whereArgs');
+    print('Database query - Total items found: $totalItems');
 
     // Get paginated results
     String orderBy = '$sortBy ${sortAscending ? 'ASC' : 'DESC'}';

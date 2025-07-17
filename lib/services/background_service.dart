@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -49,41 +50,67 @@ void onStart(ServiceInstance service) async {
 
   // Get user settings
   UserSettings settings = await _getUserSettings();
+  Timer? currentTimer;
 
-  // Set up periodic timer based on user settings
-  Timer.periodic(Duration(hours: settings.checkFrequencyHours), (timer) async {
-    if (service is AndroidServiceInstance) {
-      if (await service.isForegroundService()) {
-        // Update foreground notification
-        service.setForegroundNotificationInfo(
-          title: "ZenRadar Active",
-          content: "Last check: ${DateTime.now().toString().substring(0, 16)}",
-        );
-      }
-    }
+  // Function to start/restart the periodic timer
+  void startPeriodicTimer() {
+    currentTimer?.cancel(); // Cancel existing timer if any
 
-    // Check if we're within active hours
-    if (_isWithinActiveHours(settings)) {
-      await _performStockCheck();
-    }
+    currentTimer = Timer.periodic(
+      Duration(minutes: settings.checkFrequencyMinutes),
+      (timer) async {
+        if (service is AndroidServiceInstance) {
+          if (await service.isForegroundService()) {
+            // Update foreground notification based on active hours
+            final isWithinHours = _isWithinActiveHours(settings);
+            service.setForegroundNotificationInfo(
+              title: "ZenRadar ${isWithinHours ? 'Active' : 'Paused'}",
+              content:
+                  isWithinHours
+                      ? "Last check: ${DateTime.now().toString().substring(0, 16)}"
+                      : "Outside active hours (${settings.startTime}-${settings.endTime})",
+            );
+          }
+        }
 
-    print('Background task completed: ${DateTime.now()}');
-  });
+        // Check if we're within active hours before performing stock check
+        if (_isWithinActiveHours(settings)) {
+          await _performStockCheck();
+          print('Background stock check completed: ${DateTime.now()}');
+        } else {
+          print(
+            'Background check skipped - outside active hours: ${DateTime.now()}',
+          );
+        }
+      },
+    );
+
+    print(
+      'Timer started with ${settings.checkFrequencyMinutes} minute intervals',
+    );
+  }
+
+  // Start initial timer
+  startPeriodicTimer();
 
   // Listen for stop commands
   service.on('stopService').listen((event) {
+    currentTimer?.cancel();
     service.stopSelf();
   });
 
   // Listen for manual check commands
   service.on('manualCheck').listen((event) async {
+    // Manual checks ignore active hours
     await _performStockCheck();
+    print('Manual stock check completed: ${DateTime.now()}');
   });
 
   // Listen for settings updates
   service.on('updateSettings').listen((event) async {
-    // Reload settings - in a real implementation, you might restart the timer
+    print('Received settings update, reloading configuration...');
     settings = await _getUserSettings();
+    startPeriodicTimer(); // Restart timer with new frequency
   });
 }
 
@@ -124,12 +151,8 @@ Future<UserSettings> _getUserSettings() async {
 
   if (settingsJson != null) {
     try {
-      return UserSettings.fromJson(
-        Map<String, dynamic>.from(
-          // In a real app, you'd use a JSON decoder here
-          {},
-        ),
-      );
+      final Map<String, dynamic> settingsMap = json.decode(settingsJson);
+      return UserSettings.fromJson(settingsMap);
     } catch (e) {
       print('Error parsing settings: $e');
     }
@@ -142,17 +165,60 @@ Future<UserSettings> _getUserSettings() async {
 bool _isWithinActiveHours(UserSettings settings) {
   final now = DateTime.now();
 
-  // Simple time comparison - in production you'd want more robust time handling
-  final startHour = int.parse(settings.startTime.split(':')[0]);
-  final endHour = int.parse(settings.endTime.split(':')[0]);
-  final currentHour = now.hour;
+  try {
+    // Parse start and end times
+    final startParts = settings.startTime.split(':');
+    final endParts = settings.endTime.split(':');
 
-  if (startHour <= endHour) {
-    // Same day range (e.g., 08:00 to 20:00)
-    return currentHour >= startHour && currentHour <= endHour;
-  } else {
-    // Overnight range (e.g., 20:00 to 08:00)
-    return currentHour >= startHour || currentHour <= endHour;
+    if (startParts.length != 2 || endParts.length != 2) {
+      print('Invalid time format in settings, allowing monitoring');
+      return true; // Default to allowing monitoring if time format is invalid
+    }
+
+    final startHour = int.parse(startParts[0]);
+    final startMinute = int.parse(startParts[1]);
+    final endHour = int.parse(endParts[0]);
+    final endMinute = int.parse(endParts[1]);
+
+    // Validate hour and minute ranges
+    if (startHour < 0 ||
+        startHour > 23 ||
+        endHour < 0 ||
+        endHour > 23 ||
+        startMinute < 0 ||
+        startMinute > 59 ||
+        endMinute < 0 ||
+        endMinute > 59) {
+      print('Invalid time values in settings, allowing monitoring');
+      return true;
+    }
+
+    // Create DateTime objects for today's start and end times
+    final today = DateTime(now.year, now.month, now.day);
+    final startTime = today.add(
+      Duration(hours: startHour, minutes: startMinute),
+    );
+    var endTime = today.add(Duration(hours: endHour, minutes: endMinute));
+
+    // Handle overnight periods (e.g., 22:00 to 06:00)
+    if (endTime.isBefore(startTime) || endTime.isAtSameMomentAs(startTime)) {
+      // End time is next day
+      endTime = endTime.add(const Duration(days: 1));
+    }
+
+    // Check if current time is within the active period
+    final isWithinHours = now.isAfter(startTime) && now.isBefore(endTime);
+
+    print(
+      'Active hours check: ${settings.startTime}-${settings.endTime}, '
+      'Current: ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}, '
+      'Within hours: $isWithinHours',
+    );
+
+    return isWithinHours;
+  } catch (e) {
+    print('Error parsing active hours: $e, allowing monitoring');
+    return true; // Default to allowing monitoring if parsing fails
   }
 }
 
