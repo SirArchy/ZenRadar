@@ -10,6 +10,8 @@ import '../services/crawler_logger.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_filters.dart';
 import '../widgets/matcha_icon.dart';
+import '../services/background_service.dart';
+import '../services/notification_service.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -81,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         'Sho-Cha',
         'Sazen Tea',
         'Mamecha',
-        'Enjoyemeri',
+        'Emeri',
       ];
 
       // Add custom websites
@@ -311,6 +313,57 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  Future<void> _testBackgroundService() async {
+    try {
+      _showSuccessSnackBar('Testing background service and notifications...');
+
+      // Debug notification system first
+      await NotificationService.instance.debugNotificationSystem();
+
+      // Test notification service
+      await NotificationService.instance.showTestNotification();
+      print('✅ Test notification sent');
+
+      // Check if background service is running
+      final isRunning =
+          await BackgroundServiceController.instance.isServiceRunning();
+      print('Background service running: $isRunning');
+
+      if (isRunning) {
+        // Trigger manual check through background service
+        await BackgroundServiceController.instance.triggerManualCheck();
+        _showSuccessSnackBar(
+          'Background service manual check triggered! Check console logs.',
+        );
+        print('✅ Manual check triggered through background service');
+      } else {
+        // Try to start the service
+        await BackgroundServiceController.instance.startService();
+
+        // Wait a moment and check again
+        await Future.delayed(const Duration(seconds: 2));
+        final isRunningAfterStart =
+            await BackgroundServiceController.instance.isServiceRunning();
+
+        if (isRunningAfterStart) {
+          await BackgroundServiceController.instance.triggerManualCheck();
+          _showSuccessSnackBar(
+            'Background service started and manual check triggered!',
+          );
+          print('✅ Background service started and manual check triggered');
+        } else {
+          _showErrorSnackBar(
+            'Failed to start background service. Check console logs.',
+          );
+          print('❌ Failed to start background service');
+        }
+      }
+    } catch (e) {
+      _showErrorSnackBar('Background service test failed: $e');
+      print('❌ Background service test error: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -491,7 +544,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 label: const Text('All'),
                 selected:
                     _filter.inStock == null &&
-                    _filter.site == null &&
+                    (_filter.sites == null || _filter.sites!.isEmpty) &&
                     _filter.category == null &&
                     _filter.minPrice == null &&
                     _filter.maxPrice == null &&
@@ -597,7 +650,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             product: _products[index],
             preferredCurrency: _userSettings.preferredCurrency,
             onTap: () {
-              _showProductDetails(_products[index]);
+              _openProductUrl(_products[index].url);
             },
           );
         },
@@ -606,112 +659,45 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildFloatingActionButtons() {
-    return FloatingActionButton(
-      onPressed: _isFullCheckRunning ? null : _performComprehensiveScan,
-      shape: const CircleBorder(),
-      child:
-          _isFullCheckRunning
-              ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-              : const Icon(Icons.radar, size: 28),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        // Background service test button
+        FloatingActionButton(
+          heroTag: "background_test",
+          onPressed: _testBackgroundService,
+          shape: const CircleBorder(),
+          backgroundColor: Colors.orange,
+          child: const Icon(Icons.notification_important, size: 24),
+        ),
+        const SizedBox(height: 16),
+        // Comprehensive scan button
+        FloatingActionButton(
+          heroTag: "comprehensive_scan",
+          onPressed: _isFullCheckRunning ? null : _performComprehensiveScan,
+          shape: const CircleBorder(),
+          child:
+              _isFullCheckRunning
+                  ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                  : const Icon(Icons.radar, size: 28),
+        ),
+      ],
     );
-  }
-
-  void _showProductDetails(MatchaProduct product) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(product.name),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Site: ${product.site}'),
-                const SizedBox(height: 8),
-                Text(
-                  'Status: ${product.isInStock ? "In Stock" : "Out of Stock"}',
-                ),
-                const SizedBox(height: 8),
-                if (product.price != null) ...[
-                  Text(
-                    'Price: ${_extractPriceForCurrency(product.price!, _userSettings.preferredCurrency) ?? product.price!}',
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                Text(
-                  'Last Checked: ${product.lastChecked.toString().substring(0, 16)}',
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
-              if (product.url.isNotEmpty)
-                TextButton(
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    await _openProductUrl(product.url);
-                  },
-                  child: const Text('View Product'),
-                ),
-            ],
-          ),
-    );
-  }
-
-  /// Extracts the price for the preferred currency from a multi-currency price string
-  String? _extractPriceForCurrency(String? priceString, String currency) {
-    if (priceString == null || priceString.isEmpty) return null;
-
-    // Common currency symbols and patterns
-    final Map<String, List<String>> currencyPatterns = {
-      'EUR': ['€', 'EUR'],
-      'USD': ['\$', 'USD'],
-      'JPY': ['¥', '円', 'JPY'],
-      'GBP': ['£', 'GBP'],
-      'CHF': ['CHF'],
-      'CAD': ['CAD'],
-      'AUD': ['AUD'],
-    };
-
-    final patterns = currencyPatterns[currency] ?? [currency];
-
-    // Split by common separators and look for the currency
-    final parts = priceString.split(RegExp(r'[|,;/\n\r]+'));
-
-    for (final part in parts) {
-      final trimmed = part.trim();
-      if (trimmed.isEmpty) continue;
-
-      // Check if this part contains our currency
-      for (final pattern in patterns) {
-        if (trimmed.contains(pattern)) {
-          return trimmed;
-        }
-      }
-    }
-
-    // If no specific currency found, return the first non-empty part
-    for (final part in parts) {
-      final trimmed = part.trim();
-      if (trimmed.isNotEmpty) {
-        return trimmed;
-      }
-    }
-
-    return priceString;
   }
 
   Future<void> _openProductUrl(String url) async {
+    if (url.isEmpty) {
+      _showErrorSnackBar('Product URL not available');
+      return;
+    }
+
     try {
       final Uri uri = Uri.parse(url);
       if (await canLaunchUrl(uri)) {

@@ -21,6 +21,7 @@ Future<void> initializeService() async {
 
   final service = FlutterBackgroundService();
 
+  // Configure the service with proper Android settings
   await service.configure(
     iosConfiguration: IosConfiguration(
       autoStart: true,
@@ -31,87 +32,179 @@ Future<void> initializeService() async {
       autoStart: true,
       onStart: onStart,
       autoStartOnBoot: true,
-      isForegroundMode: false,
-      notificationChannelId: 'zenradar_bg',
+      isForegroundMode: true, // Changed to true for better reliability
+      notificationChannelId: 'zenradar_background',
       initialNotificationTitle: 'ZenRadar Background Service',
-      initialNotificationContent: 'Monitoring matcha stock...',
+      initialNotificationContent: 'Monitoring matcha stock availability...',
       foregroundServiceNotificationId: 888,
     ),
   );
+
+  // Start the service after configuration
+  print('Background service configured, attempting to start...');
+  try {
+    await service.startService();
+    print('Background service started successfully');
+  } catch (e) {
+    print('Failed to start background service: $e');
+  }
 }
 
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
-  DartPluginRegistrant.ensureInitialized();
+  print('=== ZenRadar Background Service Started ===');
 
-  // Initialize services
-  await DatabaseService.platformService.initDatabase();
-  await NotificationService.instance.init();
+  try {
+    DartPluginRegistrant.ensureInitialized();
+    print('✅ DartPluginRegistrant initialized');
 
-  // Get user settings
-  UserSettings settings = await _getUserSettings();
-  Timer? currentTimer;
+    // Initialize services with error handling
+    try {
+      await DatabaseService.platformService.initDatabase();
+      print('✅ Database service initialized');
+    } catch (e) {
+      print('❌ Failed to initialize database: $e');
+      return;
+    }
 
-  // Function to start/restart the periodic timer
-  void startPeriodicTimer() {
-    currentTimer?.cancel(); // Cancel existing timer if any
+    try {
+      await NotificationService.instance.init();
+      print('✅ Notification service initialized');
+    } catch (e) {
+      print('❌ Failed to initialize notifications: $e');
+      return;
+    }
 
-    currentTimer = Timer.periodic(
-      Duration(minutes: settings.checkFrequencyMinutes),
-      (timer) async {
-        if (service is AndroidServiceInstance) {
-          if (await service.isForegroundService()) {
-            // Update foreground notification based on active hours
-            final isWithinHours = _isWithinActiveHours(settings);
-            service.setForegroundNotificationInfo(
-              title: "ZenRadar ${isWithinHours ? 'Active' : 'Paused'}",
-              content:
-                  isWithinHours
-                      ? "Last check: ${DateTime.now().toString().substring(0, 16)}"
-                      : "Outside active hours (${settings.startTime}-${settings.endTime})",
+    // Get user settings
+    UserSettings settings;
+    try {
+      settings = await _getUserSettings();
+      print(
+        '✅ User settings loaded: ${settings.checkFrequencyMinutes} min intervals',
+      );
+      print('   Active hours: ${settings.startTime} - ${settings.endTime}');
+      print('   Enabled sites: ${settings.enabledSites.join(", ")}');
+    } catch (e) {
+      print('❌ Failed to load user settings: $e');
+      settings = UserSettings(); // Use defaults
+    }
+
+    Timer? currentTimer;
+
+    // Function to start/restart the periodic timer
+    void startPeriodicTimer() {
+      currentTimer?.cancel(); // Cancel existing timer if any
+      print(
+        '🔄 Starting timer with ${settings.checkFrequencyMinutes} minute intervals',
+      );
+
+      currentTimer = Timer.periodic(
+        Duration(minutes: settings.checkFrequencyMinutes),
+        (timer) async {
+          print('⏰ Timer triggered: ${DateTime.now()}');
+
+          if (service is AndroidServiceInstance) {
+            if (await service.isForegroundService()) {
+              // Update foreground notification based on active hours
+              final isWithinHours = _isWithinActiveHours(settings);
+              service.setForegroundNotificationInfo(
+                title: "ZenRadar ${isWithinHours ? 'Active' : 'Paused'}",
+                content:
+                    isWithinHours
+                        ? "Last check: ${DateTime.now().toString().substring(0, 16)}"
+                        : "Outside active hours (${settings.startTime}-${settings.endTime})",
+              );
+              print('📱 Updated foreground notification');
+            }
+          }
+
+          // Check if we're within active hours before performing stock check
+          if (_isWithinActiveHours(settings)) {
+            print('✅ Within active hours, performing stock check...');
+            await _performStockCheck();
+            print('✅ Background stock check completed: ${DateTime.now()}');
+          } else {
+            print(
+              '⏭️ Background check skipped - outside active hours: ${DateTime.now()}',
             );
           }
-        }
+        },
+      );
 
-        // Check if we're within active hours before performing stock check
-        if (_isWithinActiveHours(settings)) {
-          await _performStockCheck();
-          print('Background stock check completed: ${DateTime.now()}');
-        } else {
-          print(
-            'Background check skipped - outside active hours: ${DateTime.now()}',
-          );
-        }
-      },
-    );
+      print(
+        '✅ Timer started with ${settings.checkFrequencyMinutes} minute intervals',
+      );
+    }
 
-    print(
-      'Timer started with ${settings.checkFrequencyMinutes} minute intervals',
-    );
+    // Start initial timer
+    startPeriodicTimer();
+
+    // Test notification to verify service is working
+    try {
+      await NotificationService.instance.showTestNotification();
+      print('✅ Test notification sent successfully');
+    } catch (e) {
+      print('❌ Failed to send test notification: $e');
+    }
+
+    // Listen for stop commands
+    service.on('stopService').listen((event) {
+      print('🛑 Stop service command received');
+      currentTimer?.cancel();
+      service.stopSelf();
+    });
+
+    // Listen for manual check commands
+    service.on('manualCheck').listen((event) async {
+      print('🚀 Manual check command received');
+      print('🔍 Current time: ${DateTime.now()}');
+      print('⚙️ Settings: ${settings.enabledSites.join(", ")}');
+
+      try {
+        // Manual checks ignore active hours
+        await _performStockCheck();
+        print('✅ Manual stock check completed: ${DateTime.now()}');
+
+        // Send a confirmation notification
+        await NotificationService.instance.showStockAlert(
+          productName: 'Manual Check Complete',
+          siteName: 'Background Service',
+          productId: 'manual_check_${DateTime.now().millisecondsSinceEpoch}',
+        );
+        print('✅ Confirmation notification sent');
+      } catch (e) {
+        print('❌ Error during manual stock check: $e');
+
+        // Send error notification
+        await NotificationService.instance.showStockAlert(
+          productName: 'Manual Check Error',
+          siteName: 'Background Service',
+          productId: 'error_${DateTime.now().millisecondsSinceEpoch}',
+        );
+      }
+    });
+
+    // Listen for settings updates
+    service.on('updateSettings').listen((event) async {
+      print('⚙️ Settings update command received, reloading configuration...');
+      settings = await _getUserSettings();
+      startPeriodicTimer(); // Restart timer with new frequency
+    });
+
+    print('✅ Background service fully initialized and running');
+  } catch (e) {
+    print('❌ Critical error in background service: $e');
+    // Try to send an error notification
+    try {
+      await NotificationService.instance.showStockAlert(
+        productName: 'Background Service Error',
+        siteName: 'System',
+        productId: 'error_${DateTime.now().millisecondsSinceEpoch}',
+      );
+    } catch (notifError) {
+      print('❌ Failed to send error notification: $notifError');
+    }
   }
-
-  // Start initial timer
-  startPeriodicTimer();
-
-  // Listen for stop commands
-  service.on('stopService').listen((event) {
-    currentTimer?.cancel();
-    service.stopSelf();
-  });
-
-  // Listen for manual check commands
-  service.on('manualCheck').listen((event) async {
-    // Manual checks ignore active hours
-    await _performStockCheck();
-    print('Manual stock check completed: ${DateTime.now()}');
-  });
-
-  // Listen for settings updates
-  service.on('updateSettings').listen((event) async {
-    print('Received settings update, reloading configuration...');
-    settings = await _getUserSettings();
-    startPeriodicTimer(); // Restart timer with new frequency
-  });
 }
 
 @pragma('vm:entry-point')
@@ -130,18 +223,39 @@ Future<bool> onIosBackground(ServiceInstance service) async {
 
 Future<void> _performStockCheck() async {
   try {
-    print('Starting stock check: ${DateTime.now()}');
+    print('🔍 Starting stock check: ${DateTime.now()}');
+
+    // Initialize crawler
+    final crawler = CrawlerService.instance;
+    print('📡 Crawler instance created');
+
+    // Get user settings to see what sites are enabled
+    final userSettings = await _getUserSettings();
+    print(
+      '⚙️ Enabled sites for stock check: ${userSettings.enabledSites.join(", ")}',
+    );
 
     // Crawl all sites
-    final crawler = CrawlerService.instance;
     List<MatchaProduct> products = await crawler.crawlAllSites();
+    print('✅ Stock check completed. Found ${products.length} products.');
 
-    print('Stock check completed. Found ${products.length} products.');
+    // Log some details about what was found
+    Map<String, int> productsBySite = {};
+    for (var product in products) {
+      productsBySite[product.site] = (productsBySite[product.site] ?? 0) + 1;
+    }
+
+    print('📊 Products by site:');
+    productsBySite.forEach((site, count) {
+      print('  - $site: $count products');
+    });
 
     // Clean up old history records
     await DatabaseService.platformService.deleteOldHistory();
+    print('🧹 Old history cleaned up');
   } catch (e) {
-    print('Error during stock check: $e');
+    print('❌ Error during stock check: $e');
+    print('📍 Stack trace: ${StackTrace.current}');
   }
 }
 

@@ -28,6 +28,7 @@ class ProductFilters extends StatefulWidget {
 class _ProductFiltersState extends State<ProductFilters> {
   late ProductFilter _currentFilter;
   late RangeValues _priceRangeValues;
+  bool _isSiteFilterExpanded = false; // Add state for expandable site filter
 
   @override
   void initState() {
@@ -37,6 +38,8 @@ class _ProductFiltersState extends State<ProductFilters> {
       _currentFilter.minPrice ?? widget.priceRange['min']!,
       _currentFilter.maxPrice ?? widget.priceRange['max']!,
     );
+    // Auto-expand if sites are already selected
+    _isSiteFilterExpanded = _currentFilter.sites?.isNotEmpty ?? false;
   }
 
   void _updateFilter(ProductFilter newFilter) {
@@ -142,45 +145,219 @@ class _ProductFiltersState extends State<ProductFilters> {
   }
 
   Widget _buildSiteFilter(bool isSmallScreen) {
+    final selectedSites = _currentFilter.sites ?? <String>[];
+    final availableSitesWithoutAll =
+        widget.availableSites.where((site) => site != 'All').toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Site',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: isSmallScreen ? 14 : 16,
-          ),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String?>(
-          value: _currentFilter.site,
-          decoration: InputDecoration(
-            border: const OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: isSmallScreen ? 6 : 8,
-            ),
-          ),
-          style: TextStyle(
-            fontSize: isSmallScreen ? 14 : 16,
-            color: Colors.black,
-          ),
-          items: [
-            ...widget.availableSites.map(
-              (site) => DropdownMenuItem(
-                value: site == 'All' ? null : site,
-                child: Text(
-                  site,
-                  style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
-                ),
+        Row(
+          children: [
+            Text(
+              'Sites',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: isSmallScreen ? 14 : 16,
               ),
             ),
+            const Spacer(),
+            if (selectedSites.isNotEmpty)
+              TextButton(
+                onPressed: () {
+                  _updateFilter(_currentFilter.copyWith(sites: <String>[]));
+                },
+                child: Text(
+                  'Clear',
+                  style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
+                ),
+              ),
           ],
-          onChanged: (value) {
-            _updateFilter(_currentFilter.copyWith(site: value));
-          },
         ),
+        const SizedBox(height: 8),
+
+        // Summary when collapsed or detailed view when expanded
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            children: [
+              // Header with summary and expand/collapse button
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _isSiteFilterExpanded = !_isSiteFilterExpanded;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          selectedSites.isEmpty
+                              ? 'All sites'
+                              : selectedSites.length ==
+                                  availableSitesWithoutAll.length
+                              ? 'All sites (${selectedSites.length})'
+                              : '${selectedSites.length} of ${availableSitesWithoutAll.length} sites',
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 14 : 16,
+                            fontWeight:
+                                selectedSites.isNotEmpty
+                                    ? FontWeight.w500
+                                    : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        _isSiteFilterExpanded
+                            ? Icons.expand_less
+                            : Icons.expand_more,
+                        color: Colors.grey[600],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Expandable content
+              if (_isSiteFilterExpanded) ...[
+                const Divider(height: 1),
+                // Select All / None toggle
+                CheckboxListTile(
+                  title: Text(
+                    selectedSites.length == availableSitesWithoutAll.length
+                        ? 'Deselect All'
+                        : 'Select All',
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 14 : 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  value:
+                      selectedSites.length == availableSitesWithoutAll.length,
+                  tristate: true,
+                  onChanged: (value) {
+                    if (selectedSites.length ==
+                        availableSitesWithoutAll.length) {
+                      // Deselect all
+                      _updateFilter(_currentFilter.copyWith(sites: <String>[]));
+                    } else {
+                      // Select all
+                      _updateFilter(
+                        _currentFilter.copyWith(
+                          sites: List<String>.from(availableSitesWithoutAll),
+                        ),
+                      );
+                    }
+                  },
+                  dense: isSmallScreen,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+                const Divider(height: 1),
+                // Individual site checkboxes
+                Container(
+                  constraints: const BoxConstraints(
+                    maxHeight: 200,
+                  ), // Limit height
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children:
+                          availableSitesWithoutAll
+                              .map(
+                                (site) => CheckboxListTile(
+                                  title: Text(
+                                    site,
+                                    style: TextStyle(
+                                      fontSize: isSmallScreen ? 14 : 16,
+                                    ),
+                                  ),
+                                  value: selectedSites.contains(site),
+                                  onChanged: (isChecked) {
+                                    final newSelectedSites = List<String>.from(
+                                      selectedSites,
+                                    );
+                                    if (isChecked == true) {
+                                      newSelectedSites.add(site);
+                                    } else {
+                                      newSelectedSites.remove(site);
+                                    }
+                                    _updateFilter(
+                                      _currentFilter.copyWith(
+                                        sites: newSelectedSites,
+                                      ),
+                                    );
+                                  },
+                                  dense: isSmallScreen,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        // Show selected sites as chips when collapsed
+        if (!_isSiteFilterExpanded && selectedSites.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children:
+                selectedSites
+                    .take(3)
+                    .map(
+                      (site) => Chip(
+                        label: Text(
+                          site,
+                          style: TextStyle(fontSize: isSmallScreen ? 11 : 12),
+                        ),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                        deleteIcon: const Icon(Icons.close, size: 16),
+                        onDeleted: () {
+                          final newSelectedSites = List<String>.from(
+                            selectedSites,
+                          );
+                          newSelectedSites.remove(site);
+                          _updateFilter(
+                            _currentFilter.copyWith(sites: newSelectedSites),
+                          );
+                        },
+                      ),
+                    )
+                    .toList()
+                  ..addAll(
+                    selectedSites.length > 3
+                        ? [
+                          Chip(
+                            label: Text(
+                              '+${selectedSites.length - 3} more',
+                              style: TextStyle(
+                                fontSize: isSmallScreen ? 11 : 12,
+                              ),
+                            ),
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ]
+                        : [],
+                  ),
+          ),
+        ],
       ],
     );
   }

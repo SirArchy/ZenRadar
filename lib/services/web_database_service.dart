@@ -64,9 +64,10 @@ class WebDatabaseService {
     if (filter != null) {
       allProducts =
           allProducts.where((product) {
-            if (filter.site != null &&
-                filter.site != 'All' &&
-                product.site != filter.site) {
+            // Handle multiple sites filter
+            if (filter.sites != null &&
+                filter.sites!.isNotEmpty &&
+                !filter.sites!.contains(product.site)) {
               return false;
             }
 

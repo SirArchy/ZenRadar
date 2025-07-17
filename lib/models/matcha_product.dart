@@ -291,7 +291,7 @@ class UserSettings {
 }
 
 class ProductFilter {
-  final String? site;
+  final List<String>? sites; // Changed from single site to multiple sites
   final bool? inStock;
   final double? minPrice;
   final double? maxPrice;
@@ -300,7 +300,7 @@ class ProductFilter {
   final bool showDiscontinued;
 
   ProductFilter({
-    this.site,
+    this.sites,
     this.inStock,
     this.minPrice,
     this.maxPrice,
@@ -310,7 +310,7 @@ class ProductFilter {
   });
 
   ProductFilter copyWith({
-    String? site,
+    List<String>? sites,
     bool? inStock,
     double? minPrice,
     double? maxPrice,
@@ -319,7 +319,7 @@ class ProductFilter {
     bool? showDiscontinued,
   }) {
     return ProductFilter(
-      site: site ?? this.site,
+      sites: sites ?? this.sites,
       inStock: inStock ?? this.inStock,
       minPrice: minPrice ?? this.minPrice,
       maxPrice: maxPrice ?? this.maxPrice,
@@ -331,7 +331,7 @@ class ProductFilter {
 
   @override
   String toString() {
-    return 'ProductFilter(site: $site, inStock: $inStock, minPrice: $minPrice, maxPrice: $maxPrice, category: $category, searchTerm: $searchTerm, showDiscontinued: $showDiscontinued)';
+    return 'ProductFilter(sites: $sites, inStock: $inStock, minPrice: $minPrice, maxPrice: $maxPrice, category: $category, searchTerm: $searchTerm, showDiscontinued: $showDiscontinued)';
   }
 }
 

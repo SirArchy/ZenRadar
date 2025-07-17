@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -206,5 +208,59 @@ class NotificationService {
     }
 
     await _flutterLocalNotificationsPlugin.cancel(id);
+  }
+
+  Future<bool> checkPermissions() async {
+    if (kIsWeb) {
+      // For web, just return true for now
+      return true;
+    }
+
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+          _flutterLocalNotificationsPlugin
+              .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin
+              >();
+
+      final bool? granted =
+          await androidImplementation?.areNotificationsEnabled();
+      print('🔔 Android notification permissions granted: $granted');
+      return granted ?? false;
+    }
+
+    // For iOS, assume permissions are granted if initialization was successful
+    return true;
+  }
+
+  Future<void> debugNotificationSystem() async {
+    print('🔍 Debugging notification system...');
+
+    try {
+      // Check permissions
+      final hasPermissions = await checkPermissions();
+      print('📱 Notification permissions: $hasPermissions');
+
+      // Try to show a simple test notification
+      await showTestNotification();
+      print('✅ Test notification attempted');
+
+      // Check notification channels (Android)
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+            _flutterLocalNotificationsPlugin
+                .resolvePlatformSpecificImplementation<
+                  AndroidFlutterLocalNotificationsPlugin
+                >();
+
+        if (androidImplementation != null) {
+          print('📢 Android notification implementation available');
+        } else {
+          print('❌ Android notification implementation not available');
+        }
+      }
+    } catch (e) {
+      print('❌ Error debugging notification system: $e');
+    }
   }
 }

@@ -280,9 +280,12 @@ class DatabaseService {
     List<dynamic> whereArgs = [];
 
     if (filter != null) {
-      if (filter.site != null && filter.site != 'All') {
-        whereClause += ' AND site = ?';
-        whereArgs.add(filter.site);
+      // Handle multiple sites filter
+      if (filter.sites != null && filter.sites!.isNotEmpty) {
+        // Create IN clause for multiple sites
+        String sitePlaceholders = filter.sites!.map((_) => '?').join(',');
+        whereClause += ' AND site IN ($sitePlaceholders)';
+        whereArgs.addAll(filter.sites!);
       }
 
       if (filter.inStock != null) {

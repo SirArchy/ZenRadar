@@ -108,6 +108,12 @@ class ProductCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       _buildStatusChip(),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.open_in_new,
+                        size: 16,
+                        color: Colors.grey[400],
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
