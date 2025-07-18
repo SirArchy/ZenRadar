@@ -1,0 +1,16 @@
+<!-- Simple notification icon for ZenRadar -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="@android:color/white">
+    <!-- Stylized tea leaf icon -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M12,3c-4.4,0 -8,3.6 -8,8c0,4.4 3.6,8 8,8s8,-3.6 8,-8C20,6.6 16.4,3 12,3zM12,17c-3.3,0 -6,-2.7 -6,-6s2.7,-6 6,-6s6,2.7 6,6S15.3,17 12,17z"/>
+    <!-- Inner circle for tea -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M12,7c-2.2,0 -4,1.8 -4,4s1.8,4 4,4s4,-1.8 4,-4S14.2,7 12,7z"/>
+</vector>

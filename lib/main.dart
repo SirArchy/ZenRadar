@@ -15,6 +15,8 @@ void main() async {
   // Only initialize mobile-specific services on mobile platforms
   if (!kIsWeb) {
     await NotificationService.instance.init();
+    // Small delay to ensure notification channels are created
+    await Future.delayed(const Duration(milliseconds: 500));
     await initializeService();
 
     // Request permissions (mobile only)

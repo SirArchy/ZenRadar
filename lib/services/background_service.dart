@@ -34,9 +34,11 @@ Future<void> initializeService() async {
       autoStartOnBoot: true,
       isForegroundMode: true, // Changed to true for better reliability
       notificationChannelId: 'zenradar_background',
-      initialNotificationTitle: 'ZenRadar Background Service',
-      initialNotificationContent: 'Monitoring matcha stock availability...',
+      initialNotificationTitle: 'ZenRadar Monitoring',
+      initialNotificationContent:
+          'Monitoring matcha stock availability in background',
       foregroundServiceNotificationId: 888,
+      foregroundServiceTypes: [AndroidForegroundType.dataSync],
     ),
   );
 
@@ -73,6 +75,19 @@ void onStart(ServiceInstance service) async {
     } catch (e) {
       print('❌ Failed to initialize notifications: $e');
       return;
+    }
+
+    // Ensure background notification channel exists
+    if (service is AndroidServiceInstance) {
+      try {
+        service.setForegroundNotificationInfo(
+          title: "ZenRadar Monitoring",
+          content: "Matcha stock monitoring active...",
+        );
+        print('✅ Foreground notification set');
+      } catch (e) {
+        print('❌ Failed to set foreground notification: $e');
+      }
     }
 
     // Get user settings

@@ -42,6 +42,9 @@ class NotificationService {
       onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
     );
 
+    // Create notification channels
+    await _createNotificationChannels();
+
     // Request permissions for Android 13+
     await _requestPermissions();
   }
@@ -55,6 +58,55 @@ class NotificationService {
               >();
 
       await androidImplementation?.requestNotificationsPermission();
+    }
+  }
+
+  Future<void> _createNotificationChannels() async {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+          _flutterLocalNotificationsPlugin
+              .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin
+              >();
+
+      if (androidImplementation != null) {
+        try {
+          // Create background service notification channel
+          const AndroidNotificationChannel backgroundChannel =
+              AndroidNotificationChannel(
+                'zenradar_background',
+                'Background Service',
+                description:
+                    'Persistent notification for background monitoring service',
+                importance: Importance.low,
+                showBadge: false,
+                enableVibration: false,
+                playSound: false,
+              );
+
+          // Create stock alerts notification channel
+          const AndroidNotificationChannel stockAlertsChannel =
+              AndroidNotificationChannel(
+                'stock_alerts',
+                'Stock Alerts',
+                description: 'Notifications when matcha comes back in stock',
+                importance: Importance.high,
+                showBadge: true,
+                enableVibration: true,
+                playSound: true,
+              );
+
+          await androidImplementation.createNotificationChannel(
+            backgroundChannel,
+          );
+          await androidImplementation.createNotificationChannel(
+            stockAlertsChannel,
+          );
+          print('Notification channels created successfully');
+        } catch (e) {
+          print('Error creating notification channels: $e');
+        }
+      }
     }
   }
 
@@ -89,7 +141,7 @@ class NotificationService {
           importance: Importance.high,
           priority: Priority.high,
           showWhen: true,
-          icon: '@mipmap/ic_launcher',
+          icon: '@drawable/notification_icon',
           color: Color(0xFF4CAF50),
           playSound: true,
           enableVibration: true,
@@ -149,7 +201,7 @@ class NotificationService {
           importance: Importance.high,
           priority: Priority.high,
           showWhen: true,
-          icon: '@mipmap/ic_launcher',
+          icon: '@drawable/notification_icon',
           color: const Color(0xFF4CAF50),
           playSound: true,
           enableVibration: true,

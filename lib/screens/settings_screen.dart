@@ -160,13 +160,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 16),
                     ListTile(
                       title: const Text('Check Frequency'),
-                      subtitle: Text(
-                        _settings.checkFrequencyMinutes >= 60
-                            ? 'Every ${_settings.checkFrequencyMinutes ~/ 60} hours'
-                            : 'Every ${_settings.checkFrequencyMinutes} minutes',
+                      subtitle: DropdownButton<int>(
+                        value: _settings.checkFrequencyMinutes,
+                        isExpanded: true,
+                        underline: Container(),
+                        items:
+                            _getFrequencyOptions().map((option) {
+                              return DropdownMenuItem<int>(
+                                value: option['value'] as int,
+                                child: Text(option['label'] as String),
+                              );
+                            }).toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            _updateSettings(
+                              (settings) => settings.copyWith(
+                                checkFrequencyMinutes: value,
+                              ),
+                            );
+                          }
+                        },
                       ),
-                      trailing: const Icon(Icons.edit),
-                      onTap: () => _showFrequencyDialog(),
                     ),
                     const Divider(),
                     ListTile(
@@ -402,6 +416,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ];
   }
 
+  List<Map<String, dynamic>> _getFrequencyOptions() {
+    List<Map<String, dynamic>> options = [];
+
+    // Quick monitoring options (minutes)
+    for (int minutes in [10, 15, 30, 45]) {
+      options.add({'value': minutes, 'label': 'Every $minutes minutes'});
+    }
+
+    // Hour-based options (converted to minutes)
+    for (int hours in [1, 2, 4, 6, 8, 12, 24]) {
+      int minutes = hours * 60;
+      options.add({
+        'value': minutes,
+        'label': 'Every $hours hour${hours == 1 ? '' : 's'}',
+      });
+    }
+
+    return options;
+  }
+
   void _showBuiltInWebsitesDialog() {
     final sites = _getBuiltInSites();
 
@@ -415,7 +449,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Icon(Icons.language),
                       SizedBox(width: 8),
-                      Text('Built-in Matcha Websites'),
+                      Flexible(
+                        child: Text(
+                          'Built-in Matcha Websites',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
                   ),
                   content: SizedBox(
@@ -524,52 +563,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ],
                 ),
-          ),
-    );
-  }
-
-  void _showFrequencyDialog() {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Check Frequency'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Quick monitoring options (minutes)
-                ...[10, 15, 30, 45].map((minutes) {
-                  return RadioListTile<int>(
-                    title: Text('Every $minutes minutes'),
-                    value: minutes,
-                    groupValue: _settings.checkFrequencyMinutes,
-                    onChanged: (value) {
-                      _updateSettings(
-                        (settings) =>
-                            settings.copyWith(checkFrequencyMinutes: value!),
-                      );
-                      Navigator.pop(context);
-                    },
-                  );
-                }),
-                // Hour-based options (converted to minutes)
-                ...[1, 2, 4, 6, 8, 12, 24].map((hours) {
-                  int minutes = hours * 60;
-                  return RadioListTile<int>(
-                    title: Text('Every $hours hour${hours == 1 ? '' : 's'}'),
-                    value: minutes,
-                    groupValue: _settings.checkFrequencyMinutes,
-                    onChanged: (value) {
-                      _updateSettings(
-                        (settings) =>
-                            settings.copyWith(checkFrequencyMinutes: value!),
-                      );
-                      Navigator.pop(context);
-                    },
-                  );
-                }),
-              ],
-            ),
           ),
     );
   }
