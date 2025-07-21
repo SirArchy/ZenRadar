@@ -45,25 +45,60 @@ class CategoryIcon extends StatelessWidget {
 
     final String lower = productName.toLowerCase();
 
-    if (lower.contains('matcha')) {
-      return 'lib/assets/Product_Category_Matcha.png';
-    } else if (lower.contains('genmaicha')) {
+    // Check for accessories first (most specific)
+    if (lower.contains('accessory') ||
+        lower.contains('tool') ||
+        lower.contains('whisk') ||
+        lower.contains('bowl') ||
+        lower.contains('chawan') ||
+        lower.contains('chasen') ||
+        lower.contains('chashaku') ||
+        lower.contains('halter') ||
+        lower.contains('teetasse') ||
+        lower.contains('teetassen') ||
+        lower.contains('teebecher') ||
+        lower.contains('tea pot') ||
+        lower.contains('teapot') ||
+        lower.contains('pot') ||
+        lower.contains('glass') ||
+        lower.contains('glas') || // German spelling
+        lower.contains('besen') ||
+        lower.contains('geschenkgutschein') ||
+        lower.contains('gutschein') ||
+        lower.contains('schale') ||
+        lower.contains('spoon') ||
+        lower.contains('löffel') ||
+        lower.contains('bamboo') ||
+        lower.contains('scoop') ||
+        lower.contains('sifter') ||
+        lower.contains('strainer')) {
+      return 'lib/assets/Product_Category_Accessories.png';
+    }
+
+    // Check for tea sets (also specific)
+    if (lower.contains('set') ||
+        lower.contains('kit') ||
+        lower.contains('collection')) {
+      return 'lib/assets/Product_Category_TeaSet.png';
+    }
+
+    // Other tea types (before matcha)
+    if (lower.contains('genmaicha')) {
       return 'lib/assets/Product_Category_Genmaicha.png';
     } else if (lower.contains('hojicha')) {
       return 'lib/assets/Product_Category_Hojicha.png';
     } else if (lower.contains('black tea') ||
         lower.contains('earl grey') ||
-        lower.contains('assam')) {
+        lower.contains('assam') ||
+        lower.contains('darjeeling') ||
+        lower.contains('ceylon') ||
+        lower.contains('english breakfast')) {
       return 'lib/assets/Product_Category_BlackTea.png';
-    } else if (lower.contains('set') ||
-        lower.contains('kit') ||
-        lower.contains('bowl') ||
-        lower.contains('whisk')) {
-      return 'lib/assets/Product_Category_TeaSet.png';
-    } else if (lower.contains('accessory') ||
-        lower.contains('tool') ||
-        lower.contains('bamboo')) {
-      return 'lib/assets/Product_Category_Accessories.png';
+    }
+
+    // Matcha - check last since it's most common
+    if (lower.contains('matcha')) {
+      return 'lib/assets/Product_Category_Matcha.png';
     }
 
     return null;

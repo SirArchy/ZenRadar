@@ -167,12 +167,44 @@ class MatchaProduct {
   static String detectCategory(String name, String site) {
     final String lower = name.toLowerCase();
 
-    // Matcha - highest priority since most tea sites focus on matcha
-    if (lower.contains('matcha')) {
-      return 'Matcha';
+    // Check for accessories first (most specific)
+    if (lower.contains('whisk') ||
+        lower.contains('bowl') ||
+        lower.contains('chawan') ||
+        lower.contains('chasen') ||
+        lower.contains('chashaku') ||
+        lower.contains('halter') ||
+        lower.contains('teetasse') ||
+        lower.contains('teetassen') ||
+        lower.contains('teebecher') ||
+        lower.contains('tea pot') ||
+        lower.contains('teapot') ||
+        lower.contains('pot') ||
+        lower.contains('glass') ||
+        lower.contains('glas') || // German spelling
+        lower.contains('besen') ||
+        lower.contains('geschenkgutschein') ||
+        lower.contains('gutschein') ||
+        lower.contains('schale') ||
+        lower.contains('spoon') ||
+        lower.contains('löffel') ||
+        lower.contains('bamboo') ||
+        lower.contains('scoop') ||
+        lower.contains('sifter') ||
+        lower.contains('strainer') ||
+        lower.contains('accessory') ||
+        lower.contains('tool')) {
+      return 'Accessories';
     }
 
-    // Other tea types
+    // Check for tea sets (also specific)
+    if (lower.contains('set') ||
+        lower.contains('kit') ||
+        lower.contains('collection')) {
+      return 'Tea Set';
+    }
+
+    // Other tea types (before matcha to catch specific teas)
     if (lower.contains('genmaicha')) {
       return 'Genmaicha';
     }
@@ -190,25 +222,9 @@ class MatchaProduct {
       return 'Black Tea';
     }
 
-    // Tea accessories and sets
-    if (lower.contains('set') ||
-        lower.contains('kit') ||
-        lower.contains('collection')) {
-      return 'Tea Set';
-    }
-
-    if (lower.contains('whisk') ||
-        lower.contains('bowl') ||
-        lower.contains('chawan') ||
-        lower.contains('chasen') ||
-        lower.contains('chashaku') ||
-        lower.contains('bamboo') ||
-        lower.contains('scoop') ||
-        lower.contains('sifter') ||
-        lower.contains('strainer') ||
-        lower.contains('accessory') ||
-        lower.contains('tool')) {
-      return 'Accessories';
+    // Matcha - check last since it's most common
+    if (lower.contains('matcha')) {
+      return 'Matcha';
     }
 
     // Default category - if it's from a matcha-focused site, assume matcha
