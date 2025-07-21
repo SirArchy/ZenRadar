@@ -10,6 +10,7 @@ import '../services/crawler_logger.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_filters.dart';
 import '../widgets/matcha_icon.dart';
+import '../widgets/site_selection_dialog.dart';
 import '../services/background_service.dart';
 import '../services/notification_service.dart';
 import 'settings_screen.dart';
@@ -178,20 +179,54 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
 
     try {
-      // Show loading dialog with site progress
-      _showScanProgressDialog();
-
-      // Perform a comprehensive crawl of all sites
       final crawler = CrawlerService.instance;
-      List<MatchaProduct> products = await crawler.crawlAllSites();
+      List<MatchaProduct> products;
+
+      // Check if this is the first scan by looking at existing products
+      final db = DatabaseService.platformService;
+      final existingProducts = await db.getAllProducts();
+      final isFirstScan = existingProducts.isEmpty;
+
+      if (isFirstScan) {
+        // For first scan, use all enabled sites from settings
+        _showScanProgressDialog();
+        products = await crawler.crawlAllSites();
+      } else {
+        // For subsequent scans, show site selection dialog
+        final availableSites = crawler.getSiteNamesMap();
+        final selectedSiteKeys = await showSiteSelectionDialog(
+          context: context,
+          availableSites: availableSites.values.toList(),
+        );
+
+        if (selectedSiteKeys == null || selectedSiteKeys.isEmpty) {
+          // User cancelled or didn't select any sites
+          return;
+        }
+
+        // Convert display names back to site keys
+        final siteKeysToScan = <String>[];
+        for (final selectedName in selectedSiteKeys) {
+          final siteKey =
+              availableSites.entries
+                  .firstWhere((entry) => entry.value == selectedName)
+                  .key;
+          siteKeysToScan.add(siteKey);
+        }
+
+        // Show progress dialog and perform selected scan
+        _showScanProgressDialog();
+        products = await crawler.crawlSelectedSites(siteKeysToScan);
+      }
 
       // Dismiss loading dialog
       Navigator.of(context).pop();
 
       // Show success message with more details about enabled sites
-      final enabledSiteCount = _userSettings.enabledSites.length;
+      final scannedSiteCount = products.map((p) => p.site).toSet().length;
+
       _showSuccessSnackBar(
-        'Scan completed! Found ${products.length} products from $enabledSiteCount enabled sites.',
+        'Scan completed! Found ${products.length} products from $scannedSiteCount sites.',
       );
 
       // Reload products and options
@@ -614,7 +649,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            MatchaIcon(size: 64, color: Colors.grey[400]),
+            const Icon(Icons.search_off, size: 48, color: Colors.grey),
             const SizedBox(height: 16),
             Text(
               'No matcha products found',

@@ -48,64 +48,68 @@ class CrawlerService {
       name: 'Ippodo Tea',
       baseUrl: 'https://global.ippodo-tea.co.jp/collections/matcha',
       stockSelector:
-          '', // We'll determine stock by checking for "Add to Cart" vs "Out of Stock"
+          '.out-of-stock', // Products are out of stock if this element exists
       productSelector:
-          '.grid__item, .product-item, .card-wrapper', // Multiple selectors for fallback
+          '.m-product-card', // Updated to use the correct Ippodo selector
       nameSelector:
-          '.card__heading a, .card__heading, h3 a, h3, .product-title',
+          '.m-product-card__name, .m-product-card__body a', // Updated name selector priority
       priceSelector:
-          '.price__current .price-item--regular, .price .price-item, .price, .cost',
-      linkSelector: '.card__heading a, h3 a, .product-link, a',
+          '.m-product-card__price', // Updated to use the correct price selector
+      linkSelector: 'a[href*="/products/"]',
     ),
     'yoshien': SiteConfig(
       name: 'Yoshi En',
-      baseUrl: 'https://www.yoshien.com/matcha/',
+      baseUrl: 'https://www.yoshien.com/matcha/matcha-tee/',
       stockSelector:
           'a[href*="matcha"]', // Links to matcha products indicate availability
-      productSelector: 'table tbody tr', // Products are in table rows
-      nameSelector: 'a[href*="matcha"]', // Product name is in links
-      priceSelector: 'td', // Price is in table cells
-      linkSelector: 'a[href*="matcha"]',
+      productSelector:
+          '.cs-product-tile', // Products are in cs-product-tile containers
+      nameSelector:
+          '.cs-product-tile__name, .cs-product-tile__name-link', // Product name in cs-product-tile__name
+      priceSelector:
+          '.cs-product-tile__price', // Price in cs-product-tile__price
+      linkSelector: 'a[href*="/matcha-"]',
     ),
     'matcha-karu': SiteConfig(
       name: 'Matcha Kāru',
       baseUrl: 'https://matcha-karu.com/collections/matcha-tee',
       stockSelector: '.price',
       productSelector: '.product-item',
-      nameSelector: 'a[href*="/products/"]', // Extract from href
-      priceSelector: '.price',
-      linkSelector: 'a[href*="/products/"]',
+      nameSelector:
+          '.product-item-meta__title, .product-item__info a', // Updated to get actual product name
+      priceSelector:
+          '.price:first-child', // Get first price element to avoid unit price
+      linkSelector: '.product-item-meta__title, .product-item__info a',
     ),
     'sho-cha': SiteConfig(
       name: 'Sho-Cha',
       baseUrl: 'https://www.sho-cha.com/teeshop',
-      stockSelector: '.ProductList-price .sqs-money-native, .ProductList-price',
+      stockSelector: '.product-price',
       productSelector: '.ProductList-item',
       nameSelector: '.ProductList-title a, .ProductList-title',
-      priceSelector: '.ProductList-price .sqs-money-native, .ProductList-price',
+      priceSelector: '.product-price',
       linkSelector: '.ProductList-title a, a',
     ),
     'sazentea': SiteConfig(
       name: 'Sazen Tea',
       baseUrl: 'https://www.sazentea.com/en/products/c21-matcha',
-      stockSelector:
-          'a[href*="product"]', // Product links indicate availability
-      productSelector: 'table tr', // Products are in table rows
-      nameSelector: 'a[href*="product"]', // Product name is in links
-      priceSelector: 'td', // Price is in table cells
-      linkSelector: 'a[href*="product"]',
+      stockSelector: '.product-price', // Products with prices are available
+      productSelector: '.product', // Products are in .product containers
+      nameSelector: '.product-name', // Product name is in .product-name
+      priceSelector: '.product-price', // Price is in .product-price
+      linkSelector: 'a[href*="/products/"]', // Product links to detail pages
     ),
     'mamecha': SiteConfig(
       name: 'Mamecha',
       baseUrl: 'https://www.mamecha.com/online-shopping-1/',
       stockSelector:
-          '.summary-item .summary-title, .ProductList-item .ProductList-title',
-      productSelector: '.summary-item, .ProductList-item',
-      nameSelector:
-          '.summary-title a, .ProductList-title a, .summary-title, .ProductList-title',
+          'h4, a[href*="product"]', // Product names indicate availability
+      productSelector:
+          '[id*="cc-m-product"]', // Products in cc-m-product containers
+      nameSelector: 'h4', // Product names in h4 elements
       priceSelector:
-          '.summary-metadata .summary-metadata-item--price, .ProductList-price',
-      linkSelector: '.summary-title a, .ProductList-title a, a',
+          '.cc-shop-product-price-current, option.j-product__variants__item', // Prices in current price or variant options
+      linkSelector: 'a[href*="/j/shop/"]', // Product links to shop pages
     ),
     'enjoyemeri': SiteConfig(
       name: 'Emeri',
@@ -120,24 +124,35 @@ class CrawlerService {
 
   Future<List<MatchaProduct>> crawlAllSites() async {
     _logger.logInfo('🚀 Starting comprehensive crawl of all sites...');
-    List<MatchaProduct> allProducts = [];
 
     // Get user settings to check which sites are enabled
     final userSettings = await SettingsService.instance.getSettings();
     final enabledSiteKeys = userSettings.enabledSites;
 
-    _logger.logInfo('📋 Enabled sites: ${enabledSiteKeys.join(', ')}');
+    return await crawlSelectedSites(enabledSiteKeys);
+  }
+
+  /// Crawl only the specified sites
+  Future<List<MatchaProduct>> crawlSelectedSites(
+    List<String> selectedSiteKeys,
+  ) async {
+    _logger.logInfo(
+      '� Starting crawl of selected sites: ${selectedSiteKeys.join(', ')}',
+    );
+    List<MatchaProduct> allProducts = [];
+
+    _logger.logInfo('📋 Selected sites: ${selectedSiteKeys.join(', ')}');
 
     // Get existing products to track what we find vs what we don't
     List<MatchaProduct> existingProducts = await _db.getAllProducts();
     Set<String> foundProductIds = {};
 
-    // Crawl built-in sites (only enabled ones)
+    // Crawl built-in sites (only selected ones)
     for (String siteKey in _siteConfigs.keys) {
-      // Skip sites that are not enabled in user settings
-      if (!enabledSiteKeys.contains(siteKey)) {
+      // Skip sites that are not in the selected list
+      if (!selectedSiteKeys.contains(siteKey)) {
         final siteName = _siteConfigs[siteKey]?.name ?? siteKey;
-        _logger.logInfo('⏭️ Skipping disabled site: $siteName');
+        _logger.logInfo('⏭️ Skipping unselected site: $siteName');
         continue;
       }
 
@@ -166,7 +181,7 @@ class CrawlerService {
       }
     }
 
-    // Crawl custom websites
+    // Crawl custom websites (include all enabled custom sites for now)
     try {
       final customWebsites = await _db.getEnabledCustomWebsites();
       for (CustomWebsite website in customWebsites) {
@@ -255,6 +270,25 @@ class CrawlerService {
     );
 
     return allProducts;
+  }
+
+  /// Get all available built-in site keys
+  List<String> getAvailableSites() {
+    return _siteConfigs.keys.toList();
+  }
+
+  /// Get site display name from site key
+  String getSiteName(String siteKey) {
+    return _siteConfigs[siteKey]?.name ?? siteKey;
+  }
+
+  /// Get all site names with their keys for display purposes
+  Map<String, String> getSiteNamesMap() {
+    final result = <String, String>{};
+    for (final entry in _siteConfigs.entries) {
+      result[entry.key] = entry.value.name;
+    }
+    return result;
   }
 
   Future<List<MatchaProduct>> crawlSite(String siteKey) async {
@@ -482,13 +516,37 @@ class CrawlerService {
           String? price = priceElement?.text.trim();
           String? href = linkElement?.attributes['href'];
 
+          // Special handling for Ippodo - extract name from img alt if text is empty
+          if (siteKey == 'ippodo' &&
+              name.isEmpty &&
+              nameElement.localName == 'img') {
+            name = nameElement.attributes['alt']?.trim() ?? '';
+          }
+
           // Clean and process price
           if (price != null) {
             price = _cleanPrice(price, siteKey);
           }
 
-          // Special handling for table-based sites (Yoshi En, Sazen Tea)
-          if ((siteKey == 'yoshien' || siteKey == 'sazentea') && name.isEmpty) {
+          // Special handling for Sazen Tea product containers
+          if (siteKey == 'sazentea' && name.isEmpty) {
+            // For Sazen Tea, get name from .product-name
+            final nameElement = productElement.querySelector('.product-name');
+            if (nameElement != null) {
+              name = nameElement.text.trim();
+            }
+
+            // Get link from the product container
+            final linkElement = productElement.querySelector(
+              'a[href*="/products/"]',
+            );
+            if (linkElement != null) {
+              href = linkElement.attributes['href'];
+            }
+          }
+
+          // Special handling for table-based sites (legacy - keeping for other sites)
+          if (name.isEmpty && productElement.localName == 'tr') {
             // For table-based sites, extract name from link text
             final linkElements = productElement.querySelectorAll('a');
             for (var linkEl in linkElements) {
@@ -700,18 +758,10 @@ class CrawlerService {
         return !outOfStockText.contains('out of stock');
 
       case 'ippodo':
-        // For Ippodo, check for "Add to Cart" vs "Out of Stock" text
-        final elementText = productElement.text.toLowerCase();
-        if (elementText.contains('add to cart')) {
-          return true;
-        } else if (elementText.contains('out of stock')) {
-          return false;
-        }
-        // If neither found, check for specific button selectors
-        final addToCartButton = productElement.querySelector(
-          'button:not([disabled]), .btn:not(.disabled)',
-        );
-        return addToCartButton != null;
+        // For Ippodo, check for .out-of-stock class (inverse logic - out of stock if element exists)
+        final outOfStockElement = productElement.querySelector('.out-of-stock');
+        return outOfStockElement ==
+            null; // In stock if NO .out-of-stock element found
 
       case 'marukyu':
         // For Marukyu, use the original selector method
@@ -725,10 +775,16 @@ class CrawlerService {
           return false;
         }
 
+        // Check for out-of-stock class
+        if (productElement.classes.contains('cs-product-tile--out-of-stock')) {
+          return false;
+        }
+
         final elementText = productElement.text.toLowerCase();
         if (elementText.contains('ausverkauft') ||
             elementText.contains('out of stock') ||
-            elementText.contains('sold out')) {
+            elementText.contains('sold out') ||
+            elementText.contains('wieder verfügbar')) {
           return false;
         }
 
@@ -749,38 +805,28 @@ class CrawlerService {
             !elementText.contains('sold out');
 
       case 'sho-cha':
-        // For Sho-Cha (Squarespace), check for proper price element
-        final priceElement = productElement.querySelector(
-          '.ProductList-price .sqs-money-native',
-        );
+        // For Sho-Cha, check for proper price element
+        final priceElement = productElement.querySelector('.product-price');
         if (priceElement != null && priceElement.text.trim().isNotEmpty) {
-          final priceText = priceElement.text.trim();
-          // Check if price is not "00" or empty
-          if (priceText != '00' &&
-              priceText != '0' &&
-              !priceText.contains('00 Original')) {
+          final priceText =
+              priceElement.text
+                  .trim()
+                  .replaceAll('\u00A0', ' ') // Replace non-breaking space
+                  .replaceAll(RegExp(r'\s+'), ' ')
+                  .trim();
+          // Check if price is valid (contains € and is not just "00")
+          if (priceText.contains('€') &&
+              !priceText.contains('00,00') &&
+              priceText != '00') {
             return true;
           }
         }
-
-        // Fallback to general price selector
-        final generalPriceElement = productElement.querySelector(
-          '.ProductList-price',
-        );
-        if (generalPriceElement != null) {
-          final priceText = generalPriceElement.text.trim();
-          return priceText.isNotEmpty &&
-              !priceText.startsWith('00') &&
-              !priceText.contains('out of stock') &&
-              !priceText.contains('sold out');
-        }
-
         return false;
 
       case 'sazentea':
-        // For Sazen Tea, check if we have a valid product link in the row
-        final linkElement = productElement.querySelector('a[href*="product"]');
-        if (linkElement == null || linkElement.text.trim().isEmpty) {
+        // For Sazen Tea, check if we have a valid product name and price
+        final nameElement = productElement.querySelector(config.nameSelector);
+        if (nameElement == null || nameElement.text.trim().isEmpty) {
           return false;
         }
 
@@ -791,12 +837,17 @@ class CrawlerService {
           return false;
         }
 
-        // Look for price patterns in the row
-        final hasPrice = RegExp(r'[\$€£¥]\s*\d+[.,]\d+').hasMatch(elementText);
-        return hasPrice && linkElement.text.toLowerCase().contains('matcha');
+        // Check for price presence as indicator of availability
+        final priceElement = productElement.querySelector('.product-price');
+        if (priceElement != null) {
+          final priceText = priceElement.text.trim();
+          return priceText.contains('\$') && !priceText.contains('0.00');
+        }
+
+        return false;
 
       case 'mamecha':
-        // For Mamecha (Squarespace), check for title and proper price
+        // For Mamecha, check for product name and availability
         final nameElement = productElement.querySelector(config.nameSelector);
         if (nameElement == null || nameElement.text.trim().isEmpty) {
           return false;
@@ -805,15 +856,27 @@ class CrawlerService {
         final elementText = productElement.text.toLowerCase();
         if (elementText.contains('out of stock') ||
             elementText.contains('sold out') ||
-            elementText.contains('ausverkauft')) {
+            elementText.contains('ausverkauft') ||
+            elementText.contains('leider ausverkauft')) {
           return false;
         }
 
-        // Check for price in metadata or general price element
+        // Check if "verfügbar" (available) is present
+        if (elementText.contains('verfügbar')) {
+          return true;
+        }
+
+        // Check for price presence as fallback
         final priceElement = productElement.querySelector(
-          '.summary-metadata .summary-metadata-item--price, .ProductList-price',
+          '.cc-shop-product-price-current',
         );
-        return priceElement != null && priceElement.text.trim().isNotEmpty;
+        if (priceElement != null &&
+            priceElement.text.contains('€') &&
+            !priceElement.text.contains('0,00')) {
+          return true;
+        }
+
+        return false;
 
       case 'enjoyemeri':
         // For Enjoyemeri (Shopify), check for price presence and no out of stock text
@@ -886,46 +949,103 @@ class CrawlerService {
         break;
 
       case 'sho-cha':
-        // For Sho-Cha, clean up Squarespace price formatting
-        cleaned = cleaned.replaceAll('\n', ' ').replaceAll(RegExp(r'\s+'), ' ');
+        // For Sho-Cha, handle German Euro formatting
+        // Example: "24,00 €" -> "24,00 €"
+        cleaned =
+            cleaned
+                .replaceAll('\u00A0', ' ') // Replace non-breaking space
+                .replaceAll('\n', ' ')
+                .replaceAll(RegExp(r'\s+'), ' ')
+                .trim();
 
-        // Extract actual price, ignore "Original Price" text
-        if (cleaned.contains('Original Price:')) {
-          final priceMatch = RegExp(
-            r'([\d.,]+)\s*€?\s*Original Price:',
-          ).firstMatch(cleaned);
-          if (priceMatch != null) {
-            return '€${priceMatch.group(1)}';
-          }
+        // Extract price in German format (XX,XX €)
+        final priceMatch = RegExp(r'(\d+(?:,\d{2})?\s*€)').firstMatch(cleaned);
+        if (priceMatch != null) {
+          return priceMatch.group(1)!.trim();
         }
 
-        // Remove leading/trailing zeros that don't make sense
+        // Fallback: if it looks like a valid price, keep it
+        if (cleaned.contains('€') && !cleaned.contains('00,00')) {
+          return cleaned;
+        }
+
+        return ''; // Invalid price
+
+      case 'matcha-karu':
+        // For Matcha Kāru, handle German price formatting
+        // Example: "AngebotspreisAb 19,00 €" -> "19,00 €"
+        cleaned = cleaned.replaceAll('\n', ' ').replaceAll(RegExp(r'\s+'), ' ');
+
+        // Remove German text prefixes
+        cleaned = cleaned.replaceAll('Angebotspreis', '');
+        cleaned = cleaned.replaceAll('Ab ', '');
+        cleaned = cleaned.replaceAll('ab ', '');
+        cleaned = cleaned.trim();
+
+        // Extract price with Euro symbol and maintain proper spacing
+        final priceMatch = RegExp(r'(\d+[.,]\d+)\s*€').firstMatch(cleaned);
+        if (priceMatch != null) {
+          return '${priceMatch.group(1)} €'; // Add space before Euro symbol
+        }
+
+        // Fallback: if it contains a price-like pattern, try to extract it
+        final fallbackMatch = RegExp(r'(\d+[.,]\d+)').firstMatch(cleaned);
+        if (fallbackMatch != null) {
+          return '${fallbackMatch.group(1)} €';
+        }
+
+        // Fallback: just clean up the string
         if (cleaned == '00' || cleaned == '0' || cleaned.startsWith('00 ')) {
           return '';
         }
         break;
 
       case 'yoshien':
+        // For Yoshi En, extract price from German format like "Ab 14,90 € 14,90 €"
+        cleaned = cleaned.replaceAll('Ab ', '').trim();
+
+        // Extract the first valid price
+        final priceMatch = RegExp(r'(\d+[.,]\d+)\s*€').firstMatch(cleaned);
+        if (priceMatch != null) {
+          return '${priceMatch.group(1)}€';
+        }
+        break;
+
       case 'sazentea':
-        // For table-based sites, extract the first valid price
-        final priceMatch = RegExp(
+        // For Sazen Tea, extract the first price from formats like "$6.48 / 20 g BOX" or multiple prices
+        cleaned = cleaned.replaceAll('\n', ' ').replaceAll(RegExp(r'\s+'), ' ');
+
+        // Extract the first price with dollar sign
+        final priceMatch = RegExp(r'\$(\d+\.\d+)').firstMatch(cleaned);
+        if (priceMatch != null) {
+          return '\$${priceMatch.group(1)}';
+        }
+
+        // Fallback for other currency formats
+        final currencyMatch = RegExp(
           r'([\$€£¥]\s*\d+[.,]\d+)',
         ).firstMatch(cleaned);
-        if (priceMatch != null) {
-          return priceMatch.group(1)!.replaceAll(RegExp(r'\s+'), '');
+        if (currencyMatch != null) {
+          return currencyMatch.group(1)!.replaceAll(RegExp(r'\s+'), '');
         }
         break;
 
       case 'mamecha':
-        // For Mamecha, clean up Squarespace formatting
+        // For Mamecha, clean up and extract price with € symbol
         cleaned = cleaned.replaceAll('\n', ' ').replaceAll(RegExp(r'\s+'), ' ');
 
-        // Look for currency patterns
-        final priceMatch = RegExp(
+        // Look for specific price patterns like "15,20 €" or "9,10 €"
+        final priceMatch = RegExp(r'(\d+[.,]\d+)\s*€').firstMatch(cleaned);
+        if (priceMatch != null) {
+          return '${priceMatch.group(1)}€';
+        }
+
+        // Fallback for currency patterns
+        final currencyMatch = RegExp(
           r'([\$€£¥]\s*\d+[.,]\d+)',
         ).firstMatch(cleaned);
-        if (priceMatch != null) {
-          return priceMatch.group(1)!.replaceAll(RegExp(r'\s+'), '');
+        if (currencyMatch != null) {
+          return currencyMatch.group(1)!.replaceAll(RegExp(r'\s+'), '');
         }
         break;
     }
