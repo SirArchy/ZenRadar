@@ -1,6 +1,10 @@
+import 'dart:async';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
+import '../models/scan_activity.dart';
+import 'database_service.dart';
 
-// Web-compatible background service (no actual background processing)
+// Web-compatible background service (simulated background processing)
 class WebBackgroundService {
   static final WebBackgroundService _instance =
       WebBackgroundService._internal();
@@ -9,33 +13,107 @@ class WebBackgroundService {
 
   static WebBackgroundService get instance => _instance;
 
+  Timer? _simulationTimer;
+  final Random _random = Random();
+
   Future<void> init() async {
     if (kDebugMode) {
-      print('Web background service initialized (no background processing)');
+      print('Web background service initialized with simulation');
     }
   }
 
   Future<bool> isServiceRunning() async {
-    return false; // No background service on web
+    return _simulationTimer?.isActive ?? false;
   }
 
   Future<void> startService() async {
     if (kDebugMode) {
-      print('Background service not available on web');
+      print('Starting simulated background service for web demo');
     }
+
+    _simulationTimer?.cancel();
+
+    // Create periodic timer to simulate background scans every 2-5 minutes
+    _simulationTimer = Timer.periodic(
+      Duration(minutes: 2 + _random.nextInt(3)),
+      (timer) async {
+        await _simulateBackgroundScan();
+      },
+    );
+
+    // Create initial scan after 30 seconds
+    Timer(const Duration(seconds: 30), () async {
+      await _simulateBackgroundScan();
+    });
   }
 
   Future<void> stopService() async {
     if (kDebugMode) {
-      print('Background service not available on web');
+      print('Stopping simulated background service');
     }
+    _simulationTimer?.cancel();
+    _simulationTimer = null;
+  }
+
+  Future<void> _simulateBackgroundScan() async {
+    try {
+      if (kDebugMode) {
+        print('🤖 Simulating background scan for web demo...');
+      }
+
+      final now = DateTime.now();
+      final scanActivity = ScanActivity(
+        id: 'sim_${now.millisecondsSinceEpoch}',
+        timestamp: now,
+        itemsScanned: 15 + _random.nextInt(35), // 15-50 items
+        duration: 10 + _random.nextInt(40), // 10-50 seconds
+        hasStockUpdates: _random.nextBool(),
+        details: _generateSimulatedScanDetails(),
+        scanType: 'background',
+      );
+
+      await DatabaseService.platformService.insertScanActivity(scanActivity);
+
+      if (kDebugMode) {
+        print(
+          '✅ Simulated scan activity logged: ${scanActivity.itemsScanned} items in ${scanActivity.formattedDuration}',
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error creating simulated scan activity: $e');
+      }
+    }
+  }
+
+  String _generateSimulatedScanDetails() {
+    final sites = [
+      'Nakamura Tokichi',
+      'Ippodo Tea',
+      'Marukyu-Koyamaen',
+      'Yoshi En',
+      'Matcha Kāru',
+    ];
+    final selectedSites = <String>[];
+
+    for (final site in sites) {
+      if (_random.nextBool()) {
+        selectedSites.add(site);
+      }
+    }
+
+    if (selectedSites.isEmpty) {
+      selectedSites.add(sites[_random.nextInt(sites.length)]);
+    }
+
+    return 'Monitored ${selectedSites.join(", ")}';
   }
 
   Future<void> triggerManualCheck() async {
     if (kDebugMode) {
-      print('Manual check triggered (web mode)');
+      print('Manual check triggered (web mode) - creating simulated scan');
     }
-    // On web, this would trigger the crawler service directly
+    await _simulateBackgroundScan();
   }
 
   Future<void> updateSettings() async {

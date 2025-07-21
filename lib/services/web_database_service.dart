@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/matcha_product.dart';
+import '../models/scan_activity.dart';
 
 // Web-compatible database service using browser local storage
 class WebDatabaseService {
@@ -12,6 +13,8 @@ class WebDatabaseService {
   // In-memory storage for web (in a real implementation, you'd use IndexedDB)
   final Map<String, MatchaProduct> _products = {};
   final List<Map<String, dynamic>> _stockHistory = [];
+  final Set<String> _favoriteProductIds = {};
+  final List<ScanActivity> _scanActivities = [];
 
   Future<void> initDatabase() async {
     // Initialize web storage - in production you'd use shared_preferences_web
@@ -64,6 +67,12 @@ class WebDatabaseService {
     if (filter != null) {
       allProducts =
           allProducts.where((product) {
+            // Handle favorites filter
+            if (filter.favoritesOnly &&
+                !_favoriteProductIds.contains(product.id)) {
+              return false;
+            }
+
             // Handle multiple sites filter
             if (filter.sites != null &&
                 filter.sites!.isNotEmpty &&
@@ -275,5 +284,71 @@ class WebDatabaseService {
         testStatus: status,
       );
     }
+  }
+
+  // Favorites management methods
+  Future<void> addToFavorites(String productId) async {
+    _favoriteProductIds.add(productId);
+  }
+
+  Future<void> removeFromFavorites(String productId) async {
+    _favoriteProductIds.remove(productId);
+  }
+
+  Future<bool> isFavorite(String productId) async {
+    return _favoriteProductIds.contains(productId);
+  }
+
+  Future<List<String>> getFavoriteProductIds() async {
+    return _favoriteProductIds.toList();
+  }
+
+  Future<List<MatchaProduct>> getFavoriteProducts() async {
+    return _products.values
+        .where((product) => _favoriteProductIds.contains(product.id))
+        .toList();
+  }
+
+  Future<int> getFavoriteProductsCount() async {
+    return _favoriteProductIds.length;
+  }
+
+  // Scan activities management methods
+  Future<void> insertScanActivity(ScanActivity activity) async {
+    _scanActivities.add(activity);
+    // Keep only the latest 100 activities to prevent memory issues
+    if (_scanActivities.length > 100) {
+      _scanActivities.removeAt(0);
+    }
+  }
+
+  Future<List<ScanActivity>> getScanActivities({
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final sortedActivities = List<ScanActivity>.from(_scanActivities)
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+    final endIndex = (offset + limit).clamp(0, sortedActivities.length);
+    if (offset >= sortedActivities.length) {
+      return [];
+    }
+
+    return sortedActivities.sublist(offset, endIndex);
+  }
+
+  Future<int> getScanActivitiesCount() async {
+    return _scanActivities.length;
+  }
+
+  Future<void> deleteScanActivity(String id) async {
+    _scanActivities.removeWhere((activity) => activity.id == id);
+  }
+
+  Future<void> clearOldScanActivities({int keepDays = 30}) async {
+    final cutoffDate = DateTime.now().subtract(Duration(days: keepDays));
+    _scanActivities.removeWhere(
+      (activity) => activity.timestamp.isBefore(cutoffDate),
+    );
   }
 }

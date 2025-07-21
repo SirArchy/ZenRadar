@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/matcha_product.dart';
+import '../models/scan_activity.dart';
 import 'web_database_service.dart';
 
 class DatabaseService {
@@ -14,7 +15,7 @@ class DatabaseService {
   static DatabaseService get instance => _instance;
 
   Database? _database;
-  static const int _currentVersion = 4; // Increment for schema changes
+  static const int _currentVersion = 6; // Increment for schema changes
 
   Future<Database> get database async {
     if (kIsWeb) {
@@ -97,6 +98,26 @@ class DatabaseService {
       )
     ''');
 
+    await db.execute('''
+      CREATE TABLE favorite_products (
+        productId TEXT PRIMARY KEY,
+        addedAt TEXT NOT NULL,
+        FOREIGN KEY (productId) REFERENCES matcha_products (id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE scan_activities (
+        id TEXT PRIMARY KEY,
+        timestamp TEXT NOT NULL,
+        itemsScanned INTEGER NOT NULL,
+        duration INTEGER NOT NULL,
+        hasStockUpdates INTEGER NOT NULL,
+        details TEXT,
+        scanType TEXT DEFAULT 'background'
+      )
+    ''');
+
     // Create indexes for better performance
     await db.execute('CREATE INDEX idx_site ON matcha_products(site)');
     await db.execute(
@@ -113,6 +134,9 @@ class DatabaseService {
     );
     await db.execute(
       'CREATE INDEX idx_custom_website_enabled ON custom_websites(isEnabled)',
+    );
+    await db.execute(
+      'CREATE INDEX idx_scan_activities_timestamp ON scan_activities(timestamp)',
     );
   }
 
@@ -201,6 +225,35 @@ class DatabaseService {
         'ALTER TABLE matcha_products ADD COLUMN missedScans INTEGER DEFAULT 0',
       );
     }
+
+    if (oldVersion < 5) {
+      // Add favorite_products table for version 5
+      await db.execute('''
+        CREATE TABLE favorite_products (
+          productId TEXT PRIMARY KEY,
+          addedAt TEXT NOT NULL,
+          FOREIGN KEY (productId) REFERENCES matcha_products (id) ON DELETE CASCADE
+        )
+      ''');
+    }
+
+    if (oldVersion < 6) {
+      // Add scan_activities table for version 6
+      await db.execute('''
+        CREATE TABLE scan_activities (
+          id TEXT PRIMARY KEY,
+          timestamp TEXT NOT NULL,
+          itemsScanned INTEGER NOT NULL,
+          duration INTEGER NOT NULL,
+          hasStockUpdates INTEGER NOT NULL,
+          details TEXT,
+          scanType TEXT DEFAULT 'background'
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX idx_scan_activities_timestamp ON scan_activities(timestamp)',
+      );
+    }
   }
 
   Future<void> initDatabase() async {
@@ -278,8 +331,15 @@ class DatabaseService {
 
     String whereClause = '1=1';
     List<dynamic> whereArgs = [];
+    String joinClause = '';
 
     if (filter != null) {
+      // Handle favorites filter - this requires a JOIN with the favorites table
+      if (filter.favoritesOnly) {
+        joinClause =
+            'INNER JOIN favorite_products f ON matcha_products.id = f.productId';
+      }
+
       // Handle multiple sites filter
       if (filter.sites != null && filter.sites!.isNotEmpty) {
         // Create IN clause for multiple sites
@@ -321,12 +381,9 @@ class DatabaseService {
     }
 
     // Get total count
-    final countResult = await db.query(
-      'matcha_products',
-      columns: ['COUNT(*) as count'],
-      where: whereClause,
-      whereArgs: whereArgs,
-    );
+    String countQuery =
+        'SELECT COUNT(*) as count FROM matcha_products $joinClause WHERE $whereClause';
+    final countResult = await db.rawQuery(countQuery, whereArgs);
     int totalItems = countResult.first['count'] as int;
     int totalPages = (totalItems / itemsPerPage).ceil();
 
@@ -335,16 +392,20 @@ class DatabaseService {
     print('Database query - Total items found: $totalItems');
 
     // Get paginated results
-    String orderBy = '$sortBy ${sortAscending ? 'ASC' : 'DESC'}';
+    String orderBy =
+        'matcha_products.$sortBy ${sortAscending ? 'ASC' : 'DESC'}';
     int offset = (page - 1) * itemsPerPage;
 
-    final List<Map<String, dynamic>> maps = await db.query(
-      'matcha_products',
-      where: whereClause,
-      whereArgs: whereArgs,
-      orderBy: orderBy,
-      limit: itemsPerPage,
-      offset: offset,
+    String selectQuery = '''
+      SELECT matcha_products.* FROM matcha_products $joinClause 
+      WHERE $whereClause 
+      ORDER BY $orderBy 
+      LIMIT $itemsPerPage OFFSET $offset
+    ''';
+
+    final List<Map<String, dynamic>> maps = await db.rawQuery(
+      selectQuery,
+      whereArgs,
     );
 
     List<MatchaProduct> products = _mapToProducts(maps);
@@ -561,6 +622,105 @@ class DatabaseService {
       {'lastTested': DateTime.now().toIso8601String(), 'testStatus': status},
       where: 'id = ?',
       whereArgs: [id],
+    );
+  }
+
+  // Favorites management methods
+  Future<void> addToFavorites(String productId) async {
+    final db = await database;
+    await db.insert('favorite_products', {
+      'productId': productId,
+      'addedAt': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<void> removeFromFavorites(String productId) async {
+    final db = await database;
+    await db.delete(
+      'favorite_products',
+      where: 'productId = ?',
+      whereArgs: [productId],
+    );
+  }
+
+  Future<bool> isFavorite(String productId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'favorite_products',
+      where: 'productId = ?',
+      whereArgs: [productId],
+    );
+    return maps.isNotEmpty;
+  }
+
+  Future<List<String>> getFavoriteProductIds() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('favorite_products');
+    return maps.map((map) => map['productId'] as String).toList();
+  }
+
+  Future<List<MatchaProduct>> getFavoriteProducts() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+      SELECT p.* FROM matcha_products p
+      INNER JOIN favorite_products f ON p.id = f.productId
+      ORDER BY f.addedAt DESC
+    ''');
+    return List.generate(maps.length, (i) {
+      return MatchaProduct.fromJson(maps[i]);
+    });
+  }
+
+  Future<int> getFavoriteProductsCount() async {
+    final db = await database;
+    final result = await db.rawQuery('SELECT COUNT(*) FROM favorite_products');
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  // Scan activities management methods
+  Future<void> insertScanActivity(ScanActivity activity) async {
+    final db = await database;
+    await db.insert(
+      'scan_activities',
+      activity.toJson(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<ScanActivity>> getScanActivities({
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'scan_activities',
+      orderBy: 'timestamp DESC',
+      limit: limit,
+      offset: offset,
+    );
+    return List.generate(maps.length, (i) {
+      return ScanActivity.fromJson(maps[i]);
+    });
+  }
+
+  Future<int> getScanActivitiesCount() async {
+    final db = await database;
+    final result = await db.rawQuery('SELECT COUNT(*) FROM scan_activities');
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  Future<void> deleteScanActivity(String id) async {
+    final db = await database;
+    await db.delete('scan_activities', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> clearOldScanActivities({int keepDays = 30}) async {
+    final db = await database;
+    final cutoffDate = DateTime.now().subtract(Duration(days: keepDays));
+    await db.delete(
+      'scan_activities',
+      where: 'timestamp < ?',
+      whereArgs: [cutoffDate.toIso8601String()],
     );
   }
 }

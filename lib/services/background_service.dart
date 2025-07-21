@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/matcha_product.dart';
+import '../models/scan_activity.dart';
 import 'crawler_service.dart';
 import 'database_service.dart';
 import 'notification_service.dart';
@@ -32,11 +33,11 @@ Future<void> initializeService() async {
       autoStart: true,
       onStart: onStart,
       autoStartOnBoot: true,
-      isForegroundMode: true, // Changed to true for better reliability
+      isForegroundMode:
+          true, // Essential for battery optimization compatibility
       notificationChannelId: 'zenradar_background',
-      initialNotificationTitle: 'ZenRadar Monitoring',
-      initialNotificationContent:
-          'Monitoring matcha stock availability in background',
+      initialNotificationTitle: 'ZenRadar Background Monitoring',
+      initialNotificationContent: 'Ready to monitor matcha stock availability',
       foregroundServiceNotificationId: 888,
       foregroundServiceTypes: [AndroidForegroundType.dataSync],
     ),
@@ -137,30 +138,44 @@ void onStart(ServiceInstance service) async {
         if (_isWithinActiveHours(settings)) {
           print('✅ Within active hours, performing stock check...');
 
-          // Update foreground notification to show stock check in progress
-          if (service is AndroidServiceInstance) {
-            if (await service.isForegroundService()) {
-              service.setForegroundNotificationInfo(
-                title: "ZenRadar - Checking Stock",
-                content: "Scanning matcha websites for updates...",
-              );
+          try {
+            // Start progress tracking
+            if (service is AndroidServiceInstance) {
+              if (await service.isForegroundService()) {
+                service.setForegroundNotificationInfo(
+                  title: "ZenRadar - Checking Stock",
+                  content: "Initializing stock scan...",
+                );
+              }
+            }
+
+            await _performStockCheck();
+
+            // Return to monitoring state
+            if (service is AndroidServiceInstance) {
+              if (await service.isForegroundService()) {
+                service.setForegroundNotificationInfo(
+                  title: "ZenRadar Background Monitoring",
+                  content:
+                      "Last check: ${DateTime.now().toString().substring(0, 16)}",
+                );
+              }
+            }
+
+            print('✅ Background stock check completed: ${DateTime.now()}');
+          } catch (e) {
+            print('❌ Error during background stock check: $e');
+
+            // Update foreground notification with error
+            if (service is AndroidServiceInstance) {
+              if (await service.isForegroundService()) {
+                service.setForegroundNotificationInfo(
+                  title: "ZenRadar - Error",
+                  content: "Stock check failed, will retry next cycle",
+                );
+              }
             }
           }
-
-          await _performStockCheck();
-
-          // Update foreground notification after stock check
-          if (service is AndroidServiceInstance) {
-            if (await service.isForegroundService()) {
-              service.setForegroundNotificationInfo(
-                title: "ZenRadar Active",
-                content:
-                    "Last check: ${DateTime.now().toString().substring(0, 16)}",
-              );
-            }
-          }
-
-          print('✅ Background stock check completed: ${DateTime.now()}');
         } else {
           print(
             '⏭️ Background check skipped - outside active hours: ${DateTime.now()}',
@@ -203,12 +218,12 @@ void onStart(ServiceInstance service) async {
           if (await service.isForegroundService()) {
             service.setForegroundNotificationInfo(
               title: "ZenRadar - Manual Check",
-              content: "Performing manual stock check...",
+              content: "Starting manual stock scan...",
             );
           }
         }
 
-        // Manual checks ignore active hours and use new notification system
+        // Manual checks ignore active hours and show detailed progress
         await _performStockCheck();
         print('✅ Manual stock check completed: ${DateTime.now()}');
 
@@ -216,15 +231,25 @@ void onStart(ServiceInstance service) async {
         if (service is AndroidServiceInstance) {
           if (await service.isForegroundService()) {
             service.setForegroundNotificationInfo(
-              title: "ZenRadar Active",
+              title: "ZenRadar Background Monitoring",
               content:
                   "Manual check completed: ${DateTime.now().toString().substring(0, 16)}",
             );
           }
         }
-        print('✅ Confirmation notification sent');
+        print('✅ Manual check confirmation updated');
       } catch (e) {
         print('❌ Error during manual stock check: $e');
+
+        // Update foreground notification with error
+        if (service is AndroidServiceInstance) {
+          if (await service.isForegroundService()) {
+            service.setForegroundNotificationInfo(
+              title: "ZenRadar - Manual Check Error",
+              content: "Check failed, please try again",
+            );
+          }
+        }
 
         // Send error notification
         await NotificationService.instance.showStockAlert(
@@ -273,10 +298,13 @@ Future<bool> onIosBackground(ServiceInstance service) async {
 }
 
 Future<void> _performStockCheck() async {
-  try {
-    print('🔍 Starting stock check: ${DateTime.now()}');
+  final scanStartTime = DateTime.now();
+  final stopwatch = Stopwatch()..start();
 
-    // Show stock check started notification
+  try {
+    print('🔍 Starting stock check: $scanStartTime');
+
+    // Show stock check started notification with progress bar
     await NotificationService.instance.showStockCheckStarted();
 
     // Initialize crawler
@@ -289,51 +317,102 @@ Future<void> _performStockCheck() async {
       '⚙️ Enabled sites for stock check: ${userSettings.enabledSites.join(", ")}',
     );
 
+    // Check if we have favorite products - if so, only monitor those
+    final favoriteProductIds =
+        await DatabaseService.platformService.getFavoriteProductIds();
+    final hasFavorites = favoriteProductIds.isNotEmpty;
+
+    String scanType = 'background';
+    if (hasFavorites) {
+      scanType = 'favorites';
+      print(
+        '❤️ Favorites-only mode: Monitoring ${favoriteProductIds.length} favorite products',
+      );
+    } else {
+      print('🌍 Full monitoring mode: Checking all products on enabled sites');
+    }
+
     // Get previous products to compare for changes
     final previousProducts =
-        await DatabaseService.platformService.getProducts();
+        hasFavorites
+            ? await DatabaseService.platformService.getFavoriteProducts()
+            : await DatabaseService.platformService.getProducts();
     final Map<String, MatchaProduct> previousProductMap = {
       for (var product in previousProducts)
-        '${product.site}_${product.name}_${product.price}': product,
+        '${product.site}_${product.normalizedName}': product,
     };
 
-    // Track progress and new products
-    int currentSiteIndex = 0;
+    // Track progress and new/updated products
     final List<String> enabledSites = userSettings.enabledSites;
     final List<MatchaProduct> allNewProducts = [];
-    final List<String> updatedSites = [];
-    final Map<String, List<MatchaProduct>> newProductsBySite = {};
+    final List<MatchaProduct> allUpdatedProducts = [];
+    final List<String> sitesWithChanges = [];
+    int totalNewProducts = 0;
+    int totalUpdatedProducts = 0;
 
-    // Update progress notification for each site
-    for (final siteName in enabledSites) {
-      currentSiteIndex++;
+    // Update progress notification for each site as we crawl
+    for (int i = 0; i < enabledSites.length; i++) {
+      final siteName = enabledSites[i];
+
       await NotificationService.instance.updateStockCheckProgress(
         siteName: siteName,
-        currentSite: currentSiteIndex,
+        currentSite: i + 1,
         totalSites: enabledSites.length,
       );
 
-      // Small delay to make progress visible
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Small delay to make progress visible and respect rate limits
+      await Future.delayed(const Duration(milliseconds: 300));
     }
 
-    // Crawl all sites
-    List<MatchaProduct> products = await crawler.crawlAllSites();
-    print('✅ Stock check completed. Found ${products.length} products.');
+    // Crawl all enabled sites
+    List<MatchaProduct> allProducts = await crawler.crawlSelectedSites(
+      enabledSites,
+    );
+    print(
+      '✅ Stock check completed. Found ${allProducts.length} total products.',
+    );
 
-    // Compare with previous products to find new items
-    int newProductCount = 0;
-    for (var product in products) {
-      final productKey = '${product.site}_${product.name}_${product.price}';
-      if (!previousProductMap.containsKey(productKey)) {
+    // In favorites mode, filter products to only include favorites
+    List<MatchaProduct> productsToProcess;
+    if (hasFavorites) {
+      productsToProcess =
+          allProducts
+              .where((product) => favoriteProductIds.contains(product.id))
+              .toList();
+      print(
+        '❤️ Filtered to ${productsToProcess.length} favorite products for monitoring',
+      );
+    } else {
+      productsToProcess = allProducts;
+    }
+
+    // Compare with previous products to find new and updated items
+    for (var product in productsToProcess) {
+      final productKey = '${product.site}_${product.normalizedName}';
+      final previousProduct = previousProductMap[productKey];
+
+      if (previousProduct == null) {
+        // Completely new product (or newly added to favorites)
         allNewProducts.add(product);
-        newProductCount++;
+        totalNewProducts++;
 
-        // Group by site for summary
-        newProductsBySite.putIfAbsent(product.site, () => []).add(product);
+        if (!sitesWithChanges.contains(product.site)) {
+          sitesWithChanges.add(product.site);
+        }
+      } else if (previousProduct.isInStock != product.isInStock) {
+        // Stock status changed
+        allUpdatedProducts.add(product);
+        totalUpdatedProducts++;
 
-        if (!updatedSites.contains(product.site)) {
-          updatedSites.add(product.site);
+        if (!sitesWithChanges.contains(product.site)) {
+          sitesWithChanges.add(product.site);
+        }
+
+        // Log stock status changes
+        if (product.isInStock && !previousProduct.isInStock) {
+          print('📈 Stock restored: ${product.name} on ${product.site}');
+        } else if (!product.isInStock && previousProduct.isInStock) {
+          print('📉 Stock depleted: ${product.name} on ${product.site}');
         }
       }
     }
@@ -341,61 +420,96 @@ Future<void> _performStockCheck() async {
     // Hide progress notification
     await NotificationService.instance.hideStockCheckProgress();
 
-    // Show completion notification if there are new products
-    if (newProductCount > 0) {
+    // Show completion notification based on what we found
+    if (totalNewProducts > 0 || totalUpdatedProducts > 0) {
       await NotificationService.instance.showStockCheckCompleted(
-        totalProducts: products.length,
-        newProducts: newProductCount,
-        updatedSites: updatedSites,
+        totalProducts:
+            hasFavorites ? productsToProcess.length : allProducts.length,
+        newProducts: totalNewProducts,
+        updatedSites: sitesWithChanges,
       );
 
-      // Show individual stock alerts for high-priority new items
-      for (var product in allNewProducts.take(5)) {
-        // Limit to 5 to avoid spam
+      // Also send individual stock alerts for products that came back in stock
+      for (var product in allUpdatedProducts) {
         if (product.isInStock) {
           await NotificationService.instance.showStockAlert(
             productName: product.name,
             siteName: product.site,
-            productId: '${product.site}_${product.name}'.hashCode.toString(),
+            productId: product.id,
           );
-
-          // Small delay between notifications
-          await Future.delayed(const Duration(milliseconds: 1000));
         }
       }
+    } else {
+      // No changes found - just log it, don't spam with notifications
+      final modeText = hasFavorites ? 'favorite products' : 'products';
+      print('✅ Stock check completed - no changes detected in $modeText');
     }
 
-    // Log some details about what was found
-    Map<String, int> productsBySite = {};
-    for (var product in products) {
-      productsBySite[product.site] = (productsBySite[product.site] ?? 0) + 1;
+    final modeText =
+        hasFavorites
+            ? '${favoriteProductIds.length} favorite products'
+            : 'all products';
+    print(
+      '📊 Stock check summary ($modeText): $totalNewProducts new products, $totalUpdatedProducts stock changes across ${sitesWithChanges.length} sites',
+    );
+
+    // Log scan activity
+    stopwatch.stop();
+    final scanActivity = ScanActivity(
+      id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
+      timestamp: scanStartTime,
+      itemsScanned:
+          hasFavorites ? productsToProcess.length : allProducts.length,
+      duration: stopwatch.elapsed.inSeconds,
+      hasStockUpdates: totalNewProducts > 0 || totalUpdatedProducts > 0,
+      details:
+          hasFavorites
+              ? 'Monitored ${favoriteProductIds.length} favorite products'
+              : 'Full scan of ${enabledSites.join(", ")}',
+      scanType: scanType,
+    );
+
+    try {
+      await DatabaseService.platformService.insertScanActivity(scanActivity);
+      print(
+        '✅ Scan activity logged: ${scanActivity.itemsScanned} items in ${scanActivity.formattedDuration}',
+      );
+    } catch (e) {
+      print('⚠️ Failed to log scan activity: $e');
     }
-
-    print('📊 Products by site:');
-    productsBySite.forEach((site, count) {
-      print('  - $site: $count products');
-    });
-
-    if (newProductCount > 0) {
-      print('🆕 New products found:');
-      newProductsBySite.forEach((site, products) {
-        print('  - $site: ${products.length} new products');
-        for (var product in products.take(3)) {
-          // Show first 3
-          print('    * ${product.name} - ${product.price ?? "No price"}');
-        }
-      });
-    }
-
-    // Clean up old history records
-    await DatabaseService.platformService.deleteOldHistory();
-    print('🧹 Old history cleaned up');
   } catch (e) {
     print('❌ Error during stock check: $e');
-    print('📍 Stack trace: ${StackTrace.current}');
 
     // Hide progress notification on error
     await NotificationService.instance.hideStockCheckProgress();
+
+    // Send error notification
+    await NotificationService.instance.showStockAlert(
+      productName: 'Stock Check Failed',
+      siteName: 'System Error',
+      productId: 'error_${DateTime.now().millisecondsSinceEpoch}',
+    );
+
+    // Log failed scan activity
+    stopwatch.stop();
+    final scanActivity = ScanActivity(
+      id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
+      timestamp: scanStartTime,
+      itemsScanned: 0,
+      duration: stopwatch.elapsed.inSeconds,
+      hasStockUpdates: false,
+      details: 'Scan failed: $e',
+      scanType: 'background',
+    );
+
+    try {
+      await DatabaseService.platformService.insertScanActivity(scanActivity);
+      print('✅ Failed scan activity logged');
+    } catch (logError) {
+      print('⚠️ Failed to log scan activity: $logError');
+    }
+
+    rethrow; // Re-throw to let caller handle it
   }
 }
 

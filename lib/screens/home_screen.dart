@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/matcha_product.dart';
+import '../models/scan_activity.dart';
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
 import '../services/crawler_service.dart';
@@ -12,6 +13,7 @@ import '../widgets/product_filters.dart';
 import '../widgets/matcha_icon.dart';
 import '../widgets/site_selection_dialog.dart';
 import 'settings_screen.dart';
+import 'background_activity_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -44,10 +46,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   List<String> _availableCategories = [];
   Map<String, double> _priceRange = {'min': 0.0, 'max': 1000.0};
 
+  // Favorites tracking
+  Set<String> _favoriteProductIds = {};
+
   @override
   void initState() {
     super.initState();
     _loadSettings();
+    _loadFavorites();
     _loadFilterOptions();
     _loadProducts();
 
@@ -67,6 +73,41 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() {
       _userSettings = settings;
     });
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final favoriteIds =
+          await DatabaseService.platformService.getFavoriteProductIds();
+      setState(() {
+        _favoriteProductIds = favoriteIds.toSet();
+      });
+    } catch (e) {
+      print('Error loading favorites: $e');
+    }
+  }
+
+  Future<void> _toggleFavorite(String productId) async {
+    try {
+      final isFavorite = _favoriteProductIds.contains(productId);
+
+      if (isFavorite) {
+        await DatabaseService.platformService.removeFromFavorites(productId);
+        setState(() {
+          _favoriteProductIds.remove(productId);
+        });
+      } else {
+        await DatabaseService.platformService.addToFavorites(productId);
+        setState(() {
+          _favoriteProductIds.add(productId);
+        });
+      }
+    } catch (e) {
+      print('Error toggling favorite: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error updating favorite: $e')));
+    }
   }
 
   Future<void> _loadFilterOptions() async {
@@ -164,6 +205,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _performComprehensiveScan() async {
+    final scanStartTime = DateTime.now();
+    final stopwatch = Stopwatch()..start();
+
     setState(() {
       _isFullCheckRunning = true;
     });
@@ -171,6 +215,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     try {
       final crawler = CrawlerService.instance;
       List<MatchaProduct> products;
+      List<String> scannedSiteKeys = [];
 
       // Check if this is the first scan by looking at existing products
       final db = DatabaseService.platformService;
@@ -181,6 +226,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         // For first scan, use all enabled sites from settings
         _showScanProgressDialog();
         products = await crawler.crawlAllSites();
+        scannedSiteKeys = _userSettings.enabledSites;
       } else {
         // For subsequent scans, show site selection dialog
         final availableSites = crawler.getSiteNamesMap();
@@ -213,6 +259,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   .key;
           siteKeysToScan.add(siteKey);
         }
+        scannedSiteKeys = siteKeysToScan;
 
         // Show progress dialog and perform selected scan
         _showScanProgressDialog();
@@ -221,6 +268,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
       // Dismiss loading dialog
       Navigator.of(context).pop();
+
+      // Log scan activity
+      stopwatch.stop();
+      final scanActivity = ScanActivity(
+        id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
+        timestamp: scanStartTime,
+        itemsScanned: products.length,
+        duration: stopwatch.elapsed.inSeconds,
+        hasStockUpdates: products.any(
+          (p) => p.isInStock,
+        ), // Check if any products are in stock
+        details: 'Manual scan of ${scannedSiteKeys.join(", ")}',
+        scanType: 'manual',
+      );
+
+      try {
+        await DatabaseService.platformService.insertScanActivity(scanActivity);
+      } catch (e) {
+        print('Failed to log scan activity: $e');
+      }
 
       // Show success message with more details about enabled sites
       final scannedSiteCount = products.map((p) => p.site).toSet().length;
@@ -237,6 +304,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       if (Navigator.canPop(context)) {
         Navigator.of(context).pop();
       }
+
+      // Log failed scan activity
+      stopwatch.stop();
+      final scanActivity = ScanActivity(
+        id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
+        timestamp: scanStartTime,
+        itemsScanned: 0,
+        duration: stopwatch.elapsed.inSeconds,
+        hasStockUpdates: false,
+        details: 'Manual scan failed: $e',
+        scanType: 'manual',
+      );
+
+      try {
+        await DatabaseService.platformService.insertScanActivity(scanActivity);
+      } catch (logError) {
+        print('Failed to log scan activity: $logError');
+      }
+
       _showErrorSnackBar('Failed to perform scan: $e');
     } finally {
       setState(() {
@@ -320,30 +406,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _onFilterChanged(ProductFilter newFilter) {
-    // Convert site display names to site keys for database filtering
-    ProductFilter convertedFilter = newFilter;
-    if (newFilter.sites != null && newFilter.sites!.isNotEmpty) {
-      final crawler = CrawlerService();
-      final siteNamesMap = crawler.getSiteNamesMap();
-
-      // Create reverse mapping: display name -> site key
-      final reverseMap = <String, String>{};
-      for (final entry in siteNamesMap.entries) {
-        reverseMap[entry.value] = entry.key;
-      }
-
-      // Convert display names to site keys
-      final siteKeys =
-          newFilter.sites!
-              .where((displayName) => reverseMap.containsKey(displayName))
-              .map((displayName) => reverseMap[displayName]!)
-              .toList();
-
-      convertedFilter = newFilter.copyWith(sites: siteKeys);
-    }
-
     setState(() {
-      _filter = convertedFilter;
+      _filter = newFilter;
     });
     _loadProducts(); // Reset products when filter changes
   }
@@ -387,6 +451,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const BackgroundActivityScreen(),
+                ),
+              );
+            },
+            tooltip: 'Recent Scans',
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () async {
@@ -617,6 +693,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 selectedColor: Colors.red.withValues(alpha: 0.2),
                 checkmarkColor: Colors.red,
               ),
+              FilterChip(
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.favorite,
+                      size: 16,
+                      color: _filter.favoritesOnly ? Colors.red : null,
+                    ),
+                    const SizedBox(width: 4),
+                    const Text('Favorites'),
+                  ],
+                ),
+                selected: _filter.favoritesOnly,
+                onSelected: (_) {
+                  setState(() {
+                    _filter = _filter.copyWith(
+                      favoritesOnly: !_filter.favoritesOnly,
+                    );
+                    _currentPage = 1;
+                    _hasMoreProducts = true;
+                  });
+                  _loadProducts();
+                },
+                selectedColor: Colors.red.withValues(alpha: 0.2),
+                checkmarkColor: Colors.red,
+              ),
             ],
           ),
         ),
@@ -678,8 +781,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           return ProductCard(
             product: _products[index],
             preferredCurrency: _userSettings.preferredCurrency,
+            isFavorite: _favoriteProductIds.contains(_products[index].id),
             onTap: () {
               _openProductUrl(_products[index].url);
+            },
+            onFavoriteToggle: () {
+              _toggleFavorite(_products[index].id);
             },
           );
         },

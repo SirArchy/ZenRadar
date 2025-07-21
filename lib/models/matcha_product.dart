@@ -399,6 +399,7 @@ class ProductFilter {
   final String? category;
   final String? searchTerm;
   final bool showDiscontinued;
+  final bool favoritesOnly;
 
   ProductFilter({
     this.sites,
@@ -408,6 +409,7 @@ class ProductFilter {
     this.category,
     this.searchTerm,
     this.showDiscontinued = false,
+    this.favoritesOnly = false,
   });
 
   ProductFilter copyWith({
@@ -418,6 +420,7 @@ class ProductFilter {
     String? category,
     String? searchTerm,
     bool? showDiscontinued,
+    bool? favoritesOnly,
   }) {
     return ProductFilter(
       sites: sites ?? this.sites,
@@ -427,12 +430,13 @@ class ProductFilter {
       category: category ?? this.category,
       searchTerm: searchTerm ?? this.searchTerm,
       showDiscontinued: showDiscontinued ?? this.showDiscontinued,
+      favoritesOnly: favoritesOnly ?? this.favoritesOnly,
     );
   }
 
   @override
   String toString() {
-    return 'ProductFilter(sites: $sites, inStock: $inStock, minPrice: $minPrice, maxPrice: $maxPrice, category: $category, searchTerm: $searchTerm, showDiscontinued: $showDiscontinued)';
+    return 'ProductFilter(sites: $sites, inStock: $inStock, minPrice: $minPrice, maxPrice: $maxPrice, category: $category, searchTerm: $searchTerm, showDiscontinued: $showDiscontinued, favoritesOnly: $favoritesOnly)';
   }
 }
 

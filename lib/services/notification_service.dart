@@ -101,7 +101,8 @@ class NotificationService {
               AndroidNotificationChannel(
                 'stock_check_progress',
                 'Stock Check Progress',
-                description: 'Shows progress of background stock checks',
+                description:
+                    'Shows real-time progress of background stock checks',
                 importance: Importance.low,
                 showBadge: false,
                 enableVibration: false,
@@ -304,18 +305,21 @@ class NotificationService {
         AndroidNotificationDetails(
           'stock_check_progress',
           'Stock Check Progress',
-          channelDescription: 'Shows progress of background stock checks',
+          channelDescription:
+              'Shows real-time progress of background stock checks',
           importance: Importance.low,
           priority: Priority.low,
           showWhen: true,
           icon: '@drawable/notification_icon',
-          color: Color(0xFF4CAF50),
+          color: Color(0xFF2196F3), // Blue color for progress
           playSound: false,
           enableVibration: false,
           ongoing: true,
+          autoCancel: false,
           showProgress: true,
           maxProgress: 100,
           progress: 0,
+          indeterminate: true, // Show spinning indicator initially
         );
 
     const DarwinNotificationDetails iOSPlatformChannelSpecifics =
@@ -332,8 +336,8 @@ class NotificationService {
 
     await _flutterLocalNotificationsPlugin.show(
       stockCheckNotificationId,
-      '🔍 Checking Matcha Stock',
-      'Scanning websites for stock updates...',
+      '🔍 ZenRadar Stock Check',
+      'Initializing matcha stock scan...',
       platformChannelSpecifics,
     );
   }
@@ -351,22 +355,60 @@ class NotificationService {
     const int stockCheckNotificationId = 999;
     final int progress = ((currentSite / totalSites) * 100).round();
 
+    // Get friendly site name for display
+    String displayName = siteName;
+    switch (siteName) {
+      case 'tokichi':
+        displayName = 'Nakamura Tokichi';
+        break;
+      case 'marukyu':
+        displayName = 'Marukyu-Koyamaen';
+        break;
+      case 'ippodo':
+        displayName = 'Ippodo Tea';
+        break;
+      case 'yoshien':
+        displayName = 'Yoshi En';
+        break;
+      case 'matcha-karu':
+        displayName = 'Matcha Kāru';
+        break;
+      case 'sho-cha':
+        displayName = 'Sho-Cha';
+        break;
+      case 'sazentea':
+        displayName = 'Sazen Tea';
+        break;
+      case 'mamecha':
+        displayName = 'Mamecha';
+        break;
+      case 'enjoyemeri':
+        displayName = 'Emeri';
+        break;
+      case 'poppatea':
+        displayName = 'Poppatea';
+        break;
+    }
+
     final AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
           'stock_check_progress',
           'Stock Check Progress',
-          channelDescription: 'Shows progress of background stock checks',
+          channelDescription:
+              'Shows real-time progress of background stock checks',
           importance: Importance.low,
           priority: Priority.low,
           showWhen: true,
           icon: '@drawable/notification_icon',
-          color: const Color(0xFF4CAF50),
+          color: const Color(0xFF2196F3),
           playSound: false,
           enableVibration: false,
           ongoing: true,
+          autoCancel: false,
           showProgress: true,
           maxProgress: 100,
           progress: progress,
+          indeterminate: false, // Show actual progress
         );
 
     const DarwinNotificationDetails iOSPlatformChannelSpecifics =
@@ -383,8 +425,8 @@ class NotificationService {
 
     await _flutterLocalNotificationsPlugin.show(
       stockCheckNotificationId,
-      '🔍 Checking Matcha Stock ($currentSite/$totalSites)',
-      'Currently checking: $siteName',
+      '🔍 Scanning Sites ($currentSite/$totalSites)',
+      'Checking $displayName for matcha updates...',
       platformChannelSpecifics,
     );
   }

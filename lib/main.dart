@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'services/notification_service.dart';
 import 'services/background_service.dart';
+import 'services/web_background_service.dart';
 import 'services/database_service.dart';
 import 'services/theme_service.dart';
+import 'services/battery_optimization_service.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
@@ -23,6 +25,10 @@ void main() async {
 
     // Request permissions (mobile only)
     await requestPermissions();
+  } else {
+    // Initialize web background service simulation
+    await WebBackgroundService.instance.init();
+    await WebBackgroundService.instance.startService();
   }
 
   runApp(const ZenRadarApp());
@@ -40,6 +46,10 @@ Future<void> requestPermissions() async {
 
   // Request background app refresh permission (iOS)
   await Permission.appTrackingTransparency.request();
+
+  // Check and handle battery optimization
+  final batteryService = BatteryOptimizationService();
+  await batteryService.checkAndHandleBatteryOptimization();
 }
 
 class ZenRadarApp extends StatelessWidget {

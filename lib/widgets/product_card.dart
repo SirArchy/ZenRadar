@@ -6,12 +6,16 @@ class ProductCard extends StatelessWidget {
   final MatchaProduct product;
   final VoidCallback? onTap;
   final String? preferredCurrency;
+  final bool isFavorite;
+  final VoidCallback? onFavoriteToggle;
 
   const ProductCard({
     super.key,
     required this.product,
     this.onTap,
     this.preferredCurrency = 'EUR',
+    this.isFavorite = false,
+    this.onFavoriteToggle,
   });
 
   /// Extracts the price for the preferred currency from a multi-currency price string
@@ -119,6 +123,27 @@ class ProductCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       _buildStatusChip(context),
+                      const SizedBox(width: 8),
+                      // Favorite button
+                      if (onFavoriteToggle != null)
+                        InkWell(
+                          onTap: onFavoriteToggle,
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
+                            padding: const EdgeInsets.all(4.0),
+                            child: Icon(
+                              isFavorite
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              size: 20,
+                              color:
+                                  isFavorite
+                                      ? Colors.red
+                                      : Theme.of(context).colorScheme.onSurface
+                                          .withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ),
                       const SizedBox(width: 8),
                       Icon(
                         Icons.open_in_new,

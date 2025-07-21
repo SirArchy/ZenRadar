@@ -122,7 +122,8 @@ class CrawlerService {
     ),
     'poppatea': SiteConfig(
       name: 'Poppatea',
-      baseUrl: 'https://poppatea.com/de-de/collections/all-teas',
+      baseUrl:
+          'https://poppatea.com/de-de/collections/all-teas?filter.p.m.custom.tea_type=Matcha',
       stockSelector:
           'h3', // Use h3 as stock indicator - if h3 exists, product exists
       productSelector: '.card__container', // Product containers
@@ -800,9 +801,14 @@ class CrawlerService {
         }
 
         final elementText = productElement.text.toLowerCase();
+        // Check for German and English out-of-stock variations
         if (elementText.contains('ausverkauft') ||
+            elementText.contains('nicht auf lager') ||
+            elementText.contains('nicht vorrätig') ||
             elementText.contains('out of stock') ||
             elementText.contains('sold out') ||
+            elementText.contains('vergriffen') ||
+            elementText.contains('nicht verfügbar') ||
             elementText.contains('wieder verfügbar')) {
           return false;
         }
@@ -819,9 +825,14 @@ class CrawlerService {
         }
 
         final elementText = productElement.text.toLowerCase();
+        // Check for German and English out-of-stock variations
         return !elementText.contains('ausverkauft') &&
+            !elementText.contains('nicht auf lager') &&
+            !elementText.contains('nicht vorrätig') &&
             !elementText.contains('out of stock') &&
-            !elementText.contains('sold out');
+            !elementText.contains('sold out') &&
+            !elementText.contains('vergriffen') &&
+            !elementText.contains('nicht verfügbar');
 
       case 'sho-cha':
         // For Sho-Cha, check for proper price element
@@ -909,14 +920,25 @@ class CrawlerService {
             !elementText.contains('sold out');
 
       case 'poppatea':
-        // For Poppatea, check for presence of h3 (product name) and absence of "AUSVERKAUFT"
+        // For Poppatea, check for presence of h3 (product name) and absence of German out-of-stock indicators
         final nameElement = productElement.querySelector('h3');
         if (nameElement == null || nameElement.text.trim().isEmpty) {
           return false;
         }
 
-        final elementText = productElement.text;
-        return !elementText.contains('AUSVERKAUFT');
+        final elementText = productElement.text.toLowerCase();
+        // Check for all German out-of-stock variations
+        if (elementText.contains('ausverkauft') ||
+            elementText.contains('nicht auf lager') ||
+            elementText.contains('nicht vorrätig') ||
+            elementText.contains('out of stock') ||
+            elementText.contains('sold out') ||
+            elementText.contains('vergriffen') ||
+            elementText.contains('nicht verfügbar')) {
+          return false;
+        }
+
+        return true;
 
       default:
         // Fallback: check for generic stock indicators
