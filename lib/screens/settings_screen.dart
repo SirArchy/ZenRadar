@@ -393,7 +393,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     leading: Icon(Icons.language),
                     title: Text('Monitored Sites'),
                     subtitle: Text(
-                      'Nakamura Tokichi, Marukyu-Koyamaen, Ippodo Tea,\nYoshi En, Matcha Kāru, Sho-Cha, Sazen Tea,\nMamecha, Emeri + Custom websites',
+                      'Nakamura Tokichi, Marukyu-Koyamaen, Ippodo Tea,\nYoshi En, Matcha Kāru, Sho-Cha, Sazen Tea,\nMamecha, Emeri, Poppatea + Custom websites',
                     ),
                   ),
                 ],
@@ -424,6 +424,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       {'key': 'sazentea', 'name': 'Sazen Tea', 'url': 'sazentea.com'},
       {'key': 'mamecha', 'name': 'Mamecha', 'url': 'mamecha.co.jp'},
       {'key': 'enjoyemeri', 'name': 'Emeri', 'url': 'enjoyemeri.com'},
+      {'key': 'poppatea', 'name': 'Poppatea', 'url': 'poppatea.com'},
     ];
   }
 

@@ -7,7 +7,6 @@ import '../services/database_service.dart';
 import '../services/settings_service.dart';
 import '../services/crawler_service.dart';
 import '../services/crawler_logger.dart';
-import '../services/background_service.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_filters.dart';
 import '../widgets/matcha_icon.dart';
@@ -72,19 +71,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Future<void> _loadFilterOptions() async {
     try {
-      // Built-in sites
-      List<String> sites = [
-        'All',
-        'Nakamura Tokichi',
-        'Marukyu-Koyamaen',
-        'Ippodo Tea',
-        'Yoshi En',
-        'Matcha Kāru',
-        'Sho-Cha',
-        'Sazen Tea',
-        'Mamecha',
-        'Emeri',
-      ];
+      // Get sites from crawler service
+      final crawler = CrawlerService();
+      final siteNamesMap = crawler.getSiteNamesMap();
+      List<String> sites = ['All'];
+      sites.addAll(siteNamesMap.values);
 
       // Add custom websites
       final customWebsites =
@@ -254,18 +245,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _performBackgroundCheck() async {
-    try {
-      await BackgroundServiceController.instance.triggerManualCheck();
-
-      _showSuccessSnackBar(
-        'Background stock check started! Check notifications for progress.',
-      );
-    } catch (e) {
-      _showErrorSnackBar('Failed to start background check: $e');
-    }
-  }
-
   void _showScanProgressDialog() {
     // Count enabled sites for better user feedback
     final enabledBuiltInSites = _userSettings.enabledSites.length;
@@ -341,8 +320,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _onFilterChanged(ProductFilter newFilter) {
+    // Convert site display names to site keys for database filtering
+    ProductFilter convertedFilter = newFilter;
+    if (newFilter.sites != null && newFilter.sites!.isNotEmpty) {
+      final crawler = CrawlerService();
+      final siteNamesMap = crawler.getSiteNamesMap();
+
+      // Create reverse mapping: display name -> site key
+      final reverseMap = <String, String>{};
+      for (final entry in siteNamesMap.entries) {
+        reverseMap[entry.value] = entry.key;
+      }
+
+      // Convert display names to site keys
+      final siteKeys =
+          newFilter.sites!
+              .where((displayName) => reverseMap.containsKey(displayName))
+              .map((displayName) => reverseMap[displayName]!)
+              .toList();
+
+      convertedFilter = newFilter.copyWith(sites: siteKeys);
+    }
+
     setState(() {
-      _filter = newFilter;
+      _filter = convertedFilter;
     });
     _loadProducts(); // Reset products when filter changes
   }
@@ -438,9 +439,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     maxChildSize: 0.9,
                     builder: (context, scrollController) {
                       return Container(
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.only(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: const BorderRadius.only(
                             topLeft: Radius.circular(20),
                             topRight: Radius.circular(20),
                           ),
@@ -581,10 +582,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   });
                   _loadProducts();
                 },
-                selectedColor: Theme.of(
-                  context,
-                ).primaryColor.withValues(alpha: 0.2),
-                checkmarkColor: Theme.of(context).primaryColor,
+                selectedColor: Colors.green.withValues(alpha: 0.2),
+                checkmarkColor: Colors.green,
               ),
               FilterChip(
                 label: const Text('In Stock'),
@@ -709,15 +708,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                   )
                   : const Icon(Icons.radar, size: 28),
-        ),
-        const SizedBox(height: 16),
-        // Background check button
-        FloatingActionButton(
-          heroTag: "background_check",
-          onPressed: _performBackgroundCheck,
-          backgroundColor: Theme.of(context).colorScheme.secondary,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.notifications_active, size: 24),
         ),
       ],
     );

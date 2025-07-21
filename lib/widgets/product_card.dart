@@ -88,7 +88,7 @@ class ProductCard extends StatelessWidget {
                     children: [
                       CategoryIcon(
                         category: product.category,
-                        size: 18,
+                        size: 32,
                         color:
                             isUnavailable
                                 ? Theme.of(

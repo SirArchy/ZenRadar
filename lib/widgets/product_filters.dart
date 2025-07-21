@@ -393,7 +393,7 @@ class _ProductFiltersState extends State<ProductFilters> {
           ),
           style: TextStyle(
             fontSize: isSmallScreen ? 14 : 16,
-            color: Colors.black,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
           items: [
             DropdownMenuItem(
