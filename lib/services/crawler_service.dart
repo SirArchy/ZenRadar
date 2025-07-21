@@ -120,6 +120,17 @@ class CrawlerService {
       priceSelector: '.price',
       linkSelector: 'a',
     ),
+    'poppatea': SiteConfig(
+      name: 'Poppatea',
+      baseUrl: 'https://poppatea.com/de-de/collections/all-teas',
+      stockSelector:
+          'h3', // Use h3 as stock indicator - if h3 exists, product exists
+      productSelector: '.card__container', // Product containers
+      nameSelector: 'h3', // Product names in h3 elements
+      priceSelector:
+          '.price__regular', // Prices in price__regular elements (not price-item)
+      linkSelector: 'a[href*="/products/"]', // Product links
+    ),
   };
 
   Future<List<MatchaProduct>> crawlAllSites() async {
@@ -613,6 +624,7 @@ class CrawlerService {
             url: productUrl,
             isInStock: isInStock,
             price: price,
+            priceValue: _extractPriceValue(price),
           );
 
           products.add(product);
@@ -701,6 +713,7 @@ class CrawlerService {
             url: productUrl,
             isInStock: isInStock,
             price: price,
+            priceValue: _extractPriceValue(price),
           );
 
           products.add(product);
@@ -764,9 +777,15 @@ class CrawlerService {
             null; // In stock if NO .out-of-stock element found
 
       case 'marukyu':
-        // For Marukyu, use the original selector method
-        final stockElement = productElement.querySelector(config.stockSelector);
-        return stockElement != null;
+        // For Marukyu, check for stock classes (positive: instock, negative: outofstock)
+        if (productElement.classes.contains('instock')) {
+          return true; // Explicitly in stock
+        }
+        if (productElement.classes.contains('outofstock')) {
+          return false; // Explicitly out of stock
+        }
+        // Fallback: assume in stock if no explicit stock class
+        return true;
 
       case 'yoshien':
         // For Yoshi En, check if we have a valid product link and name
@@ -888,6 +907,16 @@ class CrawlerService {
         final elementText = productElement.text.toLowerCase();
         return !elementText.contains('out of stock') &&
             !elementText.contains('sold out');
+
+      case 'poppatea':
+        // For Poppatea, check for presence of h3 (product name) and absence of "AUSVERKAUFT"
+        final nameElement = productElement.querySelector('h3');
+        if (nameElement == null || nameElement.text.trim().isEmpty) {
+          return false;
+        }
+
+        final elementText = productElement.text;
+        return !elementText.contains('AUSVERKAUFT');
 
       default:
         // Fallback: check for generic stock indicators
@@ -1048,6 +1077,32 @@ class CrawlerService {
           return currencyMatch.group(1)!.replaceAll(RegExp(r'\s+'), '');
         }
         break;
+
+      case 'poppatea':
+        // For Poppatea, handle German Euro formatting
+        // Example: "Ab €15,00" -> "15,00 €"
+        cleaned =
+            cleaned
+                .replaceAll('\u00A0', ' ') // Replace non-breaking space
+                .replaceAll('\n', ' ')
+                .replaceAll(RegExp(r'\s+'), ' ')
+                .trim();
+
+        // Remove "Ab" prefix and extract price
+        cleaned = cleaned.replaceAll('Ab ', '').trim();
+
+        // Extract price in German format (€XX,XX or XX,XX €)
+        final priceMatch = RegExp(r'€?(\d+,\d{2})\s*€?').firstMatch(cleaned);
+        if (priceMatch != null) {
+          return '${priceMatch.group(1)} €';
+        }
+
+        // Fallback: if it contains € and digits, try to extract
+        if (cleaned.contains('€') && RegExp(r'\d').hasMatch(cleaned)) {
+          return cleaned;
+        }
+
+        return ''; // Invalid price
     }
 
     // General cleanup for all sites
@@ -1061,6 +1116,49 @@ class CrawlerService {
     }
 
     return cleaned.trim();
+  }
+
+  /// Extract numeric price value from price string for filtering and comparison
+  double? _extractPriceValue(String? priceString) {
+    if (priceString == null || priceString.isEmpty) return null;
+
+    // Remove currency symbols and common text
+    String cleaned =
+        priceString
+            .replaceAll('€', '')
+            .replaceAll('\$', '')
+            .replaceAll('£', '')
+            .replaceAll('¥', '')
+            .replaceAll('円', '')
+            .replaceAll('CHF', '')
+            .replaceAll('USD', '')
+            .replaceAll('EUR', '')
+            .replaceAll('JPY', '')
+            .replaceAll('GBP', '')
+            .replaceAll('CAD', '')
+            .replaceAll('AUD', '')
+            .replaceAll('Ab ', '')
+            .replaceAll('ab ', '')
+            .replaceAll('From ', '')
+            .replaceAll('from ', '')
+            .replaceAll(RegExp(r'\s+'), ' ')
+            .trim();
+
+    // Extract the first number with decimal places
+    final priceMatch = RegExp(r'(\d+)[.,](\d+)').firstMatch(cleaned);
+    if (priceMatch != null) {
+      final wholePart = priceMatch.group(1)!;
+      final decimalPart = priceMatch.group(2)!;
+      return double.tryParse('$wholePart.$decimalPart');
+    }
+
+    // Try extracting integer prices
+    final intMatch = RegExp(r'(\d+)').firstMatch(cleaned);
+    if (intMatch != null) {
+      return double.tryParse(intMatch.group(1)!);
+    }
+
+    return null;
   }
 
   String _buildFullUrl(String baseUrl, String relativeUrl) {

@@ -7,12 +7,11 @@ import '../services/database_service.dart';
 import '../services/settings_service.dart';
 import '../services/crawler_service.dart';
 import '../services/crawler_logger.dart';
+import '../services/background_service.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_filters.dart';
 import '../widgets/matcha_icon.dart';
 import '../widgets/site_selection_dialog.dart';
-import '../services/background_service.dart';
-import '../services/notification_service.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -194,9 +193,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       } else {
         // For subsequent scans, show site selection dialog
         final availableSites = crawler.getSiteNamesMap();
+
+        // Convert enabled site keys to display names for pre-selection
+        final enabledSiteKeys = _userSettings.enabledSites;
+        final preSelectedSiteNames =
+            enabledSiteKeys
+                .where((key) => availableSites.containsKey(key))
+                .map((key) => availableSites[key]!)
+                .toList();
+
         final selectedSiteKeys = await showSiteSelectionDialog(
           context: context,
           availableSites: availableSites.values.toList(),
+          preSelectedSites: preSelectedSiteNames,
         );
 
         if (selectedSiteKeys == null || selectedSiteKeys.isEmpty) {
@@ -245,6 +254,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _performBackgroundCheck() async {
+    try {
+      await BackgroundServiceController.instance.triggerManualCheck();
+
+      _showSuccessSnackBar(
+        'Background stock check started! Check notifications for progress.',
+      );
+    } catch (e) {
+      _showErrorSnackBar('Failed to start background check: $e');
+    }
+  }
+
   void _showScanProgressDialog() {
     // Count enabled sites for better user feedback
     final enabledBuiltInSites = _userSettings.enabledSites.length;
@@ -285,7 +306,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       'Enabled Sites: $enabledBuiltInSites built-in sites',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue[700],
+                        color: Theme.of(context).colorScheme.primary,
                         fontSize: 14,
                       ),
                     ),
@@ -294,7 +315,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       'Current Site:',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey[600],
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                     Text(currentSite, style: const TextStyle(fontSize: 16)),
@@ -303,7 +326,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       'Status:',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey[600],
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                     Text(status, style: const TextStyle(fontSize: 14)),
@@ -346,57 +371,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.green),
     );
-  }
-
-  Future<void> _testBackgroundService() async {
-    try {
-      _showSuccessSnackBar('Testing background service and notifications...');
-
-      // Debug notification system first
-      await NotificationService.instance.debugNotificationSystem();
-
-      // Test notification service
-      await NotificationService.instance.showTestNotification();
-      print('✅ Test notification sent');
-
-      // Check if background service is running
-      final isRunning =
-          await BackgroundServiceController.instance.isServiceRunning();
-      print('Background service running: $isRunning');
-
-      if (isRunning) {
-        // Trigger manual check through background service
-        await BackgroundServiceController.instance.triggerManualCheck();
-        _showSuccessSnackBar(
-          'Background service manual check triggered! Check console logs.',
-        );
-        print('✅ Manual check triggered through background service');
-      } else {
-        // Try to start the service
-        await BackgroundServiceController.instance.startService();
-
-        // Wait a moment and check again
-        await Future.delayed(const Duration(seconds: 2));
-        final isRunningAfterStart =
-            await BackgroundServiceController.instance.isServiceRunning();
-
-        if (isRunningAfterStart) {
-          await BackgroundServiceController.instance.triggerManualCheck();
-          _showSuccessSnackBar(
-            'Background service started and manual check triggered!',
-          );
-          print('✅ Background service started and manual check triggered');
-        } else {
-          _showErrorSnackBar(
-            'Failed to start background service. Check console logs.',
-          );
-          print('❌ Failed to start background service');
-        }
-      }
-    } catch (e) {
-      _showErrorSnackBar('Background service test failed: $e');
-      print('❌ Background service test error: $e');
-    }
   }
 
   @override
@@ -499,8 +473,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+          ),
+        ),
       ),
       child: Column(
         children: [
@@ -523,11 +501,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             : null,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
+                      borderSide: BorderSide(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outline.withValues(alpha: 0.3),
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
+                      borderSide: BorderSide(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outline.withValues(alpha: 0.3),
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
@@ -653,12 +639,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             const SizedBox(height: 16),
             Text(
               'No matcha products found',
-              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: 18,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               'Try adjusting your filters or run a full check to discover new matcha products',
-              style: TextStyle(color: Colors.grey[600]),
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -697,14 +692,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        // Background service test button
-        FloatingActionButton(
-          heroTag: "background_test",
-          onPressed: _testBackgroundService,
-          shape: const CircleBorder(),
-          backgroundColor: Colors.orange,
-          child: const Icon(Icons.notification_important, size: 24),
-        ),
         const SizedBox(height: 16),
         // Comprehensive scan button
         FloatingActionButton(
@@ -722,6 +709,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                   )
                   : const Icon(Icons.radar, size: 28),
+        ),
+        const SizedBox(height: 16),
+        // Background check button
+        FloatingActionButton(
+          heroTag: "background_check",
+          onPressed: _performBackgroundCheck,
+          backgroundColor: Theme.of(context).colorScheme.secondary,
+          shape: const CircleBorder(),
+          child: const Icon(Icons.notifications_active, size: 24),
         ),
       ],
     );

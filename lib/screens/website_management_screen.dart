@@ -198,13 +198,17 @@ class _WebsiteManagementScreenState extends State<WebsiteManagementScreen> {
           const SizedBox(height: 8),
           Text(
             'Add a matcha website to start monitoring its products',
-            style: TextStyle(color: Colors.grey[600]),
+            style: TextStyle(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             '✨ Now with smart auto-detection!',
             style: TextStyle(
-              color: Colors.blue[600],
+              color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -252,7 +256,9 @@ class _WebsiteManagementScreenState extends State<WebsiteManagementScreen> {
                           Text(
                             website.baseUrl,
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
                               fontSize: 14,
                             ),
                           ),
@@ -515,7 +521,7 @@ class _AddEditWebsiteScreenState extends State<AddEditWebsiteScreen> {
             content: Text(
               'Found ${testResults['productCount']} products! Review the settings below.',
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
       }
@@ -524,7 +530,7 @@ class _AddEditWebsiteScreenState extends State<AddEditWebsiteScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Analysis failed: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
         setState(() {
@@ -667,8 +673,12 @@ class _AddEditWebsiteScreenState extends State<AddEditWebsiteScreen> {
               Card(
                 color:
                     _testResults!['productCount'] > 0
-                        ? Colors.green.shade50
-                        : Colors.red.shade50,
+                        ? Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer.withValues(alpha: 0.3)
+                        : Theme.of(
+                          context,
+                        ).colorScheme.errorContainer.withValues(alpha: 0.3),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -754,9 +764,13 @@ class _AddEditWebsiteScreenState extends State<AddEditWebsiteScreen> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         'Use browser developer tools to find the correct CSS selectors for each element.',
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
                       ),
                       const SizedBox(height: 16),
                       _buildSelectorField(
@@ -816,9 +830,19 @@ class _AddEditWebsiteScreenState extends State<AddEditWebsiteScreen> {
       avatar: Icon(
         found ? Icons.check : Icons.close,
         size: 16,
-        color: found ? Colors.green : Colors.red,
+        color:
+            found
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.error,
       ),
-      backgroundColor: found ? Colors.green.shade100 : Colors.red.shade100,
+      backgroundColor:
+          found
+              ? Theme.of(
+                context,
+              ).colorScheme.primaryContainer.withValues(alpha: 0.5)
+              : Theme.of(
+                context,
+              ).colorScheme.errorContainer.withValues(alpha: 0.5),
     );
   }
 
@@ -853,7 +877,12 @@ class _AddEditWebsiteScreenState extends State<AddEditWebsiteScreen> {
         const SizedBox(height: 4),
         Text(
           description,
-          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
         ),
       ],
     );

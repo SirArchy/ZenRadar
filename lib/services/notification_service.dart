@@ -96,11 +96,41 @@ class NotificationService {
                 playSound: true,
               );
 
+          // Create stock check progress notification channel
+          const AndroidNotificationChannel stockProgressChannel =
+              AndroidNotificationChannel(
+                'stock_check_progress',
+                'Stock Check Progress',
+                description: 'Shows progress of background stock checks',
+                importance: Importance.low,
+                showBadge: false,
+                enableVibration: false,
+                playSound: false,
+              );
+
+          // Create stock updates notification channel
+          const AndroidNotificationChannel stockUpdatesChannel =
+              AndroidNotificationChannel(
+                'stock_updates',
+                'Stock Updates',
+                description: 'Notifications when stock database is updated',
+                importance: Importance.defaultImportance,
+                showBadge: true,
+                enableVibration: true,
+                playSound: true,
+              );
+
           await androidImplementation.createNotificationChannel(
             backgroundChannel,
           );
           await androidImplementation.createNotificationChannel(
             stockAlertsChannel,
+          );
+          await androidImplementation.createNotificationChannel(
+            stockProgressChannel,
+          );
+          await androidImplementation.createNotificationChannel(
+            stockUpdatesChannel,
           );
           print('Notification channels created successfully');
         } catch (e) {
@@ -260,6 +290,175 @@ class NotificationService {
     }
 
     await _flutterLocalNotificationsPlugin.cancel(id);
+  }
+
+  /// Show a notification when stock check starts
+  Future<void> showStockCheckStarted() async {
+    if (kIsWeb) {
+      return; // Skip for web as we don't have persistent notifications
+    }
+
+    const int stockCheckNotificationId = 999;
+
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+          'stock_check_progress',
+          'Stock Check Progress',
+          channelDescription: 'Shows progress of background stock checks',
+          importance: Importance.low,
+          priority: Priority.low,
+          showWhen: true,
+          icon: '@drawable/notification_icon',
+          color: Color(0xFF4CAF50),
+          playSound: false,
+          enableVibration: false,
+          ongoing: true,
+          showProgress: true,
+          maxProgress: 100,
+          progress: 0,
+        );
+
+    const DarwinNotificationDetails iOSPlatformChannelSpecifics =
+        DarwinNotificationDetails(
+          presentAlert: false,
+          presentBadge: false,
+          presentSound: false,
+        );
+
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: iOSPlatformChannelSpecifics,
+    );
+
+    await _flutterLocalNotificationsPlugin.show(
+      stockCheckNotificationId,
+      '🔍 Checking Matcha Stock',
+      'Scanning websites for stock updates...',
+      platformChannelSpecifics,
+    );
+  }
+
+  /// Update stock check progress notification
+  Future<void> updateStockCheckProgress({
+    required String siteName,
+    required int currentSite,
+    required int totalSites,
+  }) async {
+    if (kIsWeb) {
+      return; // Skip for web
+    }
+
+    const int stockCheckNotificationId = 999;
+    final int progress = ((currentSite / totalSites) * 100).round();
+
+    final AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+          'stock_check_progress',
+          'Stock Check Progress',
+          channelDescription: 'Shows progress of background stock checks',
+          importance: Importance.low,
+          priority: Priority.low,
+          showWhen: true,
+          icon: '@drawable/notification_icon',
+          color: const Color(0xFF4CAF50),
+          playSound: false,
+          enableVibration: false,
+          ongoing: true,
+          showProgress: true,
+          maxProgress: 100,
+          progress: progress,
+        );
+
+    const DarwinNotificationDetails iOSPlatformChannelSpecifics =
+        DarwinNotificationDetails(
+          presentAlert: false,
+          presentBadge: false,
+          presentSound: false,
+        );
+
+    final NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: iOSPlatformChannelSpecifics,
+    );
+
+    await _flutterLocalNotificationsPlugin.show(
+      stockCheckNotificationId,
+      '🔍 Checking Matcha Stock ($currentSite/$totalSites)',
+      'Currently checking: $siteName',
+      platformChannelSpecifics,
+    );
+  }
+
+  /// Hide stock check progress notification
+  Future<void> hideStockCheckProgress() async {
+    if (kIsWeb) {
+      return; // Skip for web
+    }
+
+    const int stockCheckNotificationId = 999;
+    await _flutterLocalNotificationsPlugin.cancel(stockCheckNotificationId);
+  }
+
+  /// Show notification when stock check is completed
+  Future<void> showStockCheckCompleted({
+    required int totalProducts,
+    required int newProducts,
+    required List<String> updatedSites,
+  }) async {
+    if (kIsWeb) {
+      return; // Skip for web
+    }
+
+    if (newProducts == 0) {
+      // Don't show a notification if no new products were found
+      return;
+    }
+
+    String title = '✅ Stock Check Complete';
+    String body;
+
+    if (newProducts == 1) {
+      body = 'Found 1 new matcha product!';
+    } else {
+      body = 'Found $newProducts new matcha products!';
+    }
+
+    if (updatedSites.isNotEmpty) {
+      body += '\nUpdated sites: ${updatedSites.join(", ")}';
+    }
+
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+          'stock_updates',
+          'Stock Updates',
+          channelDescription: 'Notifications when stock database is updated',
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+          showWhen: true,
+          icon: '@drawable/notification_icon',
+          color: Color(0xFF4CAF50),
+          playSound: true,
+          enableVibration: true,
+        );
+
+    const DarwinNotificationDetails iOSPlatformChannelSpecifics =
+        DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        );
+
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: iOSPlatformChannelSpecifics,
+    );
+
+    await _flutterLocalNotificationsPlugin.show(
+      'stock_check_complete'.hashCode,
+      title,
+      body,
+      platformChannelSpecifics,
+    );
   }
 
   Future<bool> checkPermissions() async {

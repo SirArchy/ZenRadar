@@ -72,7 +72,12 @@ class ProductCard extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              color: isUnavailable ? Colors.grey[50] : null,
+              color:
+                  isUnavailable
+                      ? Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0.3)
+                      : null,
             ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -84,7 +89,12 @@ class ProductCard extends StatelessWidget {
                       CategoryIcon(
                         category: product.category,
                         size: 18,
-                        color: isUnavailable ? Colors.grey[400] : null,
+                        color:
+                            isUnavailable
+                                ? Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.4)
+                                : null,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -93,7 +103,11 @@ class ProductCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: isUnavailable ? Colors.grey[600] : null,
+                            color:
+                                isUnavailable
+                                    ? Theme.of(context).colorScheme.onSurface
+                                        .withValues(alpha: 0.6)
+                                    : null,
                             decoration:
                                 product.isDiscontinued
                                     ? TextDecoration.lineThrough
@@ -104,23 +118,36 @@ class ProductCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      _buildStatusChip(),
+                      _buildStatusChip(context),
                       const SizedBox(width: 8),
                       Icon(
                         Icons.open_in_new,
                         size: 16,
-                        color: Colors.grey[400],
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.4),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.store, size: 16, color: Colors.grey[600]),
+                      Icon(
+                        Icons.store,
+                        size: 16,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         product.site,
-                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
+                          fontSize: 14,
+                        ),
                       ),
                       const Spacer(),
                       if (product.price != null) ...[
@@ -131,7 +158,9 @@ class ProductCard extends StatelessWidget {
                               ) ??
                               product.price!,
                           style: TextStyle(
-                            color: Colors.grey[600],
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                             decoration:
@@ -151,13 +180,16 @@ class ProductCard extends StatelessWidget {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.blue[100],
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         product.category!,
                         style: TextStyle(
-                          color: Colors.blue[800],
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
                         ),
@@ -170,19 +202,28 @@ class ProductCard extends StatelessWidget {
                       Icon(
                         Icons.access_time,
                         size: 14,
-                        color: Colors.grey[500],
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         'Last checked: ${_formatDateTime(product.lastChecked)}',
-                        style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.5),
+                          fontSize: 12,
+                        ),
                       ),
                       const Spacer(),
                       if (product.firstSeen != product.lastChecked)
                         Text(
                           'Added ${_formatDateTime(product.firstSeen)}',
                           style: TextStyle(
-                            color: Colors.grey[400],
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.4),
                             fontSize: 10,
                           ),
                         ),
@@ -197,21 +238,21 @@ class ProductCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusChip() {
+  Widget _buildStatusChip(BuildContext context) {
     Color chipColor;
     IconData chipIcon;
     String chipText;
 
     if (product.isDiscontinued) {
-      chipColor = Colors.grey[700]!;
+      chipColor = Theme.of(context).colorScheme.outline;
       chipIcon = Icons.not_interested;
       chipText = 'Discontinued';
     } else if (product.isInStock) {
-      chipColor = Colors.green;
+      chipColor = Theme.of(context).colorScheme.primary;
       chipIcon = Icons.check_circle;
       chipText = 'In Stock';
     } else {
-      chipColor = Colors.red;
+      chipColor = Theme.of(context).colorScheme.error;
       chipIcon = Icons.cancel;
       chipText = 'Out of Stock';
     }
@@ -225,12 +266,16 @@ class ProductCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(chipIcon, size: 14, color: Colors.white),
+          Icon(
+            chipIcon,
+            size: 14,
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
           const SizedBox(width: 4),
           Text(
             chipText,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onPrimary,
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),

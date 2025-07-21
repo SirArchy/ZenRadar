@@ -16,7 +16,7 @@ class MatchaIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      'lib/assets/Icon.png',
+      'lib/assets/Appbar_Icon.png',
       width: size,
       height: size,
       color: color,

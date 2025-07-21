@@ -6,6 +6,7 @@ import '../models/matcha_product.dart';
 import '../services/notification_service.dart';
 import '../services/background_service.dart';
 import '../services/settings_service.dart';
+import '../services/theme_service.dart';
 import '../widgets/matcha_icon.dart';
 import 'website_management_screen.dart';
 
@@ -344,6 +345,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 16),
                   ListTile(
+                    leading: const Icon(Icons.palette),
+                    title: const Text('Theme'),
+                    subtitle: Text(
+                      'Current: ${ThemeService.instance.getThemeModeDisplayName(ThemeService.instance.themeMode)}',
+                    ),
+                    trailing: const Icon(Icons.edit),
+                    onTap: () => _showThemeDialog(),
+                  ),
+                  const Divider(),
+                  ListTile(
                     leading: const Icon(Icons.attach_money),
                     title: const Text('Preferred Currency'),
                     subtitle: Text(
@@ -612,6 +623,89 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 _showSuccessSnackBar(
                                   'Currency updated to ${currency['name']}',
                                 );
+                              },
+                            );
+                          }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showThemeDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Theme'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Choose your preferred theme:',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 16),
+                  Flexible(
+                    child: ListView(
+                      shrinkWrap: true,
+                      children:
+                          ThemeService.instance.availableThemeModes.map((mode) {
+                            String description;
+                            IconData icon;
+
+                            switch (mode) {
+                              case AppThemeMode.light:
+                                description = 'Always use light theme';
+                                icon = Icons.light_mode;
+                                break;
+                              case AppThemeMode.dark:
+                                description = 'Always use dark theme';
+                                icon = Icons.dark_mode;
+                                break;
+                              case AppThemeMode.system:
+                                description = 'Follow system setting';
+                                icon = Icons.settings_system_daydream;
+                                break;
+                            }
+
+                            return RadioListTile<AppThemeMode>(
+                              title: Row(
+                                children: [
+                                  Icon(icon, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    ThemeService.instance
+                                        .getThemeModeDisplayName(mode),
+                                  ),
+                                ],
+                              ),
+                              subtitle: Text(description),
+                              value: mode,
+                              groupValue: ThemeService.instance.themeMode,
+                              onChanged: (value) async {
+                                if (value != null) {
+                                  await ThemeService.instance.setThemeMode(
+                                    value,
+                                  );
+                                  Navigator.pop(context);
+                                  _showSuccessSnackBar(
+                                    'Theme updated to ${ThemeService.instance.getThemeModeDisplayName(value)}',
+                                  );
+                                  // Force rebuild to update the subtitle
+                                  setState(() {});
+                                }
                               },
                             );
                           }).toList(),

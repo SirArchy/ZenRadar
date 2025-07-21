@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'services/notification_service.dart';
 import 'services/background_service.dart';
 import 'services/database_service.dart';
+import 'services/theme_service.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
@@ -11,6 +12,7 @@ void main() async {
 
   // Initialize services
   await DatabaseService.platformService.initDatabase();
+  await ThemeService.instance.init();
 
   // Only initialize mobile-specific services on mobile platforms
   if (!kIsWeb) {
@@ -45,16 +47,18 @@ class ZenRadarApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'ZenRadar',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF4CAF50), // Green theme for matcha
-        ),
-        useMaterial3: true,
-      ),
-      home: const HomeScreen(),
-      debugShowCheckedModeBanner: false,
+    return AnimatedBuilder(
+      animation: ThemeService.instance,
+      builder: (context, child) {
+        return MaterialApp(
+          title: 'ZenRadar',
+          theme: ThemeService.lightTheme,
+          darkTheme: ThemeService.darkTheme,
+          themeMode: ThemeService.instance.flutterThemeMode,
+          home: const HomeScreen(),
+          debugShowCheckedModeBanner: false,
+        );
+      },
     );
   }
 }

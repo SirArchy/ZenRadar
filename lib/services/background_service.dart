@@ -113,38 +113,60 @@ void onStart(ServiceInstance service) async {
         '🔄 Starting timer with ${settings.checkFrequencyMinutes} minute intervals',
       );
 
-      currentTimer = Timer.periodic(
-        Duration(minutes: settings.checkFrequencyMinutes),
-        (timer) async {
-          print('⏰ Timer triggered: ${DateTime.now()}');
+      currentTimer = Timer.periodic(Duration(minutes: settings.checkFrequencyMinutes), (
+        timer,
+      ) async {
+        print('⏰ Timer triggered: ${DateTime.now()}');
 
+        if (service is AndroidServiceInstance) {
+          if (await service.isForegroundService()) {
+            // Update foreground notification based on active hours
+            final isWithinHours = _isWithinActiveHours(settings);
+            service.setForegroundNotificationInfo(
+              title: "ZenRadar ${isWithinHours ? 'Active' : 'Paused'}",
+              content:
+                  isWithinHours
+                      ? "Last check: ${DateTime.now().toString().substring(0, 16)}"
+                      : "Outside active hours (${settings.startTime}-${settings.endTime})",
+            );
+            print('📱 Updated foreground notification');
+          }
+        }
+
+        // Check if we're within active hours before performing stock check
+        if (_isWithinActiveHours(settings)) {
+          print('✅ Within active hours, performing stock check...');
+
+          // Update foreground notification to show stock check in progress
           if (service is AndroidServiceInstance) {
             if (await service.isForegroundService()) {
-              // Update foreground notification based on active hours
-              final isWithinHours = _isWithinActiveHours(settings);
               service.setForegroundNotificationInfo(
-                title: "ZenRadar ${isWithinHours ? 'Active' : 'Paused'}",
-                content:
-                    isWithinHours
-                        ? "Last check: ${DateTime.now().toString().substring(0, 16)}"
-                        : "Outside active hours (${settings.startTime}-${settings.endTime})",
+                title: "ZenRadar - Checking Stock",
+                content: "Scanning matcha websites for updates...",
               );
-              print('📱 Updated foreground notification');
             }
           }
 
-          // Check if we're within active hours before performing stock check
-          if (_isWithinActiveHours(settings)) {
-            print('✅ Within active hours, performing stock check...');
-            await _performStockCheck();
-            print('✅ Background stock check completed: ${DateTime.now()}');
-          } else {
-            print(
-              '⏭️ Background check skipped - outside active hours: ${DateTime.now()}',
-            );
+          await _performStockCheck();
+
+          // Update foreground notification after stock check
+          if (service is AndroidServiceInstance) {
+            if (await service.isForegroundService()) {
+              service.setForegroundNotificationInfo(
+                title: "ZenRadar Active",
+                content:
+                    "Last check: ${DateTime.now().toString().substring(0, 16)}",
+              );
+            }
           }
-        },
-      );
+
+          print('✅ Background stock check completed: ${DateTime.now()}');
+        } else {
+          print(
+            '⏭️ Background check skipped - outside active hours: ${DateTime.now()}',
+          );
+        }
+      });
 
       print(
         '✅ Timer started with ${settings.checkFrequencyMinutes} minute intervals',
@@ -176,16 +198,30 @@ void onStart(ServiceInstance service) async {
       print('⚙️ Settings: ${settings.enabledSites.join(", ")}');
 
       try {
-        // Manual checks ignore active hours
+        // Update foreground notification for manual check
+        if (service is AndroidServiceInstance) {
+          if (await service.isForegroundService()) {
+            service.setForegroundNotificationInfo(
+              title: "ZenRadar - Manual Check",
+              content: "Performing manual stock check...",
+            );
+          }
+        }
+
+        // Manual checks ignore active hours and use new notification system
         await _performStockCheck();
         print('✅ Manual stock check completed: ${DateTime.now()}');
 
-        // Send a confirmation notification
-        await NotificationService.instance.showStockAlert(
-          productName: 'Manual Check Complete',
-          siteName: 'Background Service',
-          productId: 'manual_check_${DateTime.now().millisecondsSinceEpoch}',
-        );
+        // Update foreground notification after manual check
+        if (service is AndroidServiceInstance) {
+          if (await service.isForegroundService()) {
+            service.setForegroundNotificationInfo(
+              title: "ZenRadar Active",
+              content:
+                  "Manual check completed: ${DateTime.now().toString().substring(0, 16)}",
+            );
+          }
+        }
         print('✅ Confirmation notification sent');
       } catch (e) {
         print('❌ Error during manual stock check: $e');
@@ -240,6 +276,9 @@ Future<void> _performStockCheck() async {
   try {
     print('🔍 Starting stock check: ${DateTime.now()}');
 
+    // Show stock check started notification
+    await NotificationService.instance.showStockCheckStarted();
+
     // Initialize crawler
     final crawler = CrawlerService.instance;
     print('📡 Crawler instance created');
@@ -250,9 +289,81 @@ Future<void> _performStockCheck() async {
       '⚙️ Enabled sites for stock check: ${userSettings.enabledSites.join(", ")}',
     );
 
+    // Get previous products to compare for changes
+    final previousProducts =
+        await DatabaseService.platformService.getProducts();
+    final Map<String, MatchaProduct> previousProductMap = {
+      for (var product in previousProducts)
+        '${product.site}_${product.name}_${product.price}': product,
+    };
+
+    // Track progress and new products
+    int currentSiteIndex = 0;
+    final List<String> enabledSites = userSettings.enabledSites;
+    final List<MatchaProduct> allNewProducts = [];
+    final List<String> updatedSites = [];
+    final Map<String, List<MatchaProduct>> newProductsBySite = {};
+
+    // Update progress notification for each site
+    for (final siteName in enabledSites) {
+      currentSiteIndex++;
+      await NotificationService.instance.updateStockCheckProgress(
+        siteName: siteName,
+        currentSite: currentSiteIndex,
+        totalSites: enabledSites.length,
+      );
+
+      // Small delay to make progress visible
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+
     // Crawl all sites
     List<MatchaProduct> products = await crawler.crawlAllSites();
     print('✅ Stock check completed. Found ${products.length} products.');
+
+    // Compare with previous products to find new items
+    int newProductCount = 0;
+    for (var product in products) {
+      final productKey = '${product.site}_${product.name}_${product.price}';
+      if (!previousProductMap.containsKey(productKey)) {
+        allNewProducts.add(product);
+        newProductCount++;
+
+        // Group by site for summary
+        newProductsBySite.putIfAbsent(product.site, () => []).add(product);
+
+        if (!updatedSites.contains(product.site)) {
+          updatedSites.add(product.site);
+        }
+      }
+    }
+
+    // Hide progress notification
+    await NotificationService.instance.hideStockCheckProgress();
+
+    // Show completion notification if there are new products
+    if (newProductCount > 0) {
+      await NotificationService.instance.showStockCheckCompleted(
+        totalProducts: products.length,
+        newProducts: newProductCount,
+        updatedSites: updatedSites,
+      );
+
+      // Show individual stock alerts for high-priority new items
+      for (var product in allNewProducts.take(5)) {
+        // Limit to 5 to avoid spam
+        if (product.isInStock) {
+          await NotificationService.instance.showStockAlert(
+            productName: product.name,
+            siteName: product.site,
+            productId: '${product.site}_${product.name}'.hashCode.toString(),
+          );
+
+          // Small delay between notifications
+          await Future.delayed(const Duration(milliseconds: 1000));
+        }
+      }
+    }
 
     // Log some details about what was found
     Map<String, int> productsBySite = {};
@@ -265,12 +376,26 @@ Future<void> _performStockCheck() async {
       print('  - $site: $count products');
     });
 
+    if (newProductCount > 0) {
+      print('🆕 New products found:');
+      newProductsBySite.forEach((site, products) {
+        print('  - $site: ${products.length} new products');
+        for (var product in products.take(3)) {
+          // Show first 3
+          print('    * ${product.name} - ${product.price ?? "No price"}');
+        }
+      });
+    }
+
     // Clean up old history records
     await DatabaseService.platformService.deleteOldHistory();
     print('🧹 Old history cleaned up');
   } catch (e) {
     print('❌ Error during stock check: $e');
     print('📍 Stack trace: ${StackTrace.current}');
+
+    // Hide progress notification on error
+    await NotificationService.instance.hideStockCheckProgress();
   }
 }
 

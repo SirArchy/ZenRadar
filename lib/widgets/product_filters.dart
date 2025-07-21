@@ -69,7 +69,9 @@ class _ProductFiltersState extends State<ProductFilters> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outline.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -179,7 +181,11 @@ class _ProductFiltersState extends State<ProductFilters> {
         // Summary when collapsed or detailed view when expanded
         Container(
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.3),
+            ),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Column(
@@ -219,7 +225,9 @@ class _ProductFiltersState extends State<ProductFilters> {
                         _isSiteFilterExpanded
                             ? Icons.expand_less
                             : Icons.expand_more,
-                        color: Colors.grey[600],
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ],
                   ),
@@ -486,7 +494,12 @@ class _ProductFiltersState extends State<ProductFilters> {
   }
 
   void _clearFilters() {
-    final clearedFilter = ProductFilter();
+    // Preserve the stock filter (inStock) while clearing other filters
+    final clearedFilter = ProductFilter(
+      inStock: _currentFilter.inStock, // Preserve stock filter from home screen
+      showDiscontinued:
+          _currentFilter.showDiscontinued, // Preserve this as well
+    );
     setState(() {
       _currentFilter = clearedFilter;
       _priceRangeValues = RangeValues(
