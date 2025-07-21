@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/matcha_product.dart';
-import 'matcha_icon.dart';
+import 'category_icon.dart';
 
 class ProductCard extends StatelessWidget {
   final MatchaProduct product;
@@ -81,13 +81,10 @@ class ProductCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      MatchaIcon(
+                      CategoryIcon(
+                        category: product.category,
                         size: 18,
-                        color:
-                            isUnavailable
-                                ? Colors.grey[400]
-                                : const Color(0xFF9DBE87),
-                        withSteam: false,
+                        color: isUnavailable ? Colors.grey[400] : null,
                       ),
                       const SizedBox(width: 8),
                       Expanded(

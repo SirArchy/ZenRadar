@@ -163,6 +163,65 @@ class MatchaProduct {
         .trim();
   }
 
+  // Static method for automatic category detection
+  static String detectCategory(String name, String site) {
+    final String lower = name.toLowerCase();
+
+    // Matcha - highest priority since most tea sites focus on matcha
+    if (lower.contains('matcha')) {
+      return 'Matcha';
+    }
+
+    // Other tea types
+    if (lower.contains('genmaicha')) {
+      return 'Genmaicha';
+    }
+
+    if (lower.contains('hojicha')) {
+      return 'Hojicha';
+    }
+
+    if (lower.contains('black tea') ||
+        lower.contains('earl grey') ||
+        lower.contains('assam') ||
+        lower.contains('darjeeling') ||
+        lower.contains('ceylon') ||
+        lower.contains('english breakfast')) {
+      return 'Black Tea';
+    }
+
+    // Tea accessories and sets
+    if (lower.contains('set') ||
+        lower.contains('kit') ||
+        lower.contains('collection')) {
+      return 'Tea Set';
+    }
+
+    if (lower.contains('whisk') ||
+        lower.contains('bowl') ||
+        lower.contains('chawan') ||
+        lower.contains('chasen') ||
+        lower.contains('chashaku') ||
+        lower.contains('bamboo') ||
+        lower.contains('scoop') ||
+        lower.contains('sifter') ||
+        lower.contains('strainer') ||
+        lower.contains('accessory') ||
+        lower.contains('tool')) {
+      return 'Accessories';
+    }
+
+    // Default category - if it's from a matcha-focused site, assume matcha
+    final String lowerSite = site.toLowerCase();
+    if (lowerSite.contains('matcha') ||
+        lowerSite.contains('tea') ||
+        lowerSite.contains('zen')) {
+      return 'Matcha';
+    }
+
+    return 'Matcha'; // Default fallback
+  }
+
   // Helper factory method
   factory MatchaProduct.create({
     required String name,
@@ -179,6 +238,9 @@ class MatchaProduct {
     Map<String, dynamic>? metadata,
   }) {
     final now = DateTime.now();
+    // Auto-detect category if not provided
+    final String detectedCategory = category ?? detectCategory(name, site);
+
     return MatchaProduct(
       id:
           '${site}_${normalizeName(name).replaceAll(' ', '_')}_${now.millisecondsSinceEpoch}',
@@ -194,7 +256,7 @@ class MatchaProduct {
       currency: currency,
       imageUrl: imageUrl,
       description: description,
-      category: category,
+      category: detectedCategory,
       weight: weight,
       metadata: metadata,
     );
