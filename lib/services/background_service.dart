@@ -46,8 +46,20 @@ Future<void> initializeService() async {
   // Start the service after configuration
   print('Background service configured, attempting to start...');
   try {
+    final isRunning = await service.isRunning();
+    print('Service running status before start: $isRunning');
+
     await service.startService();
     print('Background service started successfully');
+
+    // Verify it actually started
+    await Future.delayed(const Duration(seconds: 2));
+    final isRunningAfter = await service.isRunning();
+    print('Service running status after start: $isRunningAfter');
+
+    if (!isRunningAfter) {
+      print('⚠️ Warning: Service not running after start attempt');
+    }
   } catch (e) {
     print('Failed to start background service: $e');
   }
@@ -118,6 +130,9 @@ void onStart(ServiceInstance service) async {
         timer,
       ) async {
         print('⏰ Timer triggered: ${DateTime.now()}');
+        print(
+          '🕐 Timer info: interval=${settings.checkFrequencyMinutes}min, tick=${timer.tick}',
+        );
 
         if (service is AndroidServiceInstance) {
           if (await service.isForegroundService()) {
@@ -127,10 +142,10 @@ void onStart(ServiceInstance service) async {
               title: "ZenRadar ${isWithinHours ? 'Active' : 'Paused'}",
               content:
                   isWithinHours
-                      ? "Last check: ${DateTime.now().toString().substring(0, 16)}"
+                      ? "Scan ${timer.tick}: ${DateTime.now().toString().substring(0, 16)}"
                       : "Outside active hours (${settings.startTime}-${settings.endTime})",
             );
-            print('📱 Updated foreground notification');
+            print('📱 Updated foreground notification (tick ${timer.tick})');
           }
         }
 
@@ -190,6 +205,39 @@ void onStart(ServiceInstance service) async {
 
     // Start initial timer
     startPeriodicTimer();
+
+    // Add an immediate test after 2 minutes to verify the service works
+    Timer(const Duration(minutes: 2), () async {
+      print('🧪 Running 2-minute test scan to verify background service...');
+      try {
+        // Update foreground notification for test
+        if (service is AndroidServiceInstance) {
+          if (await service.isForegroundService()) {
+            service.setForegroundNotificationInfo(
+              title: "ZenRadar - Test Scan",
+              content: "Running 2-minute verification scan...",
+            );
+          }
+        }
+
+        await _performStockCheck();
+
+        // Update foreground notification after test
+        if (service is AndroidServiceInstance) {
+          if (await service.isForegroundService()) {
+            service.setForegroundNotificationInfo(
+              title: "ZenRadar Background Monitoring",
+              content:
+                  "Test completed: ${DateTime.now().toString().substring(0, 16)}",
+            );
+          }
+        }
+
+        print('✅ 2-minute test scan completed successfully');
+      } catch (e) {
+        print('❌ 2-minute test scan failed: $e');
+      }
+    });
 
     // Test notification to verify service is working
     try {
@@ -574,8 +622,10 @@ bool _isWithinActiveHours(UserSettings settings) {
       endTime = endTime.add(const Duration(days: 1));
     }
 
-    // Check if current time is within the active period
-    final isWithinHours = now.isAfter(startTime) && now.isBefore(endTime);
+    // Check if current time is within the active period (inclusive of start and end times)
+    final isWithinHours =
+        (now.isAfter(startTime) || now.isAtSameMomentAs(startTime)) &&
+        (now.isBefore(endTime) || now.isAtSameMomentAs(endTime));
 
     print(
       'Active hours check: ${settings.startTime}-${settings.endTime}, '
