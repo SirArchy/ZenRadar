@@ -363,41 +363,61 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     const Text('Scanning Sites'),
                   ],
                 ),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Enabled Sites: $enabledBuiltInSites built-in sites',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
-                        fontSize: 14,
-                      ),
+                content: SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 320),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Enabled Sites: $enabledBuiltInSites built-in sites',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary,
+                            fontSize: 14,
+                          ),
+                          softWrap: true,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Current Site:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withAlpha(150),
+                          ),
+                          softWrap: true,
+                        ),
+                        Text(
+                          currentSite,
+                          style: const TextStyle(fontSize: 16),
+                          softWrap: true,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Status:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withAlpha(150),
+                          ),
+                          softWrap: true,
+                        ),
+                        Text(
+                          status,
+                          style: const TextStyle(fontSize: 14),
+                          softWrap: true,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 3,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Current Site:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    Text(currentSite, style: const TextStyle(fontSize: 16)),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Status:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    Text(status, style: const TextStyle(fontSize: 14)),
-                  ],
+                  ),
                 ),
               );
             },
@@ -553,7 +573,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         color: Theme.of(context).colorScheme.surface,
         border: Border(
           bottom: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+            color: Theme.of(
+              context,
+            ).colorScheme.outline.withAlpha((0.3 * 255).toInt()),
           ),
         ),
       ),
@@ -581,7 +603,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       borderSide: BorderSide(
                         color: Theme.of(
                           context,
-                        ).colorScheme.outline.withValues(alpha: 0.3),
+                        ).colorScheme.outline.withAlpha((0.3 * 255).toInt()),
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
@@ -589,7 +611,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       borderSide: BorderSide(
                         color: Theme.of(
                           context,
-                        ).colorScheme.outline.withValues(alpha: 0.3),
+                        ).colorScheme.outline.withAlpha((0.3 * 255).toInt()),
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
@@ -661,21 +683,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 selectedColor:
                     Theme.of(context).brightness == Brightness.light
                         ? Colors.green.shade50
-                        : Colors.green.withOpacity(0.2),
+                        : Colors.green.withAlpha((0.2 * 255).toInt()),
                 checkmarkColor:
                     Theme.of(context).brightness == Brightness.light
                         ? Colors.green.shade600
                         : Colors.green,
                 labelStyle:
-                    Theme.of(context).brightness == Brightness.light &&
-                            (_filter.inStock == null &&
-                                (_filter.sites == null ||
-                                    _filter.sites!.isEmpty) &&
-                                _filter.category == null &&
-                                _filter.minPrice == null &&
-                                _filter.maxPrice == null &&
-                                (_filter.searchTerm == null ||
-                                    _filter.searchTerm!.isEmpty))
+                    Theme.of(context).brightness == Brightness.light
                         ? const TextStyle(color: Colors.black87)
                         : null,
               ),
@@ -700,14 +714,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 selectedColor:
                     Theme.of(context).brightness == Brightness.light
                         ? Colors.green.shade50
-                        : Colors.green.withOpacity(0.2),
+                        : Colors.green.withAlpha((0.2 * 255).toInt()),
                 checkmarkColor:
                     Theme.of(context).brightness == Brightness.light
                         ? Colors.green.shade600
                         : Colors.green,
                 labelStyle:
-                    Theme.of(context).brightness == Brightness.light &&
-                            _filter.inStock == true
+                    Theme.of(context).brightness == Brightness.light
                         ? const TextStyle(color: Colors.black87)
                         : null,
               ),
@@ -732,14 +745,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 selectedColor:
                     Theme.of(context).brightness == Brightness.light
                         ? Colors.red.shade50
-                        : Colors.red.withOpacity(0.2),
+                        : Colors.red.withAlpha((0.2 * 255).toInt()),
                 checkmarkColor:
                     Theme.of(context).brightness == Brightness.light
                         ? Colors.red.shade600
                         : Colors.red,
                 labelStyle:
-                    Theme.of(context).brightness == Brightness.light &&
-                            _filter.inStock == false
+                    Theme.of(context).brightness == Brightness.light
                         ? const TextStyle(color: Colors.black87)
                         : null,
               ),
@@ -776,14 +788,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 selectedColor:
                     Theme.of(context).brightness == Brightness.light
                         ? Colors.red.shade50
-                        : Colors.red.withOpacity(0.2),
+                        : Colors.red.withAlpha((0.2 * 255).toInt()),
                 checkmarkColor:
                     Theme.of(context).brightness == Brightness.light
                         ? Colors.red.shade600
                         : Colors.red,
                 labelStyle:
-                    Theme.of(context).brightness == Brightness.light &&
-                            _filter.favoritesOnly
+                    Theme.of(context).brightness == Brightness.light
                         ? const TextStyle(color: Colors.black87)
                         : null,
               ),
@@ -812,7 +823,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 fontSize: 18,
                 color: Theme.of(
                   context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
+                ).colorScheme.onSurface.withAlpha((0.6 * 255).toInt()),
               ),
             ),
             const SizedBox(height: 8),
@@ -821,7 +832,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               style: TextStyle(
                 color: Theme.of(
                   context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
+                ).colorScheme.onSurface.withAlpha((0.6 * 255).toInt()),
               ),
               textAlign: TextAlign.center,
             ),
