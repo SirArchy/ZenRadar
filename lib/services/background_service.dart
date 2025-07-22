@@ -148,14 +148,16 @@ void onStart(ServiceInstance service) async {
     }
 
     Timer? currentTimer;
+    DateTime? lastScanTime;
 
-    // Function to start/restart the periodic timer
-    void startPeriodicTimer() {
-      currentTimer?.cancel(); // Cancel existing timer if any
+    // Function to start/restart the periodic timer with latest settings
+    Future<void> reloadSettingsAndRestartTimer() async {
+      currentTimer?.cancel();
+      settings = await _getUserSettings();
       print(
-        '🔄 Starting timer with ${settings.checkFrequencyMinutes} minute intervals',
+        '🔄 Reloaded settings: ${settings.checkFrequencyMinutes} min intervals, active hours: ${settings.startTime}-${settings.endTime}',
       );
-
+      lastScanTime = DateTime.now();
       currentTimer = Timer.periodic(Duration(minutes: settings.checkFrequencyMinutes), (
         timer,
       ) async {
@@ -203,13 +205,20 @@ void onStart(ServiceInstance service) async {
 
             await _performStockCheck();
 
+            // Reset lastScanTime after scan
+            lastScanTime = DateTime.now();
+
             // Return to monitoring state
             if (service is AndroidServiceInstance) {
               if (await service.isForegroundService()) {
+                final nextCheckTime = lastScanTime!.add(
+                  Duration(minutes: settings.checkFrequencyMinutes),
+                );
+                final timeString =
+                    '${nextCheckTime.hour.toString().padLeft(2, '0')}:${nextCheckTime.minute.toString().padLeft(2, '0')}';
                 service.setForegroundNotificationInfo(
                   title: "ZenRadar - Matcha Monitor",
-                  content:
-                      "Scan complete - Next check at ${DateTime.now().add(Duration(minutes: settings.checkFrequencyMinutes)).toString().substring(11, 16)}",
+                  content: "Scan complete - Next check at $timeString",
                 );
               }
             }
@@ -234,14 +243,13 @@ void onStart(ServiceInstance service) async {
           );
         }
       });
-
       print(
         '✅ Timer started with ${settings.checkFrequencyMinutes} minute intervals',
       );
     }
 
-    // Start initial timer
-    startPeriodicTimer();
+    // Start initial timer with latest settings
+    await reloadSettingsAndRestartTimer();
 
     // Add a test timer that fires every 30 seconds to verify timers work in background
     Timer.periodic(const Duration(seconds: 30), (testTimer) {
@@ -250,10 +258,20 @@ void onStart(ServiceInstance service) async {
       );
       if (service is AndroidServiceInstance) {
         try {
+          if (lastScanTime == null) {
+            lastScanTime = DateTime.now();
+          }
+          final now = DateTime.now();
+          final nextScanTime = lastScanTime!.add(
+            Duration(minutes: settings.checkFrequencyMinutes),
+          );
+          final remaining = nextScanTime.difference(now);
+          int minutesLeft = remaining.inMinutes;
+          if (minutesLeft < 0) minutesLeft = 0;
           service.setForegroundNotificationInfo(
             title: "ZenRadar - Matcha Monitor",
             content:
-                "Monitoring matcha stock - Next scan in ${settings.checkFrequencyMinutes - ((testTimer.tick * 30) ~/ 60)} minutes",
+                "Monitoring matcha stock - Next scan in $minutesLeft minute${minutesLeft == 1 ? '' : 's'}",
           );
         } catch (e) {
           print('⚠️ Failed to update notification: $e');
@@ -312,20 +330,22 @@ void onStart(ServiceInstance service) async {
           }
         }
 
-        // Send error notification
-        await NotificationService.instance.showStockAlert(
-          productName: 'Manual Check Error',
-          siteName: 'Background Service',
-          productId: 'error_${DateTime.now().millisecondsSinceEpoch}',
-        );
+        // Send error notification only if notifications are enabled
+        final userSettings = await _getUserSettings();
+        if (userSettings.notificationsEnabled) {
+          await NotificationService.instance.showStockAlert(
+            productName: 'Manual Check Error',
+            siteName: 'Background Service',
+            productId: 'error_${DateTime.now().millisecondsSinceEpoch}',
+          );
+        }
       }
     });
 
     // Listen for settings updates
     service.on('updateSettings').listen((event) async {
       print('⚙️ Settings update command received, reloading configuration...');
-      settings = await _getUserSettings();
-      startPeriodicTimer(); // Restart timer with new frequency
+      await reloadSettingsAndRestartTimer(); // Reload settings and restart timer
     });
 
     print('✅ Background service fully initialized and running');
@@ -365,22 +385,25 @@ Future<void> _performStockCheck() async {
   try {
     print('🔍 Starting stock check: $scanStartTime');
 
+    // Get user settings to see what sites are enabled and notification preferences
+    final userSettings = await _getUserSettings();
+    print(
+      '⚙️ Enabled sites for stock check: ${userSettings.enabledSites.join(", ")}',
+    );
+
     // Show stock check started notification with progress bar (with error handling)
-    try {
-      await NotificationService.instance.showStockCheckStarted();
-    } catch (e) {
-      print('⚠️ Failed to show start notification: $e');
+    // Only show if notifications are enabled
+    if (userSettings.notificationsEnabled) {
+      try {
+        await NotificationService.instance.showStockCheckStarted();
+      } catch (e) {
+        print('⚠️ Failed to show start notification: $e');
+      }
     }
 
     // Initialize crawler
     final crawler = CrawlerService.instance;
     print('📡 Crawler instance created');
-
-    // Get user settings to see what sites are enabled
-    final userSettings = await _getUserSettings();
-    print(
-      '⚙️ Enabled sites for stock check: ${userSettings.enabledSites.join(", ")}',
-    );
 
     // Check if we have favorite products and if user wants favorites-only background scanning
     final favoriteProductIds =
@@ -429,26 +452,50 @@ Future<void> _performStockCheck() async {
           await DatabaseService.platformService.getFavoriteProducts();
       final favoriteSites =
           favoriteProducts.map((p) => p.site).toSet().toList();
-      // Only crawl sites that have favorites AND are enabled
-      enabledSites =
-          enabledSites.where((site) => favoriteSites.contains(site)).toList();
+
+      // Create mapping from site keys to site names to handle the mismatch
+      final Map<String, String> siteKeyToName = {
+        'tokichi': 'Nakamura Tokichi',
+        'marukyu': 'Marukyu-Koyamaen',
+        'ippodo': 'Ippodo Tea',
+        'yoshien': 'Yoshi En',
+        'matcha-karu': 'Matcha Kāru',
+        'sho-cha': 'Sho-Cha',
+        'sazentea': 'Sazen Tea',
+        'mamecha': 'Mamecha',
+        'enjoyemeri': 'Emeri',
+        'poppatea': 'Poppatea',
+      };
+
+      // Find which site keys correspond to sites that have favorites
+      final siteKeysWithFavorites =
+          enabledSites.where((siteKey) {
+            final siteName = siteKeyToName[siteKey];
+            return siteName != null && favoriteSites.contains(siteName);
+          }).toList();
+
+      enabledSites = siteKeysWithFavorites;
       print(
         '📋 Favorites-only mode: Will only crawl ${enabledSites.length} sites with favorites: ${enabledSites.join(", ")}',
       );
+      print('📋 Favorite sites found: ${favoriteSites.join(", ")}');
     }
 
     // Update progress notification for each site as we crawl
+    // Only show progress if notifications are enabled
     for (int i = 0; i < enabledSites.length; i++) {
       final siteName = enabledSites[i];
 
-      try {
-        await NotificationService.instance.updateStockCheckProgress(
-          siteName: siteName,
-          currentSite: i + 1,
-          totalSites: enabledSites.length,
-        );
-      } catch (e) {
-        print('⚠️ Failed to update progress notification: $e');
+      if (userSettings.notificationsEnabled) {
+        try {
+          await NotificationService.instance.updateStockCheckProgress(
+            siteName: siteName,
+            currentSite: i + 1,
+            totalSites: enabledSites.length,
+          );
+        } catch (e) {
+          print('⚠️ Failed to update progress notification: $e');
+        }
       }
 
       // Small delay to make progress visible and respect rate limits
@@ -509,38 +556,47 @@ Future<void> _performStockCheck() async {
     }
 
     // Hide progress notification
-    try {
-      await NotificationService.instance.hideStockCheckProgress();
-    } catch (e) {
-      print('⚠️ Failed to hide progress notification: $e');
+    // Only try to hide if notifications are enabled (meaning we showed one)
+    if (userSettings.notificationsEnabled) {
+      try {
+        await NotificationService.instance.hideStockCheckProgress();
+      } catch (e) {
+        print('⚠️ Failed to hide progress notification: $e');
+      }
     }
 
     // Show completion notification based on what we found
     if (totalNewProducts > 0 || totalUpdatedProducts > 0) {
-      try {
-        await NotificationService.instance.showStockCheckCompleted(
-          totalProducts:
-              shouldScanFavoritesOnly
-                  ? productsToProcess.length
-                  : allProducts.length,
-          newProducts: totalNewProducts,
-          updatedSites: sitesWithChanges,
-        );
-      } catch (e) {
-        print('⚠️ Failed to show completion notification: $e');
+      // Only show completion notification if notifications are enabled
+      if (userSettings.notificationsEnabled) {
+        try {
+          await NotificationService.instance.showStockCheckCompleted(
+            totalProducts:
+                shouldScanFavoritesOnly
+                    ? productsToProcess.length
+                    : allProducts.length,
+            newProducts: totalNewProducts,
+            updatedSites: sitesWithChanges,
+          );
+        } catch (e) {
+          print('⚠️ Failed to show completion notification: $e');
+        }
       }
 
       // Also send individual stock alerts for products that came back in stock
-      for (var product in allUpdatedProducts) {
-        if (product.isInStock) {
-          try {
-            await NotificationService.instance.showStockAlert(
-              productName: product.name,
-              siteName: product.site,
-              productId: product.id,
-            );
-          } catch (e) {
-            print('⚠️ Failed to show stock alert for ${product.name}: $e');
+      // Only if notifications are enabled
+      if (userSettings.notificationsEnabled) {
+        for (var product in allUpdatedProducts) {
+          if (product.isInStock) {
+            try {
+              await NotificationService.instance.showStockAlert(
+                productName: product.name,
+                siteName: product.site,
+                productId: product.id,
+              );
+            } catch (e) {
+              print('⚠️ Failed to show stock alert for ${product.name}: $e');
+            }
           }
         }
       }
@@ -564,10 +620,7 @@ Future<void> _performStockCheck() async {
     final scanActivity = ScanActivity(
       id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
       timestamp: scanStartTime,
-      itemsScanned:
-          shouldScanFavoritesOnly
-              ? productsToProcess.length
-              : allProducts.length,
+      itemsScanned: allProducts.length, // Always show total products scanned
       duration: stopwatch.elapsed.inSeconds,
       hasStockUpdates: totalNewProducts > 0 || totalUpdatedProducts > 0,
       details:
@@ -589,14 +642,20 @@ Future<void> _performStockCheck() async {
     print('❌ Error during stock check: $e');
 
     // Hide progress notification on error
-    await NotificationService.instance.hideStockCheckProgress();
+    // Only try to hide if notifications are enabled (meaning we showed one)
+    final userSettings = await _getUserSettings();
+    if (userSettings.notificationsEnabled) {
+      await NotificationService.instance.hideStockCheckProgress();
+    }
 
-    // Send error notification
-    await NotificationService.instance.showStockAlert(
-      productName: 'Stock Check Failed',
-      siteName: 'System Error',
-      productId: 'error_${DateTime.now().millisecondsSinceEpoch}',
-    );
+    // Send error notification only if notifications are enabled
+    if (userSettings.notificationsEnabled) {
+      await NotificationService.instance.showStockAlert(
+        productName: 'Stock Check Failed',
+        siteName: 'System Error',
+        productId: 'error_${DateTime.now().millisecondsSinceEpoch}',
+      );
+    }
 
     // Log failed scan activity
     stopwatch.stop();

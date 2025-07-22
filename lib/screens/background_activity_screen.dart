@@ -463,6 +463,25 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                         ),
                       ],
                     ),
+                  ] else ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          size: 16,
+                          color: Colors.grey.shade600,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'No stock updates',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                   if (activity.details != null &&
                       activity.details!.isNotEmpty) ...[

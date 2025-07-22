@@ -136,11 +136,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
 
-          if (!kIsWeb) const SizedBox(height: 16),
-
-          // Background Service Status (mobile only)
-          if (!kIsWeb) _buildBackgroundServiceStatus(),
-
           const SizedBox(height: 16),
 
           // Monitoring Settings (mobile only)
@@ -156,6 +151,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12.0),
+                      decoration: BoxDecoration(
+                        color:
+                            _isServiceRunning
+                                ? Colors.green.shade100
+                                : Colors.orange.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color:
+                              _isServiceRunning ? Colors.green : Colors.orange,
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _isServiceRunning
+                                ? Icons.check_circle
+                                : Icons.warning,
+                            color:
+                                _isServiceRunning
+                                    ? Colors.green
+                                    : Colors.orange,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _isServiceRunning
+                                  ? 'Background monitoring is active'
+                                  : 'Background monitoring is paused',
+                              style: TextStyle(
+                                color:
+                                    _isServiceRunning
+                                        ? Colors.green.shade700
+                                        : Colors.orange.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          ElevatedButton(
+                            onPressed: _toggleBackgroundService,
+                            child: Text(_isServiceRunning ? 'Stop' : 'Start'),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -960,118 +1004,5 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       _showErrorSnackBar('Failed to toggle service: $e');
     }
-  }
-
-  Widget _buildBackgroundServiceStatus() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Background Monitoring',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12.0),
-              decoration: BoxDecoration(
-                color:
-                    _isServiceRunning
-                        ? Colors.green.shade100
-                        : Colors.orange.shade100,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: _isServiceRunning ? Colors.green : Colors.orange,
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    _isServiceRunning ? Icons.check_circle : Icons.warning,
-                    color: _isServiceRunning ? Colors.green : Colors.orange,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _isServiceRunning
-                          ? 'Background monitoring is active'
-                          : 'Background monitoring is paused',
-                      style: TextStyle(
-                        color:
-                            _isServiceRunning
-                                ? Colors.green.shade700
-                                : Colors.orange.shade700,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: _toggleBackgroundService,
-                    child: Text(_isServiceRunning ? 'Stop' : 'Start'),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12.0),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.outline.withValues(alpha: 0.3),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.favorite, size: 16, color: Colors.red),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Smart Monitoring',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'When you have favorite products, the background service will only monitor those favorites for stock changes. This saves battery and reduces notifications to only the products you care about most.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.7),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'To add favorites, tap the ♡ icon on any product in the main list.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

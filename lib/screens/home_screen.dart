@@ -658,40 +658,90 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   });
                   _loadProducts();
                 },
-                selectedColor: Colors.green.withValues(alpha: 0.2),
-                checkmarkColor: Colors.green,
+                selectedColor:
+                    Theme.of(context).brightness == Brightness.light
+                        ? Colors.green.shade50
+                        : Colors.green.withOpacity(0.2),
+                checkmarkColor:
+                    Theme.of(context).brightness == Brightness.light
+                        ? Colors.green.shade600
+                        : Colors.green,
+                labelStyle:
+                    Theme.of(context).brightness == Brightness.light &&
+                            (_filter.inStock == null &&
+                                (_filter.sites == null ||
+                                    _filter.sites!.isEmpty) &&
+                                _filter.category == null &&
+                                _filter.minPrice == null &&
+                                _filter.maxPrice == null &&
+                                (_filter.searchTerm == null ||
+                                    _filter.searchTerm!.isEmpty))
+                        ? const TextStyle(color: Colors.black87)
+                        : null,
               ),
               FilterChip(
                 label: const Text('In Stock'),
                 selected: _filter.inStock == true,
                 onSelected: (_) {
                   setState(() {
-                    _filter = _filter.copyWith(
-                      inStock: _filter.inStock == true ? null : true,
-                    );
+                    if (_filter.inStock == true) {
+                      // If already selected, reset to All
+                      _filter = ProductFilter();
+                      _searchQuery = '';
+                      _searchController.clear();
+                    } else {
+                      _filter = _filter.copyWith(inStock: true);
+                    }
                     _currentPage = 1;
                     _hasMoreProducts = true;
                   });
                   _loadProducts();
                 },
-                selectedColor: Colors.green.withValues(alpha: 0.2),
-                checkmarkColor: Colors.green,
+                selectedColor:
+                    Theme.of(context).brightness == Brightness.light
+                        ? Colors.green.shade50
+                        : Colors.green.withOpacity(0.2),
+                checkmarkColor:
+                    Theme.of(context).brightness == Brightness.light
+                        ? Colors.green.shade600
+                        : Colors.green,
+                labelStyle:
+                    Theme.of(context).brightness == Brightness.light &&
+                            _filter.inStock == true
+                        ? const TextStyle(color: Colors.black87)
+                        : null,
               ),
               FilterChip(
                 label: const Text('Out of Stock'),
                 selected: _filter.inStock == false,
                 onSelected: (_) {
                   setState(() {
-                    _filter = _filter.copyWith(
-                      inStock: _filter.inStock == false ? null : false,
-                    );
+                    if (_filter.inStock == false) {
+                      // If already selected, reset to All
+                      _filter = ProductFilter();
+                      _searchQuery = '';
+                      _searchController.clear();
+                    } else {
+                      _filter = _filter.copyWith(inStock: false);
+                    }
                     _currentPage = 1;
                     _hasMoreProducts = true;
                   });
                   _loadProducts();
                 },
-                selectedColor: Colors.red.withValues(alpha: 0.2),
-                checkmarkColor: Colors.red,
+                selectedColor:
+                    Theme.of(context).brightness == Brightness.light
+                        ? Colors.red.shade50
+                        : Colors.red.withOpacity(0.2),
+                checkmarkColor:
+                    Theme.of(context).brightness == Brightness.light
+                        ? Colors.red.shade600
+                        : Colors.red,
+                labelStyle:
+                    Theme.of(context).brightness == Brightness.light &&
+                            _filter.inStock == false
+                        ? const TextStyle(color: Colors.black87)
+                        : null,
               ),
               FilterChip(
                 label: Row(
@@ -700,7 +750,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     Icon(
                       Icons.favorite,
                       size: 16,
-                      color: _filter.favoritesOnly ? Colors.red : null,
+                      color:
+                          _filter.favoritesOnly
+                              ? (Theme.of(context).brightness ==
+                                      Brightness.light
+                                  ? Colors.red.shade600
+                                  : Colors.red)
+                              : null,
                     ),
                     const SizedBox(width: 4),
                     const Text('Favorites'),
@@ -717,8 +773,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   });
                   _loadProducts();
                 },
-                selectedColor: Colors.red.withValues(alpha: 0.2),
-                checkmarkColor: Colors.red,
+                selectedColor:
+                    Theme.of(context).brightness == Brightness.light
+                        ? Colors.red.shade50
+                        : Colors.red.withOpacity(0.2),
+                checkmarkColor:
+                    Theme.of(context).brightness == Brightness.light
+                        ? Colors.red.shade600
+                        : Colors.red,
+                labelStyle:
+                    Theme.of(context).brightness == Brightness.light &&
+                            _filter.favoritesOnly
+                        ? const TextStyle(color: Colors.black87)
+                        : null,
               ),
             ],
           ),
