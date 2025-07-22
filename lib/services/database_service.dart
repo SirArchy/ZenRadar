@@ -723,4 +723,9 @@ class DatabaseService {
       whereArgs: [cutoffDate.toIso8601String()],
     );
   }
+
+  Future<void> clearAllScanActivities() async {
+    final db = await database;
+    await db.delete('scan_activities');
+  }
 }

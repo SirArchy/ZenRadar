@@ -43,22 +43,47 @@ Future<void> initializeService() async {
     ),
   );
 
+  print('✅ Background service configured successfully');
+
   // Start the service after configuration
   print('Background service configured, attempting to start...');
   try {
     final isRunning = await service.isRunning();
     print('Service running status before start: $isRunning');
 
-    await service.startService();
-    print('Background service started successfully');
+    if (!isRunning) {
+      await service.startService();
+      print('Background service start command sent');
 
-    // Verify it actually started
-    await Future.delayed(const Duration(seconds: 2));
-    final isRunningAfter = await service.isRunning();
-    print('Service running status after start: $isRunningAfter');
+      // Verify it actually started with multiple checks
+      await Future.delayed(const Duration(seconds: 2));
+      final isRunningAfter = await service.isRunning();
+      print('Service running status after start: $isRunningAfter');
 
-    if (!isRunningAfter) {
-      print('⚠️ Warning: Service not running after start attempt');
+      if (!isRunningAfter) {
+        print('⚠️ Warning: Service not running after start attempt');
+
+        // Try starting again
+        print('🔄 Attempting to start service again...');
+        await service.startService();
+        await Future.delayed(const Duration(seconds: 3));
+        final isRunningSecondTry = await service.isRunning();
+        print('Service running status after second try: $isRunningSecondTry');
+      } else {
+        print('✅ Background service started successfully!');
+
+        // Give it time to initialize and send a test message
+        await Future.delayed(const Duration(seconds: 5));
+        try {
+          print('🧪 Sending test message to background service...');
+          await BackgroundServiceController.instance.triggerManualCheck();
+          print('✅ Test message sent to background service');
+        } catch (e) {
+          print('❌ Failed to send test message: $e');
+        }
+      }
+    } else {
+      print('✅ Background service was already running');
     }
   } catch (e) {
     print('Failed to start background service: $e');
@@ -68,6 +93,8 @@ Future<void> initializeService() async {
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
   print('=== ZenRadar Background Service Started ===');
+  print('🕐 Service start time: ${DateTime.now()}');
+  print('📱 Service type: ${service.runtimeType}');
 
   try {
     DartPluginRegistrant.ensureInitialized();
@@ -87,15 +114,18 @@ void onStart(ServiceInstance service) async {
       print('✅ Notification service initialized');
     } catch (e) {
       print('❌ Failed to initialize notifications: $e');
-      return;
+      print(
+        '⚠️ Continuing without notifications - background scanning will still work',
+      );
+      // Don't return here - continue without notifications
     }
 
     // Ensure background notification channel exists
     if (service is AndroidServiceInstance) {
       try {
         service.setForegroundNotificationInfo(
-          title: "ZenRadar Monitoring",
-          content: "Matcha stock monitoring active...",
+          title: "ZenRadar - Matcha Monitor",
+          content: "Starting matcha stock monitoring service...",
         );
         print('✅ Foreground notification set');
       } catch (e) {
@@ -133,19 +163,26 @@ void onStart(ServiceInstance service) async {
         print(
           '🕐 Timer info: interval=${settings.checkFrequencyMinutes}min, tick=${timer.tick}',
         );
+        print(
+          '🔧 Active hours check: ${settings.startTime} - ${settings.endTime}',
+        );
 
         if (service is AndroidServiceInstance) {
-          if (await service.isForegroundService()) {
-            // Update foreground notification based on active hours
-            final isWithinHours = _isWithinActiveHours(settings);
-            service.setForegroundNotificationInfo(
-              title: "ZenRadar ${isWithinHours ? 'Active' : 'Paused'}",
-              content:
-                  isWithinHours
-                      ? "Scan ${timer.tick}: ${DateTime.now().toString().substring(0, 16)}"
-                      : "Outside active hours (${settings.startTime}-${settings.endTime})",
-            );
-            print('📱 Updated foreground notification (tick ${timer.tick})');
+          try {
+            if (await service.isForegroundService()) {
+              // Update foreground notification based on active hours
+              final isWithinHours = _isWithinActiveHours(settings);
+              service.setForegroundNotificationInfo(
+                title: "ZenRadar - Matcha Monitor",
+                content:
+                    isWithinHours
+                        ? "Scanning matcha sites... (${timer.tick} scans completed)"
+                        : "Paused - Outside active hours (${settings.startTime}-${settings.endTime})",
+              );
+              print('📱 Updated foreground notification (tick ${timer.tick})');
+            }
+          } catch (e) {
+            print('⚠️ Failed to update foreground notification: $e');
           }
         }
 
@@ -158,8 +195,8 @@ void onStart(ServiceInstance service) async {
             if (service is AndroidServiceInstance) {
               if (await service.isForegroundService()) {
                 service.setForegroundNotificationInfo(
-                  title: "ZenRadar - Checking Stock",
-                  content: "Initializing stock scan...",
+                  title: "ZenRadar - Scanning",
+                  content: "Checking matcha stock on enabled sites...",
                 );
               }
             }
@@ -170,9 +207,9 @@ void onStart(ServiceInstance service) async {
             if (service is AndroidServiceInstance) {
               if (await service.isForegroundService()) {
                 service.setForegroundNotificationInfo(
-                  title: "ZenRadar Background Monitoring",
+                  title: "ZenRadar - Matcha Monitor",
                   content:
-                      "Last check: ${DateTime.now().toString().substring(0, 16)}",
+                      "Scan complete - Next check at ${DateTime.now().add(Duration(minutes: settings.checkFrequencyMinutes)).toString().substring(11, 16)}",
                 );
               }
             }
@@ -186,7 +223,7 @@ void onStart(ServiceInstance service) async {
               if (await service.isForegroundService()) {
                 service.setForegroundNotificationInfo(
                   title: "ZenRadar - Error",
-                  content: "Stock check failed, will retry next cycle",
+                  content: "Scan failed - Will retry at next scheduled time",
                 );
               }
             }
@@ -206,46 +243,23 @@ void onStart(ServiceInstance service) async {
     // Start initial timer
     startPeriodicTimer();
 
-    // Add an immediate test after 2 minutes to verify the service works
-    Timer(const Duration(minutes: 2), () async {
-      print('🧪 Running 2-minute test scan to verify background service...');
-      try {
-        // Update foreground notification for test
-        if (service is AndroidServiceInstance) {
-          if (await service.isForegroundService()) {
-            service.setForegroundNotificationInfo(
-              title: "ZenRadar - Test Scan",
-              content: "Running 2-minute verification scan...",
-            );
-          }
+    // Add a test timer that fires every 30 seconds to verify timers work in background
+    Timer.periodic(const Duration(seconds: 30), (testTimer) {
+      print(
+        '🧪 TEST TIMER: Background service alive - tick ${testTimer.tick} at ${DateTime.now()}',
+      );
+      if (service is AndroidServiceInstance) {
+        try {
+          service.setForegroundNotificationInfo(
+            title: "ZenRadar - Matcha Monitor",
+            content:
+                "Monitoring matcha stock - Next scan in ${settings.checkFrequencyMinutes - ((testTimer.tick * 30) ~/ 60)} minutes",
+          );
+        } catch (e) {
+          print('⚠️ Failed to update notification: $e');
         }
-
-        await _performStockCheck();
-
-        // Update foreground notification after test
-        if (service is AndroidServiceInstance) {
-          if (await service.isForegroundService()) {
-            service.setForegroundNotificationInfo(
-              title: "ZenRadar Background Monitoring",
-              content:
-                  "Test completed: ${DateTime.now().toString().substring(0, 16)}",
-            );
-          }
-        }
-
-        print('✅ 2-minute test scan completed successfully');
-      } catch (e) {
-        print('❌ 2-minute test scan failed: $e');
       }
     });
-
-    // Test notification to verify service is working
-    try {
-      await NotificationService.instance.showTestNotification();
-      print('✅ Test notification sent successfully');
-    } catch (e) {
-      print('❌ Failed to send test notification: $e');
-    }
 
     // Listen for stop commands
     service.on('stopService').listen((event) {
@@ -265,8 +279,8 @@ void onStart(ServiceInstance service) async {
         if (service is AndroidServiceInstance) {
           if (await service.isForegroundService()) {
             service.setForegroundNotificationInfo(
-              title: "ZenRadar - Manual Check",
-              content: "Starting manual stock scan...",
+              title: "ZenRadar - Manual Scan",
+              content: "Starting user-requested matcha stock check...",
             );
           }
         }
@@ -279,9 +293,8 @@ void onStart(ServiceInstance service) async {
         if (service is AndroidServiceInstance) {
           if (await service.isForegroundService()) {
             service.setForegroundNotificationInfo(
-              title: "ZenRadar Background Monitoring",
-              content:
-                  "Manual check completed: ${DateTime.now().toString().substring(0, 16)}",
+              title: "ZenRadar - Matcha Monitor",
+              content: "Manual scan complete - Resuming automatic monitoring",
             );
           }
         }
@@ -293,8 +306,8 @@ void onStart(ServiceInstance service) async {
         if (service is AndroidServiceInstance) {
           if (await service.isForegroundService()) {
             service.setForegroundNotificationInfo(
-              title: "ZenRadar - Manual Check Error",
-              content: "Check failed, please try again",
+              title: "ZenRadar - Manual Scan Failed",
+              content: "Check failed - Please try again or check network",
             );
           }
         }
@@ -352,8 +365,12 @@ Future<void> _performStockCheck() async {
   try {
     print('🔍 Starting stock check: $scanStartTime');
 
-    // Show stock check started notification with progress bar
-    await NotificationService.instance.showStockCheckStarted();
+    // Show stock check started notification with progress bar (with error handling)
+    try {
+      await NotificationService.instance.showStockCheckStarted();
+    } catch (e) {
+      print('⚠️ Failed to show start notification: $e');
+    }
 
     // Initialize crawler
     final crawler = CrawlerService.instance;
@@ -365,48 +382,74 @@ Future<void> _performStockCheck() async {
       '⚙️ Enabled sites for stock check: ${userSettings.enabledSites.join(", ")}',
     );
 
-    // Check if we have favorite products - if so, only monitor those
+    // Check if we have favorite products and if user wants favorites-only background scanning
     final favoriteProductIds =
         await DatabaseService.platformService.getFavoriteProductIds();
     final hasFavorites = favoriteProductIds.isNotEmpty;
+    final shouldScanFavoritesOnly =
+        userSettings.backgroundScanFavoritesOnly && hasFavorites;
 
     String scanType = 'background';
-    if (hasFavorites) {
+    if (shouldScanFavoritesOnly) {
       scanType = 'favorites';
       print(
-        '❤️ Favorites-only mode: Monitoring ${favoriteProductIds.length} favorite products',
+        '❤️ Favorites-only mode: Monitoring ${favoriteProductIds.length} favorite products (user preference: favorites only)',
+      );
+    } else if (hasFavorites && !userSettings.backgroundScanFavoritesOnly) {
+      print(
+        '🌍 Full monitoring mode: Checking all products on enabled sites (user preference: scan all, ${favoriteProductIds.length} favorites available)',
       );
     } else {
-      print('🌍 Full monitoring mode: Checking all products on enabled sites');
+      print(
+        '🌍 Full monitoring mode: Checking all products on enabled sites (no favorites set)',
+      );
     }
 
     // Get previous products to compare for changes
     final previousProducts =
-        hasFavorites
+        shouldScanFavoritesOnly
             ? await DatabaseService.platformService.getFavoriteProducts()
-            : await DatabaseService.platformService.getProducts();
+            : await DatabaseService.platformService.getAllProducts();
     final Map<String, MatchaProduct> previousProductMap = {
       for (var product in previousProducts)
         '${product.site}_${product.normalizedName}': product,
     };
 
     // Track progress and new/updated products
-    final List<String> enabledSites = userSettings.enabledSites;
+    List<String> enabledSites = userSettings.enabledSites;
     final List<MatchaProduct> allNewProducts = [];
     final List<MatchaProduct> allUpdatedProducts = [];
     final List<String> sitesWithChanges = [];
     int totalNewProducts = 0;
     int totalUpdatedProducts = 0;
 
+    // In favorites-only mode, only crawl sites that have favorite products
+    if (shouldScanFavoritesOnly) {
+      final favoriteProducts =
+          await DatabaseService.platformService.getFavoriteProducts();
+      final favoriteSites =
+          favoriteProducts.map((p) => p.site).toSet().toList();
+      // Only crawl sites that have favorites AND are enabled
+      enabledSites =
+          enabledSites.where((site) => favoriteSites.contains(site)).toList();
+      print(
+        '📋 Favorites-only mode: Will only crawl ${enabledSites.length} sites with favorites: ${enabledSites.join(", ")}',
+      );
+    }
+
     // Update progress notification for each site as we crawl
     for (int i = 0; i < enabledSites.length; i++) {
       final siteName = enabledSites[i];
 
-      await NotificationService.instance.updateStockCheckProgress(
-        siteName: siteName,
-        currentSite: i + 1,
-        totalSites: enabledSites.length,
-      );
+      try {
+        await NotificationService.instance.updateStockCheckProgress(
+          siteName: siteName,
+          currentSite: i + 1,
+          totalSites: enabledSites.length,
+        );
+      } catch (e) {
+        print('⚠️ Failed to update progress notification: $e');
+      }
 
       // Small delay to make progress visible and respect rate limits
       await Future.delayed(const Duration(milliseconds: 300));
@@ -422,7 +465,7 @@ Future<void> _performStockCheck() async {
 
     // In favorites mode, filter products to only include favorites
     List<MatchaProduct> productsToProcess;
-    if (hasFavorites) {
+    if (shouldScanFavoritesOnly) {
       productsToProcess =
           allProducts
               .where((product) => favoriteProductIds.contains(product.id))
@@ -466,35 +509,50 @@ Future<void> _performStockCheck() async {
     }
 
     // Hide progress notification
-    await NotificationService.instance.hideStockCheckProgress();
+    try {
+      await NotificationService.instance.hideStockCheckProgress();
+    } catch (e) {
+      print('⚠️ Failed to hide progress notification: $e');
+    }
 
     // Show completion notification based on what we found
     if (totalNewProducts > 0 || totalUpdatedProducts > 0) {
-      await NotificationService.instance.showStockCheckCompleted(
-        totalProducts:
-            hasFavorites ? productsToProcess.length : allProducts.length,
-        newProducts: totalNewProducts,
-        updatedSites: sitesWithChanges,
-      );
+      try {
+        await NotificationService.instance.showStockCheckCompleted(
+          totalProducts:
+              shouldScanFavoritesOnly
+                  ? productsToProcess.length
+                  : allProducts.length,
+          newProducts: totalNewProducts,
+          updatedSites: sitesWithChanges,
+        );
+      } catch (e) {
+        print('⚠️ Failed to show completion notification: $e');
+      }
 
       // Also send individual stock alerts for products that came back in stock
       for (var product in allUpdatedProducts) {
         if (product.isInStock) {
-          await NotificationService.instance.showStockAlert(
-            productName: product.name,
-            siteName: product.site,
-            productId: product.id,
-          );
+          try {
+            await NotificationService.instance.showStockAlert(
+              productName: product.name,
+              siteName: product.site,
+              productId: product.id,
+            );
+          } catch (e) {
+            print('⚠️ Failed to show stock alert for ${product.name}: $e');
+          }
         }
       }
     } else {
       // No changes found - just log it, don't spam with notifications
-      final modeText = hasFavorites ? 'favorite products' : 'products';
+      final modeText =
+          shouldScanFavoritesOnly ? 'favorite products' : 'products';
       print('✅ Stock check completed - no changes detected in $modeText');
     }
 
     final modeText =
-        hasFavorites
+        shouldScanFavoritesOnly
             ? '${favoriteProductIds.length} favorite products'
             : 'all products';
     print(
@@ -507,12 +565,14 @@ Future<void> _performStockCheck() async {
       id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
       timestamp: scanStartTime,
       itemsScanned:
-          hasFavorites ? productsToProcess.length : allProducts.length,
+          shouldScanFavoritesOnly
+              ? productsToProcess.length
+              : allProducts.length,
       duration: stopwatch.elapsed.inSeconds,
       hasStockUpdates: totalNewProducts > 0 || totalUpdatedProducts > 0,
       details:
-          hasFavorites
-              ? 'Monitored ${favoriteProductIds.length} favorite products'
+          shouldScanFavoritesOnly
+              ? 'Monitored ${favoriteProductIds.length} favorite products from ${enabledSites.length} sites (favorites-only mode)'
               : 'Full scan of ${enabledSites.join(", ")}',
       scanType: scanType,
     );
@@ -574,8 +634,14 @@ Future<UserSettings> _getUserSettings() async {
     }
   }
 
-  // Return default settings
-  return UserSettings();
+  // Return default settings for testing with shorter intervals
+  return UserSettings(
+    checkFrequencyMinutes: 10, // 10 minutes for testing
+    startTime: "08:00",
+    endTime: "20:00",
+    notificationsEnabled: true,
+    enabledSites: const ["tokichi", "marukyu", "ippodo"],
+  );
 }
 
 bool _isWithinActiveHours(UserSettings settings) {

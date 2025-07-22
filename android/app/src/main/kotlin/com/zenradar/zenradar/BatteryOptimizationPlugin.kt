@@ -20,7 +20,7 @@ class BatteryOptimizationPlugin : FlutterPlugin, MethodCallHandler {
     private lateinit var context: Context
 
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "battery_optimization")
+        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "zenradar/battery_optimization")
         channel.setMethodCallHandler(this)
         context = flutterPluginBinding.applicationContext
     }

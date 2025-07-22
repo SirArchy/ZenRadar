@@ -21,6 +21,11 @@ void main() async {
     await NotificationService.instance.init();
     // Small delay to ensure notification channels are created
     await Future.delayed(const Duration(milliseconds: 500));
+
+    // Check and handle battery optimization BEFORE starting background service
+    final batteryService = BatteryOptimizationService();
+    await batteryService.checkAndHandleBatteryOptimization();
+
     await initializeService();
 
     // Request permissions (mobile only)

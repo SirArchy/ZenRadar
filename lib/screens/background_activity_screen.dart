@@ -144,6 +144,54 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     }
   }
 
+  Future<void> _clearAllActivities() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Clear All Activities'),
+            content: const Text(
+              'This will permanently delete ALL scan activities. This action cannot be undone. Continue?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Delete All'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm == true) {
+      try {
+        await DatabaseService.platformService.clearAllScanActivities();
+        _loadActivities(); // Reload the list
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('All activities cleared successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error clearing activities: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -158,19 +206,34 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
           ),
           PopupMenuButton<String>(
             onSelected: (value) {
-              if (value == 'clear') {
+              if (value == 'clear_old') {
                 _clearOldActivities();
+              } else if (value == 'clear_all') {
+                _clearAllActivities();
               }
             },
             itemBuilder:
                 (context) => [
                   const PopupMenuItem(
-                    value: 'clear',
+                    value: 'clear_old',
                     child: Row(
                       children: [
                         Icon(Icons.delete_sweep),
                         SizedBox(width: 8),
                         Text('Clear Old Activities'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'clear_all',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_forever, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text(
+                          'Clear All Activities',
+                          style: TextStyle(color: Colors.red),
+                        ),
                       ],
                     ),
                   ),

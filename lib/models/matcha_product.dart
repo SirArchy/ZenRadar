@@ -290,6 +290,8 @@ class UserSettings {
   final String sortBy; // "name", "price", "lastChecked", "site"
   final bool sortAscending;
   final String preferredCurrency; // "EUR", "USD", "JPY", etc.
+  final bool
+  backgroundScanFavoritesOnly; // New setting for background scan mode
 
   UserSettings({
     this.checkFrequencyMinutes = 360, // Default 6 hours = 360 minutes
@@ -313,6 +315,7 @@ class UserSettings {
     this.sortBy = "name",
     this.sortAscending = true,
     this.preferredCurrency = "EUR",
+    this.backgroundScanFavoritesOnly = false, // Default: scan all products
   });
 
   factory UserSettings.fromJson(Map<String, dynamic> json) {
@@ -345,6 +348,7 @@ class UserSettings {
       sortBy: json['sortBy'] ?? "name",
       sortAscending: json['sortAscending'] ?? true,
       preferredCurrency: json['preferredCurrency'] ?? "EUR",
+      backgroundScanFavoritesOnly: json['backgroundScanFavoritesOnly'] ?? false,
     );
   }
 
@@ -360,6 +364,7 @@ class UserSettings {
       'sortBy': sortBy,
       'sortAscending': sortAscending,
       'preferredCurrency': preferredCurrency,
+      'backgroundScanFavoritesOnly': backgroundScanFavoritesOnly,
     };
   }
 
@@ -374,6 +379,7 @@ class UserSettings {
     String? sortBy,
     bool? sortAscending,
     String? preferredCurrency,
+    bool? backgroundScanFavoritesOnly,
   }) {
     return UserSettings(
       checkFrequencyMinutes:
@@ -387,6 +393,8 @@ class UserSettings {
       sortBy: sortBy ?? this.sortBy,
       sortAscending: sortAscending ?? this.sortAscending,
       preferredCurrency: preferredCurrency ?? this.preferredCurrency,
+      backgroundScanFavoritesOnly:
+          backgroundScanFavoritesOnly ?? this.backgroundScanFavoritesOnly,
     );
   }
 }

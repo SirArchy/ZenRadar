@@ -351,4 +351,8 @@ class WebDatabaseService {
       (activity) => activity.timestamp.isBefore(cutoffDate),
     );
   }
+
+  Future<void> clearAllScanActivities() async {
+    _scanActivities.clear();
+  }
 }

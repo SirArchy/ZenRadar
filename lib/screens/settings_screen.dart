@@ -218,6 +218,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       trailing: const Icon(Icons.edit),
                       onTap: () => _showActiveHoursDialog(),
                     ),
+                    const Divider(),
+                    SwitchListTile(
+                      title: const Text('Background Scan Mode'),
+                      subtitle: Text(
+                        _settings.backgroundScanFavoritesOnly
+                            ? 'Only scan favorite products in background'
+                            : 'Scan all products in background',
+                      ),
+                      value: _settings.backgroundScanFavoritesOnly,
+                      onChanged: (value) {
+                        _updateSettings(
+                          (s) => s.copyWith(backgroundScanFavoritesOnly: value),
+                        );
+                      },
+                      secondary: Icon(
+                        _settings.backgroundScanFavoritesOnly
+                            ? Icons.favorite
+                            : Icons.public,
+                        color:
+                            _settings.backgroundScanFavoritesOnly
+                                ? Colors.red
+                                : Colors.blue,
+                      ),
+                    ),
+                    if (_settings.backgroundScanFavoritesOnly)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                        child: Text(
+                          'When enabled, background scans will only monitor your favorite products. This saves battery and provides faster scans. Add favorites by tapping ♡ on products.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -335,6 +373,92 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
+
+          // Debug Section (for testing background service)
+          if (!kIsWeb)
+            Card(
+              color: Colors.orange.withValues(alpha: 0.1),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.bug_report, color: Colors.orange),
+                        SizedBox(width: 8),
+                        Text(
+                          'Debug Tools',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Use these tools to test background service functionality:',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        try {
+                          _showSuccessSnackBar('Testing background service...');
+                          await BackgroundServiceController.instance
+                              .triggerManualCheck();
+                          _showSuccessSnackBar('Manual check triggered');
+                        } catch (e) {
+                          _showErrorSnackBar('Failed to trigger check: $e');
+                        }
+                      },
+                      icon: const Icon(Icons.play_arrow),
+                      label: const Text('Trigger Manual Check'),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        try {
+                          final isRunning =
+                              await BackgroundServiceController.instance
+                                  .isServiceRunning();
+                          _showSuccessSnackBar('Service running: $isRunning');
+                        } catch (e) {
+                          _showErrorSnackBar('Failed to check service: $e');
+                        }
+                      },
+                      icon: const Icon(Icons.info),
+                      label: const Text('Check Service Status'),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        try {
+                          _showSuccessSnackBar(
+                            'Restarting background service...',
+                          );
+                          await BackgroundServiceController.instance
+                              .stopService();
+                          await Future.delayed(const Duration(seconds: 2));
+                          await BackgroundServiceController.instance
+                              .startService();
+                          _showSuccessSnackBar('Service restarted');
+                        } catch (e) {
+                          _showErrorSnackBar('Failed to restart service: $e');
+                        }
+                      },
+                      icon: const Icon(Icons.restart_alt),
+                      label: const Text('Restart Service'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
