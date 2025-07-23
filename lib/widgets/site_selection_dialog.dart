@@ -124,7 +124,7 @@ class _SiteSelectionDialogState extends State<SiteSelectionDialog> {
                     Icon(Icons.timer, size: 16, color: Colors.blue.shade600),
                     const SizedBox(width: 8),
                     Text(
-                      'Estimated scan time: ${_getEstimatedTime()}',
+                      'Estimated time: ${_getEstimatedTime()}',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.blue.shade600,

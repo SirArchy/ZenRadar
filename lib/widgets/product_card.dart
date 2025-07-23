@@ -8,6 +8,7 @@ class ProductCard extends StatelessWidget {
   final String? preferredCurrency;
   final bool isFavorite;
   final VoidCallback? onFavoriteToggle;
+  final Widget? extraInfo;
 
   const ProductCard({
     super.key,
@@ -16,6 +17,7 @@ class ProductCard extends StatelessWidget {
     this.preferredCurrency = 'EUR',
     this.isFavorite = false,
     this.onFavoriteToggle,
+    this.extraInfo,
   });
 
   /// Extracts the price for the preferred currency from a multi-currency price string
@@ -254,6 +256,10 @@ class ProductCard extends StatelessWidget {
                         ),
                     ],
                   ),
+                  if (extraInfo != null) ...[
+                    const SizedBox(height: 8),
+                    extraInfo!,
+                  ],
                 ],
               ),
             ),

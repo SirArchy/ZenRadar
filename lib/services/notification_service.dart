@@ -37,10 +37,7 @@ class NotificationService {
           iOS: initializationSettingsIOS,
         );
 
-    await _flutterLocalNotificationsPlugin.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
-    );
+    await _flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
     // Create notification channels
     await _createNotificationChannels();
@@ -138,15 +135,6 @@ class NotificationService {
           print('Error creating notification channels: $e');
         }
       }
-    }
-  }
-
-  void onDidReceiveNotificationResponse(
-    NotificationResponse notificationResponse,
-  ) async {
-    final String? payload = notificationResponse.payload;
-    if (notificationResponse.payload != null) {
-      debugPrint('notification payload: $payload');
     }
   }
 

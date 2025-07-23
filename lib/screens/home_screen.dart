@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/matcha_product.dart';
 import '../models/scan_activity.dart';
@@ -33,6 +34,54 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // Endless loading state
   ProductFilter _filter = ProductFilter();
+  // Helper to persist filter to shared_preferences
+  Future<void> _saveFilterToPrefs(ProductFilter filter) async {
+    final prefs = await SharedPreferences.getInstance();
+    // Save each field as needed
+    if (filter.inStock != null) {
+      prefs.setBool('filter_inStock', filter.inStock!);
+    } else {
+      prefs.remove('filter_inStock');
+    }
+    prefs.setBool('filter_favoritesOnly', filter.favoritesOnly);
+    prefs.setStringList('filter_sites', filter.sites ?? []);
+    prefs.setString('filter_category', filter.category ?? '');
+    if (filter.minPrice != null) {
+      prefs.setDouble('filter_minPrice', filter.minPrice!);
+    } else {
+      prefs.remove('filter_minPrice');
+    }
+    if (filter.maxPrice != null) {
+      prefs.setDouble('filter_maxPrice', filter.maxPrice!);
+    } else {
+      prefs.remove('filter_maxPrice');
+    }
+    prefs.setString('filter_searchTerm', filter.searchTerm ?? '');
+  }
+
+  // Helper to restore filter from shared_preferences
+  Future<ProductFilter> _loadFilterFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    return ProductFilter(
+      inStock:
+          prefs.containsKey('filter_inStock')
+              ? prefs.getBool('filter_inStock')
+              : null,
+      favoritesOnly: prefs.getBool('filter_favoritesOnly') ?? false,
+      sites: prefs.getStringList('filter_sites'),
+      category: prefs.getString('filter_category'),
+      minPrice:
+          prefs.containsKey('filter_minPrice')
+              ? prefs.getDouble('filter_minPrice')
+              : null,
+      maxPrice:
+          prefs.containsKey('filter_maxPrice')
+              ? prefs.getDouble('filter_maxPrice')
+              : null,
+      searchTerm: prefs.getString('filter_searchTerm'),
+    );
+  }
+
   int _currentPage = 1;
   UserSettings _userSettings = UserSettings();
   final ScrollController _scrollController = ScrollController();
@@ -55,7 +104,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _loadSettings();
     _loadFavorites();
     _loadFilterOptions();
-    _loadProducts();
+    _restoreFilterAndLoadProducts();
+  }
+
+  Future<void> _restoreFilterAndLoadProducts() async {
+    final restoredFilter = await _loadFilterFromPrefs();
+    setState(() {
+      _filter = restoredFilter;
+      _searchQuery = restoredFilter.searchTerm ?? '';
+      if (_searchController.text != _searchQuery) {
+        _searchController.text = _searchQuery;
+      }
+    });
+    await _loadProducts();
 
     // Setup endless scroll listener
     _scrollController.addListener(_onScroll);
@@ -429,6 +490,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() {
       _filter = newFilter;
     });
+    _saveFilterToPrefs(newFilter);
     _loadProducts(); // Reset products when filter changes
   }
 
@@ -438,6 +500,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       // Update the filter with the search query
       _filter = _filter.copyWith(searchTerm: query);
     });
+    _saveFilterToPrefs(_filter);
     _loadProducts(); // Reset products when search changes
   }
 
@@ -511,10 +574,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
 
           // Floating Action Button positioned in the stack
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: _buildFloatingActionButtons(),
+          Builder(
+            builder: (context) {
+              return Positioned(
+                bottom: 64,
+                right: 16,
+                child: _buildFloatingActionButtons(),
+              );
+            },
           ),
 
           // Filter overlay
@@ -669,7 +736,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     _filter.minPrice == null &&
                     _filter.maxPrice == null &&
                     (_filter.searchTerm == null || _filter.searchTerm!.isEmpty),
-                onSelected: (_) {
+                onSelected: (_) async {
                   // Clear all filters to show all products
                   setState(() {
                     _filter = ProductFilter(); // Reset to default empty filter
@@ -678,6 +745,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     _currentPage = 1;
                     _hasMoreProducts = true;
                   });
+                  await _saveFilterToPrefs(_filter);
                   _loadProducts();
                 },
                 selectedColor:
@@ -696,7 +764,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               FilterChip(
                 label: const Text('In Stock'),
                 selected: _filter.inStock == true,
-                onSelected: (_) {
+                onSelected: (_) async {
                   setState(() {
                     if (_filter.inStock == true) {
                       // If already selected, reset to All
@@ -709,6 +777,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     _currentPage = 1;
                     _hasMoreProducts = true;
                   });
+                  await _saveFilterToPrefs(_filter);
                   _loadProducts();
                 },
                 selectedColor:
@@ -727,7 +796,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               FilterChip(
                 label: const Text('Out of Stock'),
                 selected: _filter.inStock == false,
-                onSelected: (_) {
+                onSelected: (_) async {
                   setState(() {
                     if (_filter.inStock == false) {
                       // If already selected, reset to All
@@ -740,6 +809,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     _currentPage = 1;
                     _hasMoreProducts = true;
                   });
+                  await _saveFilterToPrefs(_filter);
                   _loadProducts();
                 },
                 selectedColor:
@@ -775,7 +845,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ],
                 ),
                 selected: _filter.favoritesOnly,
-                onSelected: (_) {
+                onSelected: (_) async {
                   setState(() {
                     _filter = _filter.copyWith(
                       favoritesOnly: !_filter.favoritesOnly,
@@ -783,6 +853,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     _currentPage = 1;
                     _hasMoreProducts = true;
                   });
+                  await _saveFilterToPrefs(_filter);
                   _loadProducts();
                 },
                 selectedColor:
@@ -876,7 +947,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        const SizedBox(height: 16),
         // Comprehensive scan button
         FloatingActionButton(
           heroTag: "comprehensive_scan",

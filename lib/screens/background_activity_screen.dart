@@ -1,9 +1,11 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:zenradar/screens/stock_updates_screen.dart';
 import '../models/scan_activity.dart';
 import '../services/database_service.dart';
+// ignore_for_file: avoid_print
 
 class BackgroundActivityScreen extends StatefulWidget {
   const BackgroundActivityScreen({super.key});
@@ -373,108 +375,92 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     final isToday = DateTime.now().difference(activity.timestamp).inDays == 0;
     final timeFormat = isToday ? DateFormat('HH:mm') : dateFormat;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            // Status indicator
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                color:
-                    activity.hasStockUpdates
-                        ? Colors.green
-                        : Colors.grey.shade400,
-                shape: BoxShape.circle,
+    return GestureDetector(
+      onTap:
+          activity.hasStockUpdates
+              ? () async {
+                // Load stock updates for this scan and navigate to details screen
+                final updates = await DatabaseService.platformService
+                    .getStockUpdatesForScan(activity.id);
+                if (updates != null && updates.isNotEmpty) {
+                  if (context.mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => StockUpdatesScreen(
+                              updates: updates,
+                              scanActivity: activity,
+                            ),
+                      ),
+                    );
+                  }
+                }
+              }
+              : null,
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 8),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Status indicator
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color:
+                      activity.hasStockUpdates
+                          ? Colors.green
+                          : Colors.grey.shade400,
+                  shape: BoxShape.circle,
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
+              const SizedBox(width: 12),
 
-            // Main content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        timeFormat.format(activity.timestamp),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const Spacer(),
-                      _buildScanTypeChip(activity.scanType),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.shopping_bag_outlined,
-                        size: 16,
-                        color: Colors.grey.shade600,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${activity.itemsScanned} items scanned',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Icon(
-                        Icons.timer_outlined,
-                        size: 16,
-                        color: Colors.grey.shade600,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        activity.formattedDuration,
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (activity.hasStockUpdates) ...[
-                    const SizedBox(height: 4),
+              // Main content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Row(
                       children: [
-                        Icon(
-                          Icons.notifications_active,
-                          size: 16,
-                          color: Colors.green.shade600,
-                        ),
-                        const SizedBox(width: 4),
                         Text(
-                          'Stock updates found',
-                          style: TextStyle(
-                            color: Colors.green.shade600,
-                            fontSize: 14,
+                          timeFormat.format(activity.timestamp),
+                          style: const TextStyle(
                             fontWeight: FontWeight.w500,
+                            fontSize: 16,
                           ),
                         ),
+                        const Spacer(),
+                        _buildScanTypeChip(activity.scanType),
                       ],
                     ),
-                  ] else ...[
                     const SizedBox(height: 4),
                     Row(
                       children: [
                         Icon(
-                          Icons.check_circle_outline,
+                          Icons.shopping_bag_outlined,
                           size: 16,
                           color: Colors.grey.shade600,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'No stock updates',
+                          '${activity.itemsScanned} items scanned',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Icon(
+                          Icons.timer_outlined,
+                          size: 16,
+                          color: Colors.grey.shade600,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          activity.formattedDuration,
                           style: TextStyle(
                             color: Colors.grey.shade600,
                             fontSize: 14,
@@ -482,23 +468,63 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                         ),
                       ],
                     ),
-                  ],
-                  if (activity.details != null &&
-                      activity.details!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      activity.details!,
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
-                        fontStyle: FontStyle.italic,
+                    if (activity.hasStockUpdates) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.notifications_active,
+                            size: 16,
+                            color: Colors.green.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Stock updates found',
+                            style: TextStyle(
+                              color: Colors.green.shade600,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+                    ] else ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle_outline,
+                            size: 16,
+                            color: Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'No stock updates',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (activity.details != null &&
+                        activity.details!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        activity.details!,
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

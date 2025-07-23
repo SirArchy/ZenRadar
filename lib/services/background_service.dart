@@ -258,9 +258,7 @@ void onStart(ServiceInstance service) async {
       );
       if (service is AndroidServiceInstance) {
         try {
-          if (lastScanTime == null) {
-            lastScanTime = DateTime.now();
-          }
+          lastScanTime ??= DateTime.now();
           final now = DateTime.now();
           final nextScanTime = lastScanTime!.add(
             Duration(minutes: settings.checkFrequencyMinutes),
@@ -509,6 +507,11 @@ Future<void> _performStockCheck() async {
     print(
       '✅ Stock check completed. Found ${allProducts.length} total products.',
     );
+
+    // Ensure all products are updated in the database with their latest stock state
+    for (final product in allProducts) {
+      await DatabaseService.platformService.insertOrUpdateProduct(product);
+    }
 
     // In favorites mode, filter products to only include favorites
     List<MatchaProduct> productsToProcess;

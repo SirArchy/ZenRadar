@@ -728,4 +728,51 @@ class DatabaseService {
     final db = await database;
     await db.delete('scan_activities');
   }
+
+  Future<List<Map<String, dynamic>>> getStockUpdatesForScan(
+    String scanActivityId,
+  ) async {
+    final db = await database;
+
+    // Find the scan timestamp for the given scanActivityId
+    final scanActivity = await db.query(
+      'scan_activities',
+      where: 'id = ?',
+      whereArgs: [scanActivityId],
+      limit: 1,
+    );
+    if (scanActivity.isEmpty) return [];
+
+    final scanTimestamp = DateTime.parse(
+      scanActivity.first['timestamp'] as String,
+    );
+    final start =
+        scanTimestamp.subtract(const Duration(minutes: 1)).toIso8601String();
+    final end = scanTimestamp.add(const Duration(minutes: 1)).toIso8601String();
+
+    // Get all stock_history entries for products checked at this scan timestamp
+    final updates = await db.rawQuery(
+      '''
+    SELECT 
+      sh.productId, 
+      sh.isInStock, 
+      sh.timestamp, 
+      p.name, p.site, p.url, p.price, p.priceValue, p.currency, p.imageUrl, p.description, p.category, p.weight, p.metadata,
+      (
+        SELECT prev.isInStock
+        FROM stock_history prev
+        WHERE prev.productId = sh.productId AND prev.timestamp < sh.timestamp
+        ORDER BY prev.timestamp DESC
+        LIMIT 1
+      ) as previousIsInStock
+    FROM stock_history sh
+    LEFT JOIN matcha_products p ON sh.productId = p.id
+    WHERE sh.timestamp BETWEEN ? AND ?
+    ORDER BY sh.productId ASC
+  ''',
+      [start, end],
+    );
+
+    return updates;
+  }
 }
