@@ -3,6 +3,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'web_notification_service.dart';
 
 class NotificationService {
@@ -37,7 +38,16 @@ class NotificationService {
           iOS: initializationSettingsIOS,
         );
 
-    await _flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    await _flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) async {
+        final url = response.payload;
+        if (url != null && url.isNotEmpty) {
+          // Use url_launcher to open the URL
+          await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+        }
+      },
+    );
 
     // Create notification channels
     await _createNotificationChannels();
@@ -142,6 +152,7 @@ class NotificationService {
     required String productName,
     required String siteName,
     required String productId,
+    required String productUrl,
   }) async {
     if (kIsWeb) {
       await WebNotificationService.instance.showStockAlert(
@@ -183,7 +194,7 @@ class NotificationService {
       '🍵 Matcha Back in Stock!',
       '$productName is now available on $siteName',
       platformChannelSpecifics,
-      payload: productId,
+      payload: productUrl, // <-- Pass the URL here
     );
   }
 
@@ -260,6 +271,8 @@ class NotificationService {
       productName: 'Test Matcha',
       siteName: 'Test Site',
       productId: 'test_123',
+      productUrl:
+          'https://poppatea.com/de-de/products/matcha-tea-ceremonial?variant=49292502008150',
     );
   }
 

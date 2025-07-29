@@ -20,9 +20,20 @@ class StockUpdatesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scrollController = ScrollController();
+    // Filter updates to only show products with stock changes
+    final filteredUpdates =
+        updates.where((update) {
+          final previousIsInStock = update['previousIsInStock'];
+          final currentIsInStock =
+              update['isInStock'] == 1 || update['isInStock'] == true;
+          // Only show if previous value exists and changed
+          return previousIsInStock != null &&
+              previousIsInStock != currentIsInStock;
+        }).toList();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (highlightProductId != null) {
-        final idx = updates.indexWhere(
+        final idx = filteredUpdates.indexWhere(
           (u) => u['productId'] == highlightProductId,
         );
         if (idx != -1) {
@@ -34,6 +45,7 @@ class StockUpdatesScreen extends StatelessWidget {
         }
       }
     });
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Stock Updates'),
@@ -41,9 +53,9 @@ class StockUpdatesScreen extends StatelessWidget {
       ),
       body: ListView.builder(
         controller: scrollController,
-        itemCount: updates.length,
+        itemCount: filteredUpdates.length,
         itemBuilder: (context, index) {
-          final update = updates[index];
+          final update = filteredUpdates[index];
           final isHighlighted =
               highlightProductId != null &&
               update['productId'] == highlightProductId;

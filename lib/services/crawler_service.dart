@@ -124,10 +124,9 @@ class CrawlerService {
       name: 'Poppatea',
       baseUrl:
           'https://poppatea.com/de-de/collections/all-teas?filter.p.m.custom.tea_type=Matcha',
-      stockSelector:
-          'h3', // Use h3 as stock indicator - if h3 exists, product exists
+      stockSelector: 'h3', // Used only for main page, not variants
       productSelector: '.card__container', // Product containers
-      nameSelector: 'h3', // Product names in h3 elements
+      nameSelector: 'h3', // Main page product name
       priceSelector:
           '.price__regular', // Prices in price__regular elements (not price-item)
       linkSelector: 'a[href*="/products/"]', // Product links
@@ -142,6 +141,160 @@ class CrawlerService {
     final enabledSiteKeys = userSettings.enabledSites;
 
     return await crawlSelectedSites(enabledSiteKeys);
+  }
+
+  Future<List<MatchaProduct>> crawlPoppatea() async {
+    const baseUrl = 'https://poppatea.com/de-de/collections/all-teas';
+    final client = http.Client();
+    final List<MatchaProduct> products = [];
+
+    try {
+      final response = await client.get(Uri.parse(baseUrl));
+      if (response.statusCode != 200) {
+        throw Exception('Failed to load Poppatea');
+      }
+
+      final document = parse(response.body);
+
+      // Find all product links on the main page
+      final productCards = document.querySelectorAll('.card__container');
+      final productLinks = <String>{};
+
+      for (final card in productCards) {
+        final linkEl = card.querySelector('a[href*="/products/"]');
+        if (linkEl != null) {
+          final href = linkEl.attributes['href'];
+          if (href != null && href.contains('/products/')) {
+            // Remove ?variant=... if present, we'll add it later
+            final baseProductUrl = href.split('?').first;
+            productLinks.add('https://poppatea.com$baseProductUrl');
+          }
+        }
+      }
+
+      // For each product page, crawl all variants
+      for (final productUrl in productLinks) {
+        final productResponse = await client.get(Uri.parse(productUrl));
+        if (productResponse.statusCode != 200) continue;
+
+        final productDoc = parse(productResponse.body);
+
+        // Get product name
+        final nameEl = productDoc.querySelector('h1.wt-product__name');
+        final baseName = nameEl?.text.trim() ?? 'Unknown';
+
+        // Find all variant options using the correct selector
+        final variantEls = productDoc.querySelectorAll(
+          'li.f-thumb__list__item.swiper-slide.wt-slider__slide',
+        );
+        if (variantEls.isNotEmpty) {
+          for (final variantEl in variantEls) {
+            // You may need to extract the variantId from a data attribute or link
+            final variantLink = variantEl.querySelector('a');
+            final variantId =
+                variantLink?.attributes['href']?.split('variant=').last;
+            final variantName = variantEl.text.trim();
+
+            if (variantId != null && variantId.isNotEmpty) {
+              final variantUrl = '$productUrl?variant=$variantId';
+              final variantResponse = await client.get(Uri.parse(variantUrl));
+              if (variantResponse.statusCode != 200) continue;
+              final variantDoc = parse(variantResponse.body);
+
+              final priceEl = variantDoc.querySelector(
+                '.price-item.price-item--regular.wt-product__price__final',
+              );
+              final price = priceEl?.text.trim();
+
+              final stockEl = variantDoc.querySelector('p.product__inventory');
+              final isInStock =
+                  stockEl == null || !stockEl.text.contains('Ausverkauft');
+
+              products.add(
+                MatchaProduct(
+                  id: '${baseName}_$variantId',
+                  name: '$baseName - $variantName',
+                  normalizedName: '$baseName $variantName',
+                  site: 'Poppatea',
+                  url: variantUrl,
+                  isInStock: isInStock,
+                  price: price,
+                  priceValue: double.tryParse(
+                    price
+                            ?.replaceAll(RegExp(r'[^\d.,]'), '')
+                            .replaceAll(',', '.') ??
+                        '',
+                  ),
+                  currency: null,
+                  imageUrl: null,
+                  description: null,
+                  category: null,
+                  weight: null,
+                  metadata: null,
+                  lastChecked: DateTime.now(),
+                  firstSeen: DateTime.now(),
+                  isDiscontinued: false,
+                  missedScans: 0,
+                ),
+              );
+            }
+          }
+        } else {
+          // Radio buttons for variants
+          for (final variantEl in variantEls) {
+            final variantId = variantEl.attributes['value'];
+            final variantName = variantEl.parent?.text.trim() ?? baseName;
+            if (variantId != null) {
+              final variantUrl = '$productUrl?variant=$variantId';
+              final variantResponse = await client.get(Uri.parse(variantUrl));
+              if (variantResponse.statusCode != 200) continue;
+              final variantDoc = parse(variantResponse.body);
+
+              final priceEl = variantDoc.querySelector(
+                '.price-item.price-item--regular.wt-product__price__final',
+              );
+              final price = priceEl?.text.trim();
+
+              final stockEl = variantDoc.querySelector('p.product__inventory');
+              final isInStock =
+                  stockEl == null || !stockEl.text.contains('Ausverkauft');
+
+              products.add(
+                MatchaProduct(
+                  id: '${baseName}_$variantId',
+                  name: '$baseName - $variantName',
+                  normalizedName: '$baseName $variantName',
+                  site: 'Poppatea',
+                  url: variantUrl,
+                  isInStock: isInStock,
+                  price: price,
+                  priceValue: double.tryParse(
+                    price
+                            ?.replaceAll(RegExp(r'[^\d.,]'), '')
+                            .replaceAll(',', '.') ??
+                        '',
+                  ),
+                  currency: null,
+                  imageUrl: null,
+                  description: null,
+                  category: null,
+                  weight: null,
+                  metadata: null,
+                  lastChecked: DateTime.now(),
+                  firstSeen: DateTime.now(),
+                  isDiscontinued: false,
+                  missedScans: 0,
+                ),
+              );
+            }
+          }
+        }
+      }
+    } finally {
+      client.close();
+    }
+
+    return products;
   }
 
   /// Crawl only the specified sites
@@ -316,6 +469,16 @@ class CrawlerService {
         '🌐 Fetching ${config.name} page...',
         siteName: config.name,
       );
+
+      // Special handling for Poppatea
+      if (siteKey == 'poppatea') {
+        products = await crawlPoppatea();
+        // Check for stock changes and update DB
+        for (final product in products) {
+          await _checkStockChange(product);
+        }
+        return products;
+      }
 
       // For web platform, show warning about CORS limitations
       if (kIsWeb) {
@@ -1206,6 +1369,7 @@ class CrawlerService {
           productName: newProduct.name,
           siteName: newProduct.site,
           productId: newProduct.id,
+          productUrl: newProduct.url,
         );
 
         // Record stock change

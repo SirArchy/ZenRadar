@@ -264,12 +264,25 @@ void onStart(ServiceInstance service) async {
             Duration(minutes: settings.checkFrequencyMinutes),
           );
           final remaining = nextScanTime.difference(now);
-          int minutesLeft = remaining.inMinutes;
-          if (minutesLeft < 0) minutesLeft = 0;
+
+          int hoursLeft = remaining.inHours;
+          int minutesLeft = remaining.inMinutes % 60;
+          if (remaining.isNegative) {
+            hoursLeft = 0;
+            minutesLeft = 0;
+          }
+
+          String timeText;
+          if (hoursLeft > 0) {
+            timeText =
+                "$hoursLeft hour${hoursLeft == 1 ? '' : 's'} and $minutesLeft minute${minutesLeft == 1 ? '' : 's'}";
+          } else {
+            timeText = "$minutesLeft minute${minutesLeft == 1 ? '' : 's'}";
+          }
+
           service.setForegroundNotificationInfo(
             title: "ZenRadar - Matcha Monitor",
-            content:
-                "Monitoring matcha stock - Next scan in $minutesLeft minute${minutesLeft == 1 ? '' : 's'}",
+            content: "Monitoring matcha stock - Next scan in $timeText",
           );
         } catch (e) {
           print('⚠️ Failed to update notification: $e');
@@ -335,6 +348,7 @@ void onStart(ServiceInstance service) async {
             productName: 'Manual Check Error',
             siteName: 'Background Service',
             productId: 'error_${DateTime.now().millisecondsSinceEpoch}',
+            productUrl: '',
           );
         }
       }
@@ -355,6 +369,7 @@ void onStart(ServiceInstance service) async {
         productName: 'Background Service Error',
         siteName: 'System',
         productId: 'error_${DateTime.now().millisecondsSinceEpoch}',
+        productUrl: '',
       );
     } catch (notifError) {
       print('❌ Failed to send error notification: $notifError');
@@ -596,6 +611,7 @@ Future<void> _performStockCheck() async {
                 productName: product.name,
                 siteName: product.site,
                 productId: product.id,
+                productUrl: product.url,
               );
             } catch (e) {
               print('⚠️ Failed to show stock alert for ${product.name}: $e');
@@ -657,6 +673,7 @@ Future<void> _performStockCheck() async {
         productName: 'Stock Check Failed',
         siteName: 'System Error',
         productId: 'error_${DateTime.now().millisecondsSinceEpoch}',
+        productUrl: '',
       );
     }
 
