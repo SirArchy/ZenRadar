@@ -52,6 +52,9 @@ dependencies:
   intl: ^0.20.1
   permission_handler: ^11.3.1
   url_launcher: ^6.3.1
+  
+  # Charts for price history visualization
+  fl_chart: ^0.69.0
 
 dev_dependencies:
   flutter_test:

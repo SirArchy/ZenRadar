@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../models/matcha_product.dart';
 import '../models/scan_activity.dart';
 import '../services/database_service.dart';
@@ -15,6 +14,7 @@ import '../widgets/matcha_icon.dart';
 import '../widgets/site_selection_dialog.dart';
 import 'settings_screen.dart';
 import 'background_activity_screen.dart';
+import 'product_detail_page.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -62,6 +62,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // Helper to restore filter from shared_preferences
   Future<ProductFilter> _loadFilterFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
+    // Check if any filter is set, otherwise return default (All)
+    final hasAnyFilter =
+        prefs.containsKey('filter_inStock') ||
+        prefs.containsKey('filter_favoritesOnly') ||
+        prefs.containsKey('filter_sites') ||
+        prefs.containsKey('filter_category') ||
+        prefs.containsKey('filter_minPrice') ||
+        prefs.containsKey('filter_maxPrice') ||
+        prefs.containsKey('filter_searchTerm');
+
+    if (!hasAnyFilter) {
+      // No filters saved, return default (All)
+      return ProductFilter();
+    }
+
     return ProductFilter(
       inStock:
           prefs.containsKey('filter_inStock')
@@ -932,7 +947,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             preferredCurrency: _userSettings.preferredCurrency,
             isFavorite: _favoriteProductIds.contains(_products[index].id),
             onTap: () {
-              _openProductUrl(_products[index].url);
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder:
+                      (context) => ProductDetailPage(product: _products[index]),
+                ),
+              );
             },
             onFavoriteToggle: () {
               _toggleFavorite(_products[index].id);
@@ -966,24 +986,5 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
       ],
     );
-  }
-
-  Future<void> _openProductUrl(String url) async {
-    if (url.isEmpty) {
-      _showErrorSnackBar('Product URL not available');
-      return;
-    }
-
-    try {
-      final Uri uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        _showSuccessSnackBar('Opening product page...');
-      } else {
-        _showErrorSnackBar('Could not open product page');
-      }
-    } catch (e) {
-      _showErrorSnackBar('Error opening URL: $e');
-    }
   }
 }

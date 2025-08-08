@@ -78,7 +78,7 @@ class CrawlerService {
       nameSelector:
           '.product-item-meta__title, .product-item__info a', // Updated to get actual product name
       priceSelector:
-          '.price:first-child', // Get first price element to avoid unit price
+          'span.price, .price:not(.price--block)', // Fixed: Target main price, not per-kg price
       linkSelector: '.product-item-meta__title, .product-item__info a',
     ),
     'sho-cha': SiteConfig(
@@ -86,9 +86,9 @@ class CrawlerService {
       baseUrl: 'https://www.sho-cha.com/teeshop',
       stockSelector: '.product-price',
       productSelector: '.ProductList-item',
-      nameSelector: '.ProductList-title a, .ProductList-title',
-      priceSelector: '.product-price',
-      linkSelector: '.ProductList-title a, a',
+      nameSelector: '.ProductList-title, .ProductList-title a',
+      priceSelector: '.product-price, .sqs-money-native, .ProductList-price',
+      linkSelector: 'a, .ProductList-title a',
     ),
     'sazentea': SiteConfig(
       name: 'Sazen Tea',
@@ -101,15 +101,14 @@ class CrawlerService {
     ),
     'mamecha': SiteConfig(
       name: 'Mamecha',
-      baseUrl: 'https://www.mamecha.com/online-shopping-1/',
+      baseUrl: 'https://www.mamecha.de/collections/alle-tees',
       stockSelector:
-          'h4, a[href*="product"]', // Product names indicate availability
-      productSelector:
-          '[id*="cc-m-product"]', // Products in cc-m-product containers
-      nameSelector: 'h4', // Product names in h4 elements
+          '.product-item__title a', // Product names indicate availability
+      productSelector: '.product-item', // Products in product-item containers
+      nameSelector: '.product-item__title a', // Product names in title links
       priceSelector:
-          '.cc-shop-product-price-current, option.j-product__variants__item', // Prices in current price or variant options
-      linkSelector: 'a[href*="/j/shop/"]', // Product links to shop pages
+          '.price-item--regular, .price-item--sale', // Prices in price items
+      linkSelector: '.product-item__title a', // Product links
     ),
     'enjoyemeri': SiteConfig(
       name: 'Emeri',
@@ -167,14 +166,33 @@ class CrawlerService {
           if (href != null && href.contains('/products/')) {
             // Remove ?variant=... if present, we'll add it later
             final baseProductUrl = href.split('?').first;
-            productLinks.add('https://poppatea.com$baseProductUrl');
+            // Clean the URL to remove collection prefixes
+            final cleanUrl = baseProductUrl.replaceAll(
+              RegExp(r'/collections/[^/]+'),
+              '',
+            );
+            productLinks.add('https://poppatea.com$cleanUrl');
           }
         }
       }
 
-      // For each product page, crawl all variants
+      print('🔍 Found ${productLinks.length} unique product pages to crawl');
+
+      // For each product page, extract variants from JavaScript data
       for (final productUrl in productLinks) {
-        final productResponse = await client.get(Uri.parse(productUrl));
+        print('🔍 Processing: ${productUrl.split('/').last}');
+
+        final productResponse = await client.get(
+          Uri.parse(productUrl),
+          headers: {
+            'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept':
+                'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'de-DE,de;q=0.9,en;q=0.8',
+          },
+        );
+
         if (productResponse.statusCode != 200) continue;
 
         final productDoc = parse(productResponse.body);
@@ -182,50 +200,72 @@ class CrawlerService {
         // Get product name
         final nameEl = productDoc.querySelector('h1.wt-product__name');
         final baseName = nameEl?.text.trim() ?? 'Unknown';
+        print('📝 Product: $baseName');
 
-        // Find all variant options using the correct selector
-        final variantEls = productDoc.querySelectorAll(
-          'li.f-thumb__list__item.swiper-slide.wt-slider__slide',
-        );
-        if (variantEls.isNotEmpty) {
-          for (final variantEl in variantEls) {
-            // You may need to extract the variantId from a data attribute or link
-            final variantLink = variantEl.querySelector('a');
-            final variantId =
-                variantLink?.attributes['href']?.split('variant=').last;
-            final variantName = variantEl.text.trim();
+        // Extract variant data from JavaScript
+        final scripts = productDoc.querySelectorAll('script');
+        bool foundVariants = false;
 
-            if (variantId != null && variantId.isNotEmpty) {
+        for (final script in scripts) {
+          final content = script.text;
+          if (content.contains('"variants":[') && content.contains('"id":')) {
+            // Extract basic variant info using our proven pattern
+            final variantMatches = RegExp(
+              r'"id":(\d+),"price":(\d+),"name":"([^"]+)","public_title":"([^"]*)"',
+            ).allMatches(content);
+
+            // Also find the detailed variant structure for availability
+            final detailedVariantsMatch = RegExp(
+              r'\[\{"id":\d+.*?\}\]',
+              dotAll: true,
+            ).firstMatch(content);
+            Map<String, bool> availabilityMap = {};
+
+            if (detailedVariantsMatch != null) {
+              final detailedContent = detailedVariantsMatch.group(0)!;
+              // Extract availability for each variant ID
+              final availabilityMatches = RegExp(
+                r'"id":(\d+)[^}]*"available":(true|false)',
+              ).allMatches(detailedContent);
+              for (final match in availabilityMatches) {
+                availabilityMap[match.group(1)!] = match.group(2) == 'true';
+              }
+            }
+
+            print('🔄 Found ${variantMatches.length} variants:');
+
+            for (final match in variantMatches) {
+              final variantId = match.group(1)!;
+              final priceValue =
+                  double.parse(match.group(2)!) / 100; // Convert from cents
+              final fullName = match.group(3)!;
+              final variantTitle = match.group(4)!;
+
+              // Get availability from the detailed structure, default to true if not found
+              final isAvailable = availabilityMap[variantId] ?? true;
+
+              final productName =
+                  variantTitle.isNotEmpty
+                      ? '$baseName - $variantTitle'
+                      : fullName;
               final variantUrl = '$productUrl?variant=$variantId';
-              final variantResponse = await client.get(Uri.parse(variantUrl));
-              if (variantResponse.statusCode != 200) continue;
-              final variantDoc = parse(variantResponse.body);
 
-              final priceEl = variantDoc.querySelector(
-                '.price-item.price-item--regular.wt-product__price__final',
+              final stockStatus = isAvailable ? '✅ In Stock' : '❌ Out of Stock';
+              print(
+                '  💰 $productName: €${priceValue.toStringAsFixed(2)} - $stockStatus',
               );
-              final price = priceEl?.text.trim();
-
-              final stockEl = variantDoc.querySelector('p.product__inventory');
-              final isInStock =
-                  stockEl == null || !stockEl.text.contains('Ausverkauft');
 
               products.add(
                 MatchaProduct(
-                  id: '${baseName}_$variantId',
-                  name: '$baseName - $variantName',
-                  normalizedName: '$baseName $variantName',
+                  id: 'Poppatea_${baseName.replaceAll(' ', '_')}_$variantId',
+                  name: productName,
+                  normalizedName: productName.toLowerCase(),
                   site: 'Poppatea',
                   url: variantUrl,
-                  isInStock: isInStock,
-                  price: price,
-                  priceValue: double.tryParse(
-                    price
-                            ?.replaceAll(RegExp(r'[^\d.,]'), '')
-                            .replaceAll(',', '.') ??
-                        '',
-                  ),
-                  currency: null,
+                  isInStock: isAvailable,
+                  price: '€${priceValue.toStringAsFixed(2)}',
+                  priceValue: priceValue,
+                  currency: 'EUR',
                   imageUrl: null,
                   description: null,
                   category: null,
@@ -237,59 +277,57 @@ class CrawlerService {
                   missedScans: 0,
                 ),
               );
+              foundVariants = true;
             }
-          }
-        } else {
-          // Radio buttons for variants
-          for (final variantEl in variantEls) {
-            final variantId = variantEl.attributes['value'];
-            final variantName = variantEl.parent?.text.trim() ?? baseName;
-            if (variantId != null) {
-              final variantUrl = '$productUrl?variant=$variantId';
-              final variantResponse = await client.get(Uri.parse(variantUrl));
-              if (variantResponse.statusCode != 200) continue;
-              final variantDoc = parse(variantResponse.body);
-
-              final priceEl = variantDoc.querySelector(
-                '.price-item.price-item--regular.wt-product__price__final',
-              );
-              final price = priceEl?.text.trim();
-
-              final stockEl = variantDoc.querySelector('p.product__inventory');
-              final isInStock =
-                  stockEl == null || !stockEl.text.contains('Ausverkauft');
-
-              products.add(
-                MatchaProduct(
-                  id: '${baseName}_$variantId',
-                  name: '$baseName - $variantName',
-                  normalizedName: '$baseName $variantName',
-                  site: 'Poppatea',
-                  url: variantUrl,
-                  isInStock: isInStock,
-                  price: price,
-                  priceValue: double.tryParse(
-                    price
-                            ?.replaceAll(RegExp(r'[^\d.,]'), '')
-                            .replaceAll(',', '.') ??
-                        '',
-                  ),
-                  currency: null,
-                  imageUrl: null,
-                  description: null,
-                  category: null,
-                  weight: null,
-                  metadata: null,
-                  lastChecked: DateTime.now(),
-                  firstSeen: DateTime.now(),
-                  isDiscontinued: false,
-                  missedScans: 0,
-                ),
-              );
-            }
+            break; // Found the meta script, no need to continue
           }
         }
+
+        // Fallback: if no variants found in JavaScript, treat as single product
+        if (!foundVariants) {
+          final priceEl = productDoc.querySelector(
+            '.price-item.price-item--regular.wt-product__price__final',
+          );
+          final price = priceEl?.text.trim();
+          final stockEl = productDoc.querySelector('p.product__inventory');
+          final isInStock =
+              stockEl != null &&
+              (stockEl.text.contains('Auf Lager') ||
+                  !stockEl.text.contains('Nicht auf Lager') &&
+                      !stockEl.text.contains('Ausverkauft'));
+
+          products.add(
+            MatchaProduct(
+              id:
+                  'Poppatea_${baseName.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}',
+              name: baseName,
+              normalizedName: baseName.toLowerCase(),
+              site: 'Poppatea',
+              url: productUrl,
+              isInStock: isInStock,
+              price: price,
+              priceValue: double.tryParse(
+                price
+                        ?.replaceAll(RegExp(r'[^\d.,]'), '')
+                        .replaceAll(',', '.') ??
+                    '',
+              ),
+              currency: 'EUR',
+              imageUrl: null,
+              description: null,
+              category: null,
+              weight: null,
+              metadata: null,
+              lastChecked: DateTime.now(),
+              firstSeen: DateTime.now(),
+              isDiscontinued: false,
+              missedScans: 0,
+            ),
+          );
+        }
       }
+    } catch (e) {
+      print('Error crawling Poppatea: $e');
     } finally {
       client.close();
     }
@@ -998,8 +1036,26 @@ class CrawlerService {
             !elementText.contains('nicht verfügbar');
 
       case 'sho-cha':
-        // For Sho-Cha, check for proper price element
-        final priceElement = productElement.querySelector('.product-price');
+        // For Sho-Cha, first check for sold-out CSS class
+        if (productElement.classes.contains('sold-out')) {
+          return false;
+        }
+
+        // Check for German out-of-stock text
+        final elementText = productElement.text.toLowerCase();
+        if (elementText.contains('ausverkauft') ||
+            elementText.contains('nicht verfügbar') ||
+            elementText.contains('sold out') ||
+            elementText.contains('out of stock')) {
+          return false;
+        }
+
+        // Finally check for valid price
+        final priceElement =
+            productElement.querySelector('.product-price') ??
+            productElement.querySelector('.sqs-money-native') ??
+            productElement.querySelector('.ProductList-price');
+
         if (priceElement != null && priceElement.text.trim().isNotEmpty) {
           final priceText =
               priceElement.text
@@ -1007,9 +1063,13 @@ class CrawlerService {
                   .replaceAll('\u00A0', ' ') // Replace non-breaking space
                   .replaceAll(RegExp(r'\s+'), ' ')
                   .trim();
-          // Check if price is valid (contains € and is not just "00")
-          if (priceText.contains('€') &&
+
+          // Check if price is valid (contains currency symbol and is not zero)
+          if ((priceText.contains('€') || priceText.contains('\$')) &&
               !priceText.contains('00,00') &&
+              !priceText.contains('0,00') &&
+              !priceText.contains('0.00') &&
+              !priceText.contains('00.00') &&
               priceText != '00') {
             return true;
           }
@@ -1164,7 +1224,7 @@ class CrawlerService {
 
       case 'sho-cha':
         // For Sho-Cha, handle German Euro formatting
-        // Example: "24,00 €" -> "24,00 €"
+        // Example: "24,00 €" or "$24.00" -> "24,00 €"
         cleaned =
             cleaned
                 .replaceAll('\u00A0', ' ') // Replace non-breaking space
@@ -1173,14 +1233,39 @@ class CrawlerService {
                 .trim();
 
         // Extract price in German format (XX,XX €)
-        final priceMatch = RegExp(r'(\d+(?:,\d{2})?\s*€)').firstMatch(cleaned);
-        if (priceMatch != null) {
-          return priceMatch.group(1)!.trim();
+        // For sale items, prefer the first price (which is the sale price)
+        final euroPriceMatch = RegExp(
+          r'(\d+(?:,\d{2})?\s*€)',
+        ).firstMatch(cleaned);
+        if (euroPriceMatch != null) {
+          final price = euroPriceMatch.group(1)!.trim();
+          // Only return if it's not a zero price
+          if (!price.startsWith('0,00') && !price.startsWith('00,')) {
+            return price;
+          }
         }
 
-        // Fallback: if it looks like a valid price, keep it
-        if (cleaned.contains('€') && !cleaned.contains('00,00')) {
-          return cleaned;
+        // Try USD format and convert
+        final usdPriceMatch = RegExp(
+          r'\$(\d+(?:\.\d{2})?)',
+        ).firstMatch(cleaned);
+        if (usdPriceMatch != null) {
+          final dollarAmount = usdPriceMatch.group(1)!;
+          if (dollarAmount != '0.00' && dollarAmount != '00.00') {
+            return '\$$dollarAmount';
+          }
+        }
+
+        // Extract any numeric price pattern
+        final numericMatch = RegExp(r'(\d+[.,]\d{2})').firstMatch(cleaned);
+        if (numericMatch != null) {
+          final number = numericMatch.group(1)!;
+          if (!number.startsWith('0,00') &&
+              !number.startsWith('00,') &&
+              !number.startsWith('0.00') &&
+              !number.startsWith('00.')) {
+            return '$number €';
+          }
         }
 
         return ''; // Invalid price
@@ -1208,11 +1293,20 @@ class CrawlerService {
           return '${fallbackMatch.group(1)} €';
         }
 
-        // Fallback: just clean up the string
-        if (cleaned == '00' || cleaned == '0' || cleaned.startsWith('00 ')) {
+        // Check if it's just invalid/zero price - return empty for invalid prices
+        if (cleaned == '00' ||
+            cleaned == '0' ||
+            cleaned.startsWith('00 ') ||
+            cleaned.isEmpty) {
           return '';
         }
-        break;
+
+        // Return cleaned string if it looks like a valid price
+        if (cleaned.contains('€') && RegExp(r'\d').hasMatch(cleaned)) {
+          return cleaned;
+        }
+
+        return ''; // Invalid price
 
       case 'yoshien':
         // For Yoshi En, extract price from German format like "Ab 14,90 € 14,90 €"
@@ -1385,8 +1479,14 @@ class CrawlerService {
       }
     }
 
+    // Always record current stock status for every scan (for hourly tracking)
+    await _db.recordStockStatus(newProduct.id, newProduct.isInStock);
+
     // Insert or update product in database (this handles both cases)
     await _db.insertOrUpdateProduct(newProduct);
+
+    // Save price history (only saves if price is valid and different from today's lowest)
+    await _db.savePriceForProduct(newProduct);
   }
 
   /// Creates sample matcha products for web demo when CORS blocks real requests
@@ -1653,11 +1753,11 @@ class CrawlerService {
         return [
           MatchaProduct(
             id: 'mamecha_demo_1',
-            name: 'Traditional Matcha Blend',
-            normalizedName: 'traditional matcha blend',
+            name: 'Sencha Bio',
+            normalizedName: 'sencha bio',
             site: siteName,
-            url: 'https://www.mamecha.com/products/traditional-matcha',
-            price: '¥2,800',
+            url: 'https://www.mamecha.de/products/sencha-bio',
+            price: '12,90€',
             priceValue: 2800.0,
             currency: 'JPY',
             isInStock: true,

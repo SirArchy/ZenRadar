@@ -5,6 +5,8 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/matcha_product.dart';
 import '../models/scan_activity.dart';
+import '../models/price_history.dart';
+import '../models/stock_history.dart';
 import 'web_database_service.dart';
 
 class DatabaseService {
@@ -15,7 +17,7 @@ class DatabaseService {
   static DatabaseService get instance => _instance;
 
   Database? _database;
-  static const int _currentVersion = 6; // Increment for schema changes
+  static const int _currentVersion = 7; // Increment for schema changes
 
   Future<Database> get database async {
     if (kIsWeb) {
@@ -118,6 +120,18 @@ class DatabaseService {
       )
     ''');
 
+    await db.execute('''
+      CREATE TABLE price_history (
+        id TEXT PRIMARY KEY,
+        productId TEXT NOT NULL,
+        date TEXT NOT NULL,
+        price REAL NOT NULL,
+        currency TEXT NOT NULL,
+        isInStock INTEGER NOT NULL,
+        FOREIGN KEY (productId) REFERENCES matcha_products (id) ON DELETE CASCADE
+      )
+    ''');
+
     // Create indexes for better performance
     await db.execute('CREATE INDEX idx_site ON matcha_products(site)');
     await db.execute(
@@ -137,6 +151,12 @@ class DatabaseService {
     );
     await db.execute(
       'CREATE INDEX idx_scan_activities_timestamp ON scan_activities(timestamp)',
+    );
+    await db.execute(
+      'CREATE INDEX idx_price_history_product_date ON price_history(productId, date)',
+    );
+    await db.execute(
+      'CREATE INDEX idx_price_history_date ON price_history(date)',
     );
   }
 
@@ -253,6 +273,34 @@ class DatabaseService {
       await db.execute(
         'CREATE INDEX idx_scan_activities_timestamp ON scan_activities(timestamp)',
       );
+    }
+
+    if (oldVersion < 7) {
+      // Add price_history table for version 7
+      // Check if table already exists to avoid conflicts
+      final tables = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='price_history'",
+      );
+
+      if (tables.isEmpty) {
+        await db.execute('''
+          CREATE TABLE price_history (
+            id TEXT PRIMARY KEY,
+            productId TEXT NOT NULL,
+            date TEXT NOT NULL,
+            price REAL NOT NULL,
+            currency TEXT NOT NULL,
+            isInStock INTEGER NOT NULL,
+            FOREIGN KEY (productId) REFERENCES matcha_products (id) ON DELETE CASCADE
+          )
+        ''');
+        await db.execute(
+          'CREATE INDEX idx_price_history_product_date ON price_history(productId, date)',
+        );
+        await db.execute(
+          'CREATE INDEX idx_price_history_date ON price_history(date)',
+        );
+      }
     }
   }
 
@@ -554,6 +602,121 @@ class DatabaseService {
     );
   }
 
+  // Enhanced Stock History Methods
+  Future<void> recordStockStatus(String productId, bool isInStock) async {
+    final db = await database;
+    await db.insert('stock_history', {
+      'productId': productId,
+      'isInStock': isInStock ? 1 : 0,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<List<StockHistory>> getStockHistoryForProduct(
+    String productId, {
+    int? limitDays,
+  }) async {
+    final db = await database;
+
+    String whereClause = 'productId = ?';
+    List<dynamic> whereArgs = [productId];
+
+    if (limitDays != null) {
+      final cutoffDate = DateTime.now().subtract(Duration(days: limitDays));
+      whereClause += ' AND timestamp >= ?';
+      whereArgs.add(cutoffDate.toIso8601String());
+    }
+
+    final maps = await db.query(
+      'stock_history',
+      where: whereClause,
+      whereArgs: whereArgs,
+      orderBy: 'timestamp ASC',
+    );
+
+    return maps.map((map) => StockHistory.fromJson(map)).toList();
+  }
+
+  Future<StockAnalytics> getStockAnalyticsForProduct(
+    String productId, {
+    int? limitDays,
+  }) async {
+    final stockHistory = await getStockHistoryForProduct(
+      productId,
+      limitDays: limitDays,
+    );
+    return StockAnalytics.fromHistory(stockHistory);
+  }
+
+  Future<List<StockHistory>> getStockHistoryForDay(
+    String productId,
+    DateTime day,
+  ) async {
+    final db = await database;
+    final dayStart = DateTime(day.year, day.month, day.day);
+    final dayEnd = dayStart.add(const Duration(days: 1));
+
+    final maps = await db.query(
+      'stock_history',
+      where: 'productId = ? AND timestamp >= ? AND timestamp < ?',
+      whereArgs: [
+        productId,
+        dayStart.toIso8601String(),
+        dayEnd.toIso8601String(),
+      ],
+      orderBy: 'timestamp ASC',
+    );
+
+    return maps.map((map) => StockHistory.fromJson(map)).toList();
+  }
+
+  Future<Map<String, int>> getStockHistoryStats(String productId) async {
+    final db = await database;
+    final result = await db.rawQuery(
+      '''
+      SELECT 
+        COUNT(*) as totalChecks,
+        SUM(CASE WHEN isInStock = 1 THEN 1 ELSE 0 END) as inStockCount,
+        SUM(CASE WHEN isInStock = 0 THEN 1 ELSE 0 END) as outOfStockCount,
+        MIN(timestamp) as firstCheck,
+        MAX(timestamp) as lastCheck
+      FROM stock_history
+      WHERE productId = ?
+    ''',
+      [productId],
+    );
+
+    if (result.isNotEmpty) {
+      final row = result.first;
+      return {
+        'totalChecks': row['totalChecks'] as int,
+        'inStockCount': row['inStockCount'] as int,
+        'outOfStockCount': row['outOfStockCount'] as int,
+      };
+    }
+
+    return {'totalChecks': 0, 'inStockCount': 0, 'outOfStockCount': 0};
+  }
+
+  Future<void> deleteStockHistoryForProduct(String productId) async {
+    final db = await database;
+    await db.delete(
+      'stock_history',
+      where: 'productId = ?',
+      whereArgs: [productId],
+    );
+  }
+
+  Future<void> clearOldStockHistory({int keepDays = 90}) async {
+    final db = await database;
+    final cutoffDate = DateTime.now().subtract(Duration(days: keepDays));
+    await db.delete(
+      'stock_history',
+      where: 'timestamp < ?',
+      whereArgs: [cutoffDate.toIso8601String()],
+    );
+  }
+
   // Custom Website Management Methods
   Future<void> insertCustomWebsite(CustomWebsite website) async {
     final db = await database;
@@ -774,5 +937,117 @@ class DatabaseService {
     );
 
     return updates;
+  }
+
+  // Price History Methods
+  Future<void> insertPriceHistory(PriceHistory priceHistory) async {
+    final db = await database;
+    await db.insert(
+      'price_history',
+      priceHistory.toJson(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> savePriceForProduct(MatchaProduct product) async {
+    if (product.priceValue == null || product.priceValue! <= 0) {
+      return; // Don't save invalid prices
+    }
+
+    final now = DateTime.now();
+    final dailyKey =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+    // Check if we already have a price for today
+    final db = await database;
+    final existing = await db.query(
+      'price_history',
+      where: 'productId = ? AND date LIKE ?',
+      whereArgs: [product.id, '$dailyKey%'],
+      orderBy: 'price ASC',
+      limit: 1,
+    );
+
+    final newPrice = PriceHistory(
+      id: '${product.id}_${now.millisecondsSinceEpoch}',
+      productId: product.id,
+      date: now,
+      price: product.priceValue!,
+      currency: product.currency ?? 'EUR',
+      isInStock: product.isInStock,
+    );
+
+    if (existing.isNotEmpty) {
+      // Only save if this price is lower than the existing one for today
+      final existingPrice = existing.first['price'] as double;
+      if (product.priceValue! < existingPrice) {
+        // Delete the existing entry and insert the new lower price
+        await db.delete(
+          'price_history',
+          where: 'productId = ? AND date LIKE ?',
+          whereArgs: [product.id, '$dailyKey%'],
+        );
+        await insertPriceHistory(newPrice);
+      }
+    } else {
+      // No price for today, insert the new one
+      await insertPriceHistory(newPrice);
+    }
+  }
+
+  Future<List<PriceHistory>> getPriceHistoryForProduct(String productId) async {
+    final db = await database;
+    final maps = await db.query(
+      'price_history',
+      where: 'productId = ?',
+      whereArgs: [productId],
+      orderBy: 'date ASC',
+    );
+    return maps.map((map) => PriceHistory.fromJson(map)).toList();
+  }
+
+  Future<PriceAnalytics> getPriceAnalyticsForProduct(String productId) async {
+    final priceHistory = await getPriceHistoryForProduct(productId);
+    return PriceAnalytics.fromHistory(priceHistory);
+  }
+
+  Future<void> deletePriceHistoryForProduct(String productId) async {
+    final db = await database;
+    await db.delete(
+      'price_history',
+      where: 'productId = ?',
+      whereArgs: [productId],
+    );
+  }
+
+  Future<void> clearOldPriceHistory({int keepDays = 365}) async {
+    final db = await database;
+    final cutoffDate = DateTime.now().subtract(Duration(days: keepDays));
+    await db.delete(
+      'price_history',
+      where: 'date < ?',
+      whereArgs: [cutoffDate.toIso8601String()],
+    );
+  }
+
+  Future<Map<String, int>> getPriceHistoryStats() async {
+    final db = await database;
+    final result = await db.rawQuery('''
+      SELECT 
+        COUNT(*) as totalEntries,
+        COUNT(DISTINCT productId) as trackedProducts,
+        MIN(date) as oldestEntry,
+        MAX(date) as newestEntry
+      FROM price_history
+    ''');
+
+    if (result.isNotEmpty) {
+      return {
+        'totalEntries': result.first['totalEntries'] as int,
+        'trackedProducts': result.first['trackedProducts'] as int,
+      };
+    }
+
+    return {'totalEntries': 0, 'trackedProducts': 0};
   }
 }

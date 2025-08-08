@@ -2,6 +2,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/matcha_product.dart';
 import '../services/notification_service.dart';
 import '../services/background_service.dart';
@@ -18,6 +19,61 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  // Contact/social launchers
+  Future<void> _launchGitHub() async {
+    final Uri githubUri = Uri.parse('https://github.com/SirArchy');
+    if (await canLaunchUrl(githubUri)) {
+      await launchUrl(githubUri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _launchLinkedIn() async {
+    final Uri linkedinUri = Uri.parse(
+      'https://www.linkedin.com/in/fabian-e-762b85244',
+    );
+    if (await canLaunchUrl(linkedinUri)) {
+      await launchUrl(linkedinUri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _launchPayPal() async {
+    final Uri paypalUri = Uri.parse('https://www.paypal.me/FEbert353');
+    if (await canLaunchUrl(paypalUri)) {
+      await launchUrl(paypalUri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _launchBuyMeACoffee() async {
+    final Uri coffeeUri = Uri.parse('https://ko-fi.com/sirarchy');
+    if (await canLaunchUrl(coffeeUri)) {
+      await launchUrl(coffeeUri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  Widget _buildSocialButton(Widget icon, String label, VoidCallback onTap) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(32),
+          child: icon,
+        ),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(fontSize: 12)),
+      ],
+    );
+  }
+
   UserSettings _settings = UserSettings();
   bool _isLoading = true;
   bool _isServiceRunning = false;
@@ -503,6 +559,117 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
+          // Contact Section
+          Card(
+            margin: const EdgeInsets.only(top: 16),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionTitle('Contact Me'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildSocialButton(
+                        const Icon(
+                          Icons.contact_mail,
+                          size: 44,
+                          color: Colors.blueGrey,
+                        ),
+                        'Contact',
+                        () {
+                          showDialog(
+                            context: context,
+                            builder:
+                                (context) => AlertDialog(
+                                  title: const Text('Contact'),
+                                  content: const Text(
+                                    'Feel free to reach out via email, GitHub, LinkedIn, PayPal, or BuyMeACoffee!',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Close'),
+                                    ),
+                                  ],
+                                ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 16),
+                      _buildSocialButton(
+                        const Icon(Icons.email, size: 44, color: Colors.teal),
+                        'Email',
+                        () async {
+                          final Uri emailUri = Uri(
+                            scheme: 'mailto',
+                            path: 'fabian.ebert@online.de',
+                            query: 'subject=ZenRadar Feedback',
+                          );
+                          if (await canLaunchUrl(emailUri)) {
+                            await launchUrl(
+                              emailUri,
+                              mode: LaunchMode.externalApplication,
+                            );
+                          } else {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Could not open email app.'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 16),
+                      _buildSocialButton(
+                        const Icon(Icons.code, size: 44, color: Colors.black87),
+                        'GitHub',
+                        _launchGitHub,
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildSocialButton(
+                        const Icon(
+                          Icons.business,
+                          size: 44,
+                          color: Colors.blueAccent,
+                        ),
+                        'LinkedIn',
+                        _launchLinkedIn,
+                      ),
+                      const SizedBox(width: 16),
+                      _buildSocialButton(
+                        const Icon(
+                          Icons.attach_money,
+                          size: 44,
+                          color: Colors.green,
+                        ),
+                        'PayPal',
+                        _launchPayPal,
+                      ),
+                      const SizedBox(width: 16),
+                      _buildSocialButton(
+                        const Icon(
+                          Icons.local_cafe,
+                          size: 44,
+                          color: Colors.brown,
+                        ),
+                        'BuyMeACoffee',
+                        _launchBuyMeACoffee,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
