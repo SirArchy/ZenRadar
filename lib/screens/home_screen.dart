@@ -57,6 +57,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       prefs.remove('filter_maxPrice');
     }
     prefs.setString('filter_searchTerm', filter.searchTerm ?? '');
+
+    // Debug log
+    debugPrint('Saved filter: ${filter.toString()}');
   }
 
   // Helper to restore filter from shared_preferences
@@ -77,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       return ProductFilter();
     }
 
-    return ProductFilter(
+    final restoredFilter = ProductFilter(
       inStock:
           prefs.containsKey('filter_inStock')
               ? prefs.getBool('filter_inStock')
@@ -95,6 +98,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               : null,
       searchTerm: prefs.getString('filter_searchTerm'),
     );
+
+    // Debug log
+    debugPrint('Restored filter: ${restoredFilter.toString()}');
+
+    return restoredFilter;
   }
 
   int _currentPage = 1;
@@ -228,7 +236,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     try {
       print('Loading products with filter: ${_filter.toString()}');
-
       final paginatedProducts = await DatabaseService.platformService
           .getProductsPaginated(
             page: _currentPage,
@@ -237,6 +244,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             sortBy: _userSettings.sortBy,
             sortAscending: _userSettings.sortAscending,
           );
+
+      // Debug log for query arguments
+      debugPrint(
+        'Query arguments: page=$_currentPage, itemsPerPage=${_userSettings.itemsPerPage}, filter=${_filter.toString()}, sortBy=${_userSettings.sortBy}, sortAscending=${_userSettings.sortAscending}',
+      );
 
       print(
         'Found ${paginatedProducts.products.length} products on page $_currentPage',

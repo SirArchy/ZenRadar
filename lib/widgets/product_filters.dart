@@ -383,7 +383,10 @@ class _ProductFiltersState extends State<ProductFilters> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String?>(
-          value: _currentFilter.category,
+          value:
+              _currentFilter.category?.isEmpty == true
+                  ? null
+                  : _currentFilter.category,
           decoration: InputDecoration(
             border: const OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(

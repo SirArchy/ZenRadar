@@ -360,6 +360,30 @@ void onStart(ServiceInstance service) async {
       await reloadSettingsAndRestartTimer(); // Reload settings and restart timer
     });
 
+    // Add a watchdog mechanism to monitor service health and restart if needed
+    Timer.periodic(const Duration(minutes: 5), (watchdogTimer) async {
+      try {
+        // Use SharedPreferences to create a heartbeat mechanism
+        final prefs = await SharedPreferences.getInstance();
+        final lastHeartbeat = prefs.getInt('service_last_heartbeat') ?? 0;
+        final currentTime = DateTime.now().millisecondsSinceEpoch;
+
+        // If no heartbeat in the last 10 minutes, the service might be dead
+        if (currentTime - lastHeartbeat > 10 * 60 * 1000) {
+          print(
+            '⚠️ Service heartbeat missed, service may have been terminated',
+          );
+          // The service will be restarted by the main app's watchdog mechanism
+        }
+
+        // Update heartbeat
+        await prefs.setInt('service_last_heartbeat', currentTime);
+        print('💓 Service heartbeat updated: ${DateTime.now()}');
+      } catch (e) {
+        print('❌ Error in service watchdog: $e');
+      }
+    });
+
     print('✅ Background service fully initialized and running');
   } catch (e) {
     print('❌ Critical error in background service: $e');
@@ -841,5 +865,39 @@ class BackgroundServiceController {
     } else {
       return await (_service as FlutterBackgroundService).isRunning();
     }
+  }
+
+  /// Start a watchdog mechanism to monitor and restart the service if needed
+  void startServiceWatchdog() {
+    if (kIsWeb) {
+      // Web doesn't need watchdog as it handles its own lifecycle
+      return;
+    }
+
+    Timer.periodic(const Duration(minutes: 3), (timer) async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final lastHeartbeat = prefs.getInt('service_last_heartbeat') ?? 0;
+        final currentTime = DateTime.now().millisecondsSinceEpoch;
+
+        // If no heartbeat in the last 8 minutes, restart the service
+        if (currentTime - lastHeartbeat > 8 * 60 * 1000) {
+          print('🚨 Service heartbeat timeout detected, restarting service...');
+
+          final isRunning = await isServiceRunning();
+          if (!isRunning) {
+            print('⚠️ Service confirmed as not running, attempting restart...');
+            await startService();
+            print('✅ Service restart attempted');
+          } else {
+            print('ℹ️ Service reports as running despite heartbeat timeout');
+          }
+        }
+      } catch (e) {
+        print('❌ Error in service watchdog: $e');
+      }
+    });
+
+    print('🐕 Service watchdog started');
   }
 }

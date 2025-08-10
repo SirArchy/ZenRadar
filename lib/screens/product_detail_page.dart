@@ -6,6 +6,8 @@ import '../models/matcha_product.dart';
 import '../models/price_history.dart';
 import '../models/stock_history.dart';
 import '../services/database_service.dart';
+import '../services/currency_converter_service.dart';
+import '../services/settings_service.dart';
 import '../widgets/category_icon.dart';
 import '../widgets/stock_status_chart.dart';
 
@@ -19,18 +21,56 @@ class ProductDetailPage extends StatefulWidget {
 }
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
+  final CurrencyConverterService _currencyConverter =
+      CurrencyConverterService();
   PriceAnalytics? _priceAnalytics;
   StockAnalytics? _stockAnalytics;
   bool _isLoading = true;
   String _selectedTimeRange = 'month'; // day, week, month, all
   DateTime? _selectedDay;
+  String? _selectedCurrency; // Currency for price display
+  double? _convertedPrice;
+  double? _convertedLowestPrice;
+  double? _convertedHighestPrice;
+  double? _convertedAveragePrice;
+
+  static const currencies = [
+    {'code': 'EUR', 'name': 'Euro (€)', 'symbol': '€'},
+    {'code': 'USD', 'name': 'US Dollar (\$)', 'symbol': '\$'},
+    {'code': 'JPY', 'name': 'Japanese Yen (¥)', 'symbol': '¥'},
+    {'code': 'GBP', 'name': 'British Pound (£)', 'symbol': '£'},
+    {'code': 'CHF', 'name': 'Swiss Franc (CHF)', 'symbol': 'CHF'},
+    {'code': 'CAD', 'name': 'Canadian Dollar (CAD)', 'symbol': 'CAD'},
+    {'code': 'AUD', 'name': 'Australian Dollar (AUD)', 'symbol': 'AUD'},
+  ];
 
   final dynamic _db = DatabaseService.platformService;
 
   @override
   void initState() {
     super.initState();
+    _loadUserSettings();
     _loadPriceHistory();
+  }
+
+  Future<void> _loadUserSettings() async {
+    try {
+      final settings = await SettingsService.instance.getSettings();
+      setState(() {
+        // Use user's preferred currency, fallback to product currency, then EUR
+        _selectedCurrency =
+            settings.preferredCurrency.isNotEmpty
+                ? settings.preferredCurrency
+                : (widget.product.currency ?? 'EUR');
+      });
+      _convertAllPrices();
+    } catch (e) {
+      // Fallback to product currency or EUR if settings fail to load
+      setState(() {
+        _selectedCurrency = widget.product.currency ?? 'EUR';
+      });
+      _convertAllPrices();
+    }
   }
 
   Future<void> _loadPriceHistory() async {
@@ -48,6 +88,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         _stockAnalytics = stockAnalytics;
         _isLoading = false;
       });
+
+      // Convert prices after loading analytics
+      _convertAllPrices();
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
@@ -55,6 +98,60 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           context,
         ).showSnackBar(SnackBar(content: Text('Error loading analytics: $e')));
       }
+    }
+  }
+
+  Future<void> _convertAllPrices() async {
+    if (_selectedCurrency == null) return;
+
+    final fromCurrency = widget.product.currency ?? 'EUR';
+    final toCurrency = _selectedCurrency!;
+
+    // Convert current price
+    if (widget.product.priceValue != null) {
+      final converted = await _currencyConverter.convert(
+        fromCurrency,
+        toCurrency,
+        widget.product.priceValue!,
+      );
+      setState(() {
+        _convertedPrice = converted;
+      });
+    }
+
+    // Convert analytics prices if available
+    if (_priceAnalytics != null) {
+      double? convertedLowest, convertedHighest, convertedAverage;
+
+      if (_priceAnalytics!.lowestPrice != null) {
+        convertedLowest = await _currencyConverter.convert(
+          fromCurrency,
+          toCurrency,
+          _priceAnalytics!.lowestPrice!,
+        );
+      }
+
+      if (_priceAnalytics!.highestPrice != null) {
+        convertedHighest = await _currencyConverter.convert(
+          fromCurrency,
+          toCurrency,
+          _priceAnalytics!.highestPrice!,
+        );
+      }
+
+      if (_priceAnalytics!.averagePrice != null) {
+        convertedAverage = await _currencyConverter.convert(
+          fromCurrency,
+          toCurrency,
+          _priceAnalytics!.averagePrice!,
+        );
+      }
+
+      setState(() {
+        _convertedLowestPrice = convertedLowest;
+        _convertedHighestPrice = convertedHighest;
+        _convertedAveragePrice = convertedAverage;
+      });
     }
   }
 
@@ -85,15 +182,85 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
   }
 
+  /// Get the current display currency code
+  String get _currentCurrency {
+    return _selectedCurrency ?? widget.product.currency ?? 'EUR';
+  }
+
+  /// Get the currency symbol for display
+  String get _currentCurrencySymbol {
+    final currency = currencies.firstWhere(
+      (c) => c['code'] == _currentCurrency,
+      orElse: () => {'symbol': _currentCurrency},
+    );
+    return currency['symbol'] as String;
+  }
+
+  /// Format a price value with the current currency symbol
+  String _formatPrice(double? price) {
+    if (price == null) return '-';
+    return '${price.toStringAsFixed(2)}$_currentCurrencySymbol';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.product.name, style: const TextStyle(fontSize: 18)),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.open_in_new),
-            onPressed: () => _launchUrl(widget.product.url),
+          PopupMenuButton<String>(
+            icon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.currency_exchange),
+                SizedBox(width: 4),
+                Text(
+                  _currentCurrency,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            tooltip: 'Select Currency',
+            onSelected: (String currency) {
+              setState(() {
+                _selectedCurrency = currency;
+              });
+              _convertAllPrices();
+            },
+            itemBuilder: (BuildContext context) {
+              return [
+                PopupMenuItem<String>(
+                  enabled: false,
+                  child: Text(
+                    'Select Currency',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                ),
+                PopupMenuDivider(),
+                ...currencies.map((currency) {
+                  final isSelected = _currentCurrency == currency['code'];
+                  return PopupMenuItem<String>(
+                    value: currency['code'] as String,
+                    child: Row(
+                      children: [
+                        if (isSelected)
+                          Icon(
+                            Icons.check,
+                            color: Theme.of(context).primaryColor,
+                          )
+                        else
+                          SizedBox(width: 24),
+                        SizedBox(width: 8),
+                        Text(currency['name'] as String),
+                      ],
+                    ),
+                  );
+                }),
+              ];
+            },
           ),
         ],
       ),
@@ -125,78 +292,92 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         !widget.product.isInStock || widget.product.isDiscontinued;
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CategoryIcon(
-                  category: widget.product.category,
-                  size: 48,
-                  color:
-                      isUnavailable
-                          ? Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withAlpha(100)
-                          : null,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.product.name,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.headlineSmall?.copyWith(
-                          decoration:
-                              widget.product.isDiscontinued
-                                  ? TextDecoration.lineThrough
-                                  : null,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.store,
-                            size: 16,
-                            color: Theme.of(
+      child: InkWell(
+        onTap: () => _launchUrl(widget.product.url),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CategoryIcon(
+                    category: widget.product.category,
+                    size: 48,
+                    color:
+                        isUnavailable
+                            ? Theme.of(
                               context,
-                            ).colorScheme.onSurface.withAlpha(150),
+                            ).colorScheme.onSurface.withAlpha(100)
+                            : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.product.name,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.headlineSmall?.copyWith(
+                            decoration:
+                                widget.product.isDiscontinued
+                                    ? TextDecoration.lineThrough
+                                    : null,
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            widget.product.site,
-                            style: TextStyle(
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.store,
+                              size: 16,
                               color: Theme.of(
                                 context,
                               ).colorScheme.onSurface.withAlpha(150),
-                              fontSize: 14,
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                            const SizedBox(width: 4),
+                            Text(
+                              widget.product.site,
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withAlpha(150),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                _buildStatusChip(),
-              ],
-            ),
-            if (widget.product.price != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Current Price: ${widget.product.price}',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                  _buildStatusChip(),
+                ],
               ),
+              if (widget.product.price != null) ...[
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Current Price: ${_convertedPrice != null ? '${_convertedPrice!.toStringAsFixed(2)}$_currentCurrencySymbol' : (widget.product.price ?? 'N/A')}',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.open_in_new),
+                      onPressed: () => _launchUrl(widget.product.url),
+                      tooltip: 'Open product URL',
+                    ),
+                  ],
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -295,8 +476,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 Expanded(
                   child: _buildStatCard(
                     'Current',
-                    '${_priceAnalytics!.currentPrice.toStringAsFixed(2)}€',
-                    Icons.euro,
+                    _convertedPrice != null
+                        ? _formatPrice(_convertedPrice)
+                        : '-',
+                    Icons.attach_money,
                     Theme.of(context).colorScheme.primary,
                   ),
                 ),
@@ -304,7 +487,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 Expanded(
                   child: _buildStatCard(
                     'Lowest',
-                    '${_priceAnalytics!.lowestPrice?.toStringAsFixed(2) ?? '-'}€',
+                    _convertedLowestPrice != null
+                        ? '${_convertedLowestPrice!.toStringAsFixed(2)}$_currentCurrencySymbol'
+                        : _formatPrice(_priceAnalytics!.lowestPrice),
                     Icons.trending_down,
                     Colors.green,
                   ),
@@ -317,7 +502,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 Expanded(
                   child: _buildStatCard(
                     'Highest',
-                    '${_priceAnalytics!.highestPrice?.toStringAsFixed(2) ?? '-'}€',
+                    _convertedHighestPrice != null
+                        ? '${_convertedHighestPrice!.toStringAsFixed(2)}$_currentCurrencySymbol'
+                        : _formatPrice(_priceAnalytics!.highestPrice),
                     Icons.trending_up,
                     Colors.red,
                   ),
@@ -326,59 +513,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 Expanded(
                   child: _buildStatCard(
                     'Average',
-                    '${_priceAnalytics!.averagePrice?.toStringAsFixed(2) ?? '-'}€',
+                    _convertedAveragePrice != null
+                        ? '${_convertedAveragePrice!.toStringAsFixed(2)}$_currentCurrencySymbol'
+                        : _formatPrice(_priceAnalytics!.averagePrice),
                     Icons.analytics,
                     Theme.of(context).colorScheme.secondary,
                   ),
                 ),
               ],
             ),
-            if (_priceAnalytics!.priceChange != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color:
-                      _priceAnalytics!.hasPriceIncreased
-                          ? Colors.red.withAlpha(25)
-                          : _priceAnalytics!.hasPriceDecreased
-                          ? Colors.green.withAlpha(25)
-                          : Colors.grey.withAlpha(25),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      _priceAnalytics!.hasPriceIncreased
-                          ? Icons.arrow_upward
-                          : _priceAnalytics!.hasPriceDecreased
-                          ? Icons.arrow_downward
-                          : Icons.horizontal_rule,
-                      color:
-                          _priceAnalytics!.hasPriceIncreased
-                              ? Colors.red
-                              : _priceAnalytics!.hasPriceDecreased
-                              ? Colors.green
-                              : Colors.grey,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Price change: ${_priceAnalytics!.priceChange!.toStringAsFixed(1)}%',
-                      style: TextStyle(
-                        color:
-                            _priceAnalytics!.hasPriceIncreased
-                                ? Colors.red
-                                : _priceAnalytics!.hasPriceDecreased
-                                ? Colors.green
-                                : Colors.grey,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ],
         ),
       ),
@@ -454,19 +597,36 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const Spacer(),
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'day', label: Text('7D')),
-                    ButtonSegment(value: 'week', label: Text('1M')),
-                    ButtonSegment(value: 'month', label: Text('1Y')),
-                    ButtonSegment(value: 'all', label: Text('All')),
-                  ],
-                  selected: {_selectedTimeRange},
-                  onSelectionChanged: (Set<String> selection) {
+                PopupMenuButton<String>(
+                  initialValue: _selectedTimeRange,
+                  onSelected: (value) {
                     setState(() {
-                      _selectedTimeRange = selection.first;
+                      _selectedTimeRange = value;
                     });
                   },
+                  itemBuilder:
+                      (context) => [
+                        const PopupMenuItem(
+                          value: 'day',
+                          child: Text('7 Days'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'week',
+                          child: Text('1 Month'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'month',
+                          child: Text('1 Year'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'all',
+                          child: Text('All Time'),
+                        ),
+                      ],
+                  child: Chip(
+                    label: Text(_getTimeRangeLabel()),
+                    avatar: const Icon(Icons.access_time, size: 16),
+                  ),
                 ),
               ],
             ),
@@ -607,8 +767,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
-  double? _getDateInterval() {
-    if (_filteredHistory.isEmpty) return null;
+  double _getDateInterval() {
+    if (_filteredHistory.isEmpty) {
+      return const Duration(days: 1).inMilliseconds.toDouble();
+    }
 
     final totalDuration = _filteredHistory.last.date.difference(
       _filteredHistory.first.date,
@@ -622,7 +784,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       case 'month':
         return const Duration(days: 30).inMilliseconds.toDouble();
       default:
-        return (totalDuration.inMilliseconds / 6).toDouble();
+        // For "all" time range, ensure we have a reasonable interval
+        if (totalDuration.inMilliseconds <= 0) {
+          // If duration is zero or negative, use a default interval
+          return const Duration(days: 1).inMilliseconds.toDouble();
+        } else {
+          // Divide by 6 but ensure minimum interval
+          final calculatedInterval =
+              (totalDuration.inMilliseconds / 6).toDouble();
+          return calculatedInterval < const Duration(hours: 1).inMilliseconds
+              ? const Duration(hours: 1).inMilliseconds.toDouble()
+              : calculatedInterval;
+        }
     }
   }
 
@@ -653,10 +826,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             const SizedBox(height: 16),
             _buildDetailRow('Site', widget.product.site),
             _buildDetailRow('Category', widget.product.category ?? 'Unknown'),
+            if (_convertedPrice != null)
+              _buildDetailRow(
+                'Current Price',
+                '${_convertedPrice!.toStringAsFixed(2)}$_currentCurrencySymbol',
+              ),
             if (widget.product.weight != null)
               _buildDetailRow('Weight', '${widget.product.weight}g'),
             if (widget.product.currency != null)
-              _buildDetailRow('Currency', widget.product.currency!),
+              _buildDetailRow('Original Currency', widget.product.currency!),
             _buildDetailRow(
               'First Seen',
               DateFormat('MMM dd, yyyy HH:mm').format(widget.product.firstSeen),
@@ -1015,16 +1193,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
   }
 
+  /// Launches a URL in the default browser
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      await launchUrl(uri);
     } else {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Could not launch $url')));
-      }
+      throw 'Could not launch $url';
     }
   }
 }

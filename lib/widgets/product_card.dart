@@ -37,8 +37,72 @@ class ProductCard extends StatelessWidget {
 
     final patterns = currencyPatterns[currency] ?? [currency];
 
-    // Split by common separators and look for the currency
-    final parts = priceString.split(RegExp(r'[|,;/\n\r]+'));
+    // First, try to find currency-specific patterns in the full string
+    for (final pattern in patterns) {
+      // Look for complete price patterns with this currency
+      // Pattern for currency symbol followed by or preceding numbers with decimal separators
+      if (pattern == '€') {
+        // Euro patterns: €15,99 or 15,99€ or €15.99 or 15.99€
+        final euroMatch = RegExp(
+          r'€\s*(\d+[.,]\d+)|(\d+[.,]\d+)\s*€',
+        ).firstMatch(priceString);
+        if (euroMatch != null) {
+          final price = euroMatch.group(1) ?? euroMatch.group(2);
+          return pattern == '€' && euroMatch.group(0)!.contains('€')
+              ? euroMatch.group(0)!.trim()
+              : '$price€';
+        }
+        // Also handle whole euro amounts: €15 or 15€
+        final euroWholeMatch = RegExp(
+          r'€\s*(\d+)|(\d+)\s*€',
+        ).firstMatch(priceString);
+        if (euroWholeMatch != null) {
+          return euroWholeMatch.group(0)!.trim();
+        }
+      } else if (pattern == '\$') {
+        // Dollar patterns: $15.99 or 15.99$ (less common)
+        final dollarMatch = RegExp(
+          r'\$\s*(\d+[.,]\d+)|(\d+[.,]\d+)\s*\$',
+        ).firstMatch(priceString);
+        if (dollarMatch != null) {
+          return dollarMatch.group(0)!.trim();
+        }
+        // Also handle whole dollar amounts
+        final dollarWholeMatch = RegExp(
+          r'\$\s*(\d+)|(\d+)\s*\$',
+        ).firstMatch(priceString);
+        if (dollarWholeMatch != null) {
+          return dollarWholeMatch.group(0)!.trim();
+        }
+      } else if (pattern == '¥') {
+        // Yen patterns: ¥1000 or 1000¥ or ¥1,000
+        final yenMatch = RegExp(
+          r'¥\s*(\d+[.,]?\d*)|(\d+[.,]?\d*)\s*¥',
+        ).firstMatch(priceString);
+        if (yenMatch != null) {
+          return yenMatch.group(0)!.trim();
+        }
+      } else if (pattern == '£') {
+        // Pound patterns: £15.99 or 15.99£
+        final poundMatch = RegExp(
+          r'£\s*(\d+[.,]\d+)|(\d+[.,]\d+)\s*£',
+        ).firstMatch(priceString);
+        if (poundMatch != null) {
+          return poundMatch.group(0)!.trim();
+        }
+        // Also handle whole pound amounts
+        final poundWholeMatch = RegExp(
+          r'£\s*(\d+)|(\d+)\s*£',
+        ).firstMatch(priceString);
+        if (poundWholeMatch != null) {
+          return poundWholeMatch.group(0)!.trim();
+        }
+      }
+    }
+
+    // Fallback: split by pipe, semicolon, forward slash, and newlines (but NOT commas)
+    // as commas are used as decimal separators in many currencies
+    final parts = priceString.split(RegExp(r'[|;/\n\r]+'));
 
     for (final part in parts) {
       final trimmed = part.trim();

@@ -195,23 +195,49 @@ class StockStatusChart extends StatelessWidget {
     );
   }
 
-  double? _getTimeInterval() {
-    if (stockPoints.isEmpty) return null;
+  double _getTimeInterval() {
+    if (stockPoints.isEmpty || stockPoints.length == 1) {
+      // If no data or only one point, return a default interval
+      return const Duration(hours: 1).inMilliseconds.toDouble();
+    }
 
     final totalDuration = stockPoints.last.timestamp.difference(
       stockPoints.first.timestamp,
     );
 
+    // Prevent zero interval by ensuring minimum interval
+    double baseInterval;
+
     switch (timeRange) {
       case 'day':
-        return const Duration(hours: 2).inMilliseconds.toDouble();
+        baseInterval = const Duration(hours: 2).inMilliseconds.toDouble();
+        break;
       case 'week':
-        return const Duration(days: 1).inMilliseconds.toDouble();
+        baseInterval = const Duration(days: 1).inMilliseconds.toDouble();
+        break;
       case 'month':
-        return const Duration(days: 5).inMilliseconds.toDouble();
+        baseInterval = const Duration(days: 5).inMilliseconds.toDouble();
+        break;
       default:
-        return (totalDuration.inMilliseconds / 8).toDouble();
+        // For "all" time range, ensure we have a reasonable interval
+        if (totalDuration.inMilliseconds <= 0) {
+          // If duration is zero or negative, use a default interval
+          baseInterval = const Duration(days: 1).inMilliseconds.toDouble();
+        } else {
+          // Divide by 8 but ensure minimum interval
+          final calculatedInterval = totalDuration.inMilliseconds / 8.0;
+          baseInterval =
+              calculatedInterval < const Duration(hours: 1).inMilliseconds
+                  ? const Duration(hours: 1).inMilliseconds.toDouble()
+                  : calculatedInterval;
+        }
+        break;
     }
+
+    // Ensure the interval is never zero
+    return baseInterval > 0
+        ? baseInterval
+        : const Duration(hours: 1).inMilliseconds.toDouble();
   }
 
   String _formatTimeForAxis(DateTime date) {

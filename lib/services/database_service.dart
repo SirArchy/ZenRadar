@@ -415,13 +415,14 @@ class DatabaseService {
         whereArgs.add(filter.maxPrice);
       }
 
-      if (filter.category != null) {
+      if (filter.category != null && filter.category!.isNotEmpty) {
         whereClause += ' AND category = ?';
         whereArgs.add(filter.category);
       }
 
       if (filter.searchTerm != null && filter.searchTerm!.isNotEmpty) {
         whereClause += ' AND (normalizedName LIKE ? OR name LIKE ?)';
+
         String searchPattern = '%${filter.searchTerm!.toLowerCase()}%';
         whereArgs.add(searchPattern);
         whereArgs.add(searchPattern);
@@ -450,6 +451,8 @@ class DatabaseService {
       ORDER BY $orderBy 
       LIMIT $itemsPerPage OFFSET $offset
     ''';
+
+    print('Database query - SELECT: $selectQuery');
 
     final List<Map<String, dynamic>> maps = await db.rawQuery(
       selectQuery,

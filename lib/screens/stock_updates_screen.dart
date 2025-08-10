@@ -20,15 +20,26 @@ class StockUpdatesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scrollController = ScrollController();
-    // Filter updates to only show products with stock changes
+    // Filter updates to only show products that are newly added or came back in stock
     final filteredUpdates =
         updates.where((update) {
           final previousIsInStock = update['previousIsInStock'];
           final currentIsInStock =
               update['isInStock'] == 1 || update['isInStock'] == true;
-          // Only show if previous value exists and changed
-          return previousIsInStock != null &&
-              previousIsInStock != currentIsInStock;
+
+          // Show products that are newly added and in stock
+          if (previousIsInStock == null && currentIsInStock) {
+            return true;
+          }
+
+          // Show products that went from out of stock to in stock
+          if ((previousIsInStock == 0 || previousIsInStock == false) &&
+              currentIsInStock) {
+            return true;
+          }
+
+          // Don't show products that went out of stock or stayed the same
+          return false;
         }).toList();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -48,113 +59,154 @@ class StockUpdatesScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Stock Updates'),
+        title: const Text('New Stock Arrivals'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: ListView.builder(
-        controller: scrollController,
-        itemCount: filteredUpdates.length,
-        itemBuilder: (context, index) {
-          final update = filteredUpdates[index];
-          final isHighlighted =
-              highlightProductId != null &&
-              update['productId'] == highlightProductId;
-
-          final product = MatchaProduct(
-            id: update['productId'] ?? '',
-            name: update['name'] ?? 'Unknown',
-            normalizedName: update['name'] ?? 'Unknown',
-            site: update['site'] ?? '',
-            url: update['url'] ?? '',
-            isInStock: update['isInStock'] == 1 || update['isInStock'] == true,
-            lastChecked:
-                DateTime.tryParse(update['timestamp'] ?? '') ?? DateTime.now(),
-            firstSeen:
-                DateTime.tryParse(update['timestamp'] ?? '') ?? DateTime.now(),
-            price: update['price']?.toString(),
-            priceValue:
-                update['priceValue'] is double
-                    ? update['priceValue']
-                    : double.tryParse(update['priceValue']?.toString() ?? ''),
-            currency: update['currency']?.toString(),
-            imageUrl: update['imageUrl']?.toString(),
-            description: update['description']?.toString(),
-            category: update['category']?.toString(),
-            weight:
-                update['weight'] is int
-                    ? update['weight']
-                    : int.tryParse(update['weight']?.toString() ?? ''),
-            metadata:
-                update['metadata'] is Map<String, dynamic>
-                    ? update['metadata']
-                    : null,
-          );
-
-          final previousIsInStock = update['previousIsInStock'];
-          String stockChangeText;
-          Color stockChangeColor;
-
-          if (previousIsInStock == null) {
-            stockChangeText =
-                product.isInStock
-                    ? "First seen in stock"
-                    : "First seen out of stock";
-            stockChangeColor = product.isInStock ? Colors.green : Colors.red;
-          } else if ((previousIsInStock == 0 || previousIsInStock == false) &&
-              product.isInStock) {
-            stockChangeText = "Back in Stock";
-            stockChangeColor = Colors.green;
-          } else if ((previousIsInStock == 1 || previousIsInStock == true) &&
-              !product.isInStock) {
-            stockChangeText = "Went Out of Stock";
-            stockChangeColor = Colors.red;
-          } else {
-            stockChangeText =
-                product.isInStock ? "Still in Stock" : "Still out of Stock";
-            stockChangeColor = Colors.grey;
-          }
-
-          return Container(
-            color: isHighlighted ? Colors.yellow.withAlpha(75) : null,
-            margin: const EdgeInsets.symmetric(vertical: 6),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ProductCard(
-                  product: product,
-                  preferredCurrency: product.currency,
-                  isFavorite: false,
-                  onTap: () async {
-                    if (product.url.isNotEmpty) {
-                      final uri = Uri.parse(product.url);
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(
-                          uri,
-                          mode: LaunchMode.externalApplication,
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Could not open product page'),
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  extraInfo: Chip(
-                    label: Text(stockChangeText),
-                    backgroundColor: stockChangeColor.withAlpha(40),
-                    labelStyle: TextStyle(
-                      color: stockChangeColor,
-                      fontWeight: FontWeight.bold,
+      body:
+          filteredUpdates.isEmpty
+              ? const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.inventory_2_outlined,
+                      size: 64,
+                      color: Colors.grey,
                     ),
-                  ),
+                    SizedBox(height: 16),
+                    Text(
+                      'No new stock arrivals',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'This shows products that are newly discovered\nor came back in stock.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          );
-        },
-      ),
+              )
+              : ListView.builder(
+                controller: scrollController,
+                itemCount: filteredUpdates.length,
+                itemBuilder: (context, index) {
+                  final update = filteredUpdates[index];
+                  final isHighlighted =
+                      highlightProductId != null &&
+                      update['productId'] == highlightProductId;
+
+                  final product = MatchaProduct(
+                    id: update['productId'] ?? '',
+                    name: update['name'] ?? 'Unknown',
+                    normalizedName: update['name'] ?? 'Unknown',
+                    site: update['site'] ?? '',
+                    url: update['url'] ?? '',
+                    isInStock:
+                        update['isInStock'] == 1 || update['isInStock'] == true,
+                    lastChecked:
+                        DateTime.tryParse(update['timestamp'] ?? '') ??
+                        DateTime.now(),
+                    firstSeen:
+                        DateTime.tryParse(update['timestamp'] ?? '') ??
+                        DateTime.now(),
+                    price: update['price']?.toString(),
+                    priceValue:
+                        update['priceValue'] is double
+                            ? update['priceValue']
+                            : double.tryParse(
+                              update['priceValue']?.toString() ?? '',
+                            ),
+                    currency: update['currency']?.toString(),
+                    imageUrl: update['imageUrl']?.toString(),
+                    description: update['description']?.toString(),
+                    category: update['category']?.toString(),
+                    weight:
+                        update['weight'] is int
+                            ? update['weight']
+                            : int.tryParse(update['weight']?.toString() ?? ''),
+                    metadata:
+                        update['metadata'] is Map<String, dynamic>
+                            ? update['metadata']
+                            : null,
+                  );
+
+                  final previousIsInStock = update['previousIsInStock'];
+                  String stockChangeText;
+                  Color stockChangeColor;
+
+                  if (previousIsInStock == null) {
+                    stockChangeText =
+                        product.isInStock
+                            ? "First seen in stock"
+                            : "First seen out of stock";
+                    stockChangeColor =
+                        product.isInStock ? Colors.green : Colors.red;
+                  } else if ((previousIsInStock == 0 ||
+                          previousIsInStock == false) &&
+                      product.isInStock) {
+                    stockChangeText = "Back in Stock";
+                    stockChangeColor = Colors.green;
+                  } else if ((previousIsInStock == 1 ||
+                          previousIsInStock == true) &&
+                      !product.isInStock) {
+                    stockChangeText = "Went Out of Stock";
+                    stockChangeColor = Colors.red;
+                  } else {
+                    stockChangeText =
+                        product.isInStock
+                            ? "Still in Stock"
+                            : "Still out of Stock";
+                    stockChangeColor = Colors.grey;
+                  }
+
+                  return Container(
+                    color: isHighlighted ? Colors.yellow.withAlpha(75) : null,
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ProductCard(
+                          product: product,
+                          preferredCurrency: product.currency,
+                          isFavorite: false,
+                          onTap: () async {
+                            if (product.url.isNotEmpty) {
+                              final uri = Uri.parse(product.url);
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(
+                                  uri,
+                                  mode: LaunchMode.externalApplication,
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Could not open product page',
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          extraInfo: Chip(
+                            label: Text(stockChangeText),
+                            backgroundColor: stockChangeColor.withAlpha(40),
+                            labelStyle: TextStyle(
+                              color: stockChangeColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
     );
   }
 }
