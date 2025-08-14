@@ -22,7 +22,7 @@ Future<void> initializeService() async {
 
   final service = FlutterBackgroundService();
 
-  // Configure the service with proper Android settings
+  // Configure the service with enhanced foreground settings for maximum persistence
   await service.configure(
     iosConfiguration: IosConfiguration(
       autoStart: true,
@@ -33,17 +33,20 @@ Future<void> initializeService() async {
       autoStart: true,
       onStart: onStart,
       autoStartOnBoot: true,
-      isForegroundMode:
-          true, // Essential for battery optimization compatibility
-      notificationChannelId: 'zenradar_background',
-      initialNotificationTitle: 'ZenRadar Background Monitoring',
-      initialNotificationContent: 'Ready to monitor matcha stock availability',
+      isForegroundMode: true, // Critical for preventing service termination
+      notificationChannelId: 'zenradar_foreground_service',
+      initialNotificationTitle: 'ZenRadar Stock Monitor Active',
+      initialNotificationContent: 'Continuously monitoring matcha availability',
       foregroundServiceNotificationId: 888,
-      foregroundServiceTypes: [AndroidForegroundType.dataSync],
+      // Enhanced foreground service types for better persistence
+      foregroundServiceTypes: [
+        AndroidForegroundType.dataSync,
+        AndroidForegroundType.connectedDevice, // For network operations
+      ],
     ),
   );
 
-  print('✅ Background service configured successfully');
+  print('✅ Enhanced foreground service configured successfully');
 
   // Start the service after configuration
   print('Background service configured, attempting to start...');
@@ -92,13 +95,30 @@ Future<void> initializeService() async {
 
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
-  print('=== ZenRadar Background Service Started ===');
+  print('=== ZenRadar Enhanced Foreground Service Started ===');
   print('🕐 Service start time: ${DateTime.now()}');
   print('📱 Service type: ${service.runtimeType}');
+  print('🛡️ Enhanced persistence mode: ACTIVE');
 
   try {
     DartPluginRegistrant.ensureInitialized();
     print('✅ DartPluginRegistrant initialized');
+
+    // Record service start time for health monitoring
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(
+        'service_start_time',
+        DateTime.now().millisecondsSinceEpoch,
+      );
+      await prefs.setInt(
+        'service_last_heartbeat',
+        DateTime.now().millisecondsSinceEpoch,
+      );
+      print('✅ Service start time recorded for monitoring');
+    } catch (e) {
+      print('⚠️ Failed to record service start time: $e');
+    }
 
     // Initialize services with error handling
     try {
@@ -120,16 +140,75 @@ void onStart(ServiceInstance service) async {
       // Don't return here - continue without notifications
     }
 
-    // Ensure background notification channel exists
+    // Enhanced foreground service configuration for maximum persistence
     if (service is AndroidServiceInstance) {
+      print('🔧 Configuring enhanced Android foreground service...');
+
       try {
+        // Set up foreground service event listeners for maximum control
+        service.on('setAsForeground').listen((event) {
+          print('📢 Received setAsForeground event');
+          service.setAsForegroundService();
+        });
+
+        service.on('setAsBackground').listen((event) {
+          print('📢 Received setAsBackground event - maintaining foreground');
+          // Prevent background mode to avoid termination
+          service.setAsForegroundService();
+        });
+
+        // Immediately ensure foreground mode
+        service.setAsForegroundService();
+
+        // Enhanced initial notification with persistence indicators
         service.setForegroundNotificationInfo(
-          title: "ZenRadar - Matcha Monitor",
-          content: "Starting matcha stock monitoring service...",
+          title: "ZenRadar - Enhanced Monitoring",
+          content:
+              "Protected foreground service • Continuous matcha monitoring active",
         );
-        print('✅ Foreground notification set');
+        print('✅ Enhanced foreground notification set');
+
+        // Critical: Add persistent heartbeat to prevent Android from killing the service
+        Timer.periodic(const Duration(minutes: 2), (heartbeatTimer) async {
+          try {
+            // Ensure we're still in foreground mode
+            if (await service.isForegroundService()) {
+              // Update notification with heartbeat timestamp to prove service is alive
+              final now = DateTime.now();
+              final timeString =
+                  '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+              service.setForegroundNotificationInfo(
+                title: "ZenRadar - Active Monitor",
+                content:
+                    "Protected Service ❤️ Active • Last pulse: $timeString",
+              );
+
+              print(
+                '💓 Enhanced heartbeat ${heartbeatTimer.tick}: Service alive at $timeString',
+              );
+            } else {
+              // Force back to foreground if somehow backgrounded
+              print('⚠️ Service not in foreground - forcing foreground mode');
+              service.setAsForegroundService();
+              service.setForegroundNotificationInfo(
+                title: "ZenRadar - Restored",
+                content:
+                    "Service restored to foreground mode • Monitoring resumed",
+              );
+            }
+          } catch (e) {
+            print('❌ Heartbeat error: $e');
+            // Try to recover
+            try {
+              service.setAsForegroundService();
+            } catch (recoveryError) {
+              print('❌ Failed to recover foreground service: $recoveryError');
+            }
+          }
+        });
       } catch (e) {
-        print('❌ Failed to set foreground notification: $e');
+        print('❌ Failed to set enhanced foreground service: $e');
       }
     }
 
@@ -188,19 +267,22 @@ void onStart(ServiceInstance service) async {
           }
         }
 
-        // Check if we're within active hours before performing stock check
+        // Enhanced scanning with foreground service persistence checks
         if (_isWithinActiveHours(settings)) {
-          print('✅ Within active hours, performing stock check...');
+          print('✅ Within active hours, performing enhanced stock check...');
 
           try {
-            // Start progress tracking
+            // Ensure we're still in foreground mode before scanning
             if (service is AndroidServiceInstance) {
-              if (await service.isForegroundService()) {
-                service.setForegroundNotificationInfo(
-                  title: "ZenRadar - Scanning",
-                  content: "Checking matcha stock on enabled sites...",
-                );
+              if (!(await service.isForegroundService())) {
+                print('⚠️ Service not in foreground during scan - restoring');
+                service.setAsForegroundService();
               }
+
+              service.setForegroundNotificationInfo(
+                title: "ZenRadar - Active Scan",
+                content: "🔍 Checking matcha availability • Protected Service",
+              );
             }
 
             await _performStockCheck();
@@ -208,7 +290,7 @@ void onStart(ServiceInstance service) async {
             // Reset lastScanTime after scan
             lastScanTime = DateTime.now();
 
-            // Return to monitoring state
+            // Enhanced post-scan notification with persistence info
             if (service is AndroidServiceInstance) {
               if (await service.isForegroundService()) {
                 final nextCheckTime = lastScanTime!.add(
@@ -217,30 +299,61 @@ void onStart(ServiceInstance service) async {
                 final timeString =
                     '${nextCheckTime.hour.toString().padLeft(2, '0')}:${nextCheckTime.minute.toString().padLeft(2, '0')}';
                 service.setForegroundNotificationInfo(
-                  title: "ZenRadar - Matcha Monitor",
-                  content: "Scan complete - Next check at $timeString",
+                  title: "ZenRadar - Monitoring Active",
+                  content:
+                      "✅ Scan complete • Next: $timeString • Service Protected",
+                );
+              } else {
+                // Recovery: Force back to foreground if somehow lost
+                print('🔧 Restoring foreground mode after scan');
+                service.setAsForegroundService();
+                service.setForegroundNotificationInfo(
+                  title: "ZenRadar - Service Restored",
+                  content: "Foreground mode restored • Monitoring continues",
                 );
               }
             }
 
-            print('✅ Background stock check completed: ${DateTime.now()}');
+            print(
+              '✅ Enhanced background stock check completed: ${DateTime.now()}',
+            );
           } catch (e) {
-            print('❌ Error during background stock check: $e');
+            print('❌ Error during enhanced background stock check: $e');
 
-            // Update foreground notification with error
+            // Enhanced error handling with foreground service recovery
             if (service is AndroidServiceInstance) {
-              if (await service.isForegroundService()) {
+              try {
+                service
+                    .setAsForegroundService(); // Ensure we stay in foreground
                 service.setForegroundNotificationInfo(
-                  title: "ZenRadar - Error",
-                  content: "Scan failed - Will retry at next scheduled time",
+                  title: "ZenRadar - Scan Error",
+                  content:
+                      "❌ Scan failed • Will retry • Service remains protected",
+                );
+              } catch (notificationError) {
+                print(
+                  '❌ Failed to update error notification: $notificationError',
                 );
               }
             }
           }
         } else {
           print(
-            '⏭️ Background check skipped - outside active hours: ${DateTime.now()}',
+            '⏭️ Enhanced background check skipped - outside active hours: ${DateTime.now()}',
           );
+
+          // Update notification even when outside hours to show service is alive
+          if (service is AndroidServiceInstance) {
+            try {
+              service.setForegroundNotificationInfo(
+                title: "ZenRadar - Paused",
+                content:
+                    "⏸️ Outside hours (${settings.startTime}-${settings.endTime}) • Service protected",
+              );
+            } catch (e) {
+              print('❌ Failed to update paused notification: $e');
+            }
+          }
         }
       });
       print(
@@ -360,27 +473,89 @@ void onStart(ServiceInstance service) async {
       await reloadSettingsAndRestartTimer(); // Reload settings and restart timer
     });
 
-    // Add a watchdog mechanism to monitor service health and restart if needed
-    Timer.periodic(const Duration(minutes: 5), (watchdogTimer) async {
+    // Enhanced watchdog mechanism with foreground service health monitoring
+    Timer.periodic(const Duration(minutes: 3), (watchdogTimer) async {
       try {
         // Use SharedPreferences to create a heartbeat mechanism
         final prefs = await SharedPreferences.getInstance();
         final lastHeartbeat = prefs.getInt('service_last_heartbeat') ?? 0;
         final currentTime = DateTime.now().millisecondsSinceEpoch;
 
-        // If no heartbeat in the last 10 minutes, the service might be dead
-        if (currentTime - lastHeartbeat > 10 * 60 * 1000) {
+        // If no heartbeat in the last 8 minutes, the service might be dead
+        if (currentTime - lastHeartbeat > 8 * 60 * 1000) {
           print(
             '⚠️ Service heartbeat missed, service may have been terminated',
           );
           // The service will be restarted by the main app's watchdog mechanism
         }
 
+        // Enhanced foreground service health check
+        if (service is AndroidServiceInstance) {
+          final isForeground = await service.isForegroundService();
+          if (!isForeground) {
+            print(
+              '🚨 CRITICAL: Service not in foreground mode - forcing restoration',
+            );
+            try {
+              service.setAsForegroundService();
+              service.setForegroundNotificationInfo(
+                title: "ZenRadar - Service Restored",
+                content:
+                    "⚡ Foreground mode restored by watchdog • Protection active",
+              );
+              print('✅ Foreground service restored by watchdog');
+            } catch (e) {
+              print('❌ Watchdog failed to restore foreground service: $e');
+            }
+          } else {
+            // Service is healthy - update notification with watchdog status
+            try {
+              final now = DateTime.now();
+              final timeString =
+                  '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+              service.setForegroundNotificationInfo(
+                title: "ZenRadar - Protected Service",
+                content:
+                    "🛡️ Watchdog active • Service healthy • Last check: $timeString",
+              );
+            } catch (e) {
+              print('⚠️ Failed to update watchdog notification: $e');
+            }
+          }
+        }
+
         // Update heartbeat
         await prefs.setInt('service_last_heartbeat', currentTime);
-        print('💓 Service heartbeat updated: ${DateTime.now()}');
+        await prefs.setInt('service_watchdog_ticks', watchdogTimer.tick);
+        print(
+          '💓 Enhanced watchdog heartbeat ${watchdogTimer.tick}: Service healthy at ${DateTime.now()}',
+        );
+
+        // Log service statistics for debugging
+        if (watchdogTimer.tick % 10 == 0) {
+          // Every 30 minutes
+          print('📊 Service health report:');
+          print(
+            '   🕐 Service uptime: ${((currentTime - (prefs.getInt('service_start_time') ?? currentTime)) / 1000 / 60).toStringAsFixed(1)} minutes',
+          );
+          print('   💓 Watchdog ticks: ${watchdogTimer.tick}');
+          print(
+            '   🔋 Battery optimizations: Check device settings if service stops',
+          );
+        }
       } catch (e) {
-        print('❌ Error in service watchdog: $e');
+        print('❌ Error in enhanced service watchdog: $e');
+
+        // Even on error, try to maintain foreground status
+        if (service is AndroidServiceInstance) {
+          try {
+            service.setAsForegroundService();
+          } catch (recoveryError) {
+            print(
+              '❌ Failed emergency foreground service restoration: $recoveryError',
+            );
+          }
+        }
       }
     });
 

@@ -42,10 +42,12 @@
             </intent-filter>
         </activity>
         
-        <!-- Background Service for monitoring matcha websites -->
+        <!-- Enhanced Background Service for monitoring matcha websites with multiple service types -->
         <service android:name="id.flutter.flutter_background_service.BackgroundService"
-            android:foregroundServiceType="dataSync"
+            android:foregroundServiceType="dataSync|connectedDevice"
             android:exported="false"
+            android:enabled="true"
+            android:stopWithTask="false"
             tools:replace="android:exported" />
         
         <!-- Don't delete the meta-data below.

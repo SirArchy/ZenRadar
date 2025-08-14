@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
@@ -63,6 +64,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 ? settings.preferredCurrency
                 : (widget.product.currency ?? 'EUR');
       });
+
+      // Debug info
+      debugPrint('Product currency: ${widget.product.currency}');
+      debugPrint('Product price: ${widget.product.price}');
+      debugPrint('Product priceValue: ${widget.product.priceValue}');
+      debugPrint('User preferred currency: ${settings.preferredCurrency}');
+      debugPrint('Selected currency: $_selectedCurrency');
+
       _convertAllPrices();
     } catch (e) {
       // Fallback to product currency or EUR if settings fail to load
@@ -107,13 +116,31 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final fromCurrency = widget.product.currency ?? 'EUR';
     final toCurrency = _selectedCurrency!;
 
+    // Skip conversion if currencies are the same
+    if (fromCurrency == toCurrency) {
+      setState(() {
+        _convertedPrice = widget.product.priceValue;
+        // Also skip analytics conversion if same currency
+        if (_priceAnalytics != null) {
+          _convertedLowestPrice = _priceAnalytics!.lowestPrice;
+          _convertedHighestPrice = _priceAnalytics!.highestPrice;
+          _convertedAveragePrice = _priceAnalytics!.averagePrice;
+        }
+      });
+      return;
+    }
+
     // Convert current price
     if (widget.product.priceValue != null) {
+      debugPrint(
+        'Converting price: ${widget.product.priceValue} from $fromCurrency to $toCurrency',
+      );
       final converted = await _currencyConverter.convert(
         fromCurrency,
         toCurrency,
         widget.product.priceValue!,
       );
+      debugPrint('Converted price result: $converted');
       setState(() {
         _convertedPrice = converted;
       });
@@ -121,6 +148,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
     // Convert analytics prices if available
     if (_priceAnalytics != null) {
+      // Skip conversion if currencies are the same
+      if (fromCurrency == toCurrency) {
+        setState(() {
+          _convertedLowestPrice = _priceAnalytics!.lowestPrice;
+          _convertedHighestPrice = _priceAnalytics!.highestPrice;
+          _convertedAveragePrice = _priceAnalytics!.averagePrice;
+        });
+        return;
+      }
+
       double? convertedLowest, convertedHighest, convertedAverage;
 
       if (_priceAnalytics!.lowestPrice != null) {
