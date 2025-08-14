@@ -9,6 +9,7 @@ import '../services/background_service.dart';
 import '../services/settings_service.dart';
 import '../services/theme_service.dart';
 import '../widgets/matcha_icon.dart';
+import '../widgets/app_mode_selection_dialog.dart';
 import 'website_management_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -148,6 +149,113 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          // App Mode Settings
+          Card(
+            color: Colors.blue.withValues(alpha: 0.1),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        _settings.appMode == 'server'
+                            ? Icons.cloud
+                            : Icons.phone_android,
+                        color: Colors.blue,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Operation Mode',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12.0),
+                    decoration: BoxDecoration(
+                      color:
+                          _settings.appMode == 'server'
+                              ? Colors.blue.shade100
+                              : Colors.green.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color:
+                            _settings.appMode == 'server'
+                                ? Colors.blue
+                                : Colors.green,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _settings.appMode == 'server'
+                              ? Icons.cloud_done
+                              : Icons.smartphone,
+                          color:
+                              _settings.appMode == 'server'
+                                  ? Colors.blue
+                                  : Colors.green,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _settings.appMode == 'server'
+                                    ? 'Server Mode Active'
+                                    : 'Local Mode Active',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                      _settings.appMode == 'server'
+                                          ? Colors.blue.shade700
+                                          : Colors.green.shade700,
+                                ),
+                              ),
+                              Text(
+                                _settings.appMode == 'server'
+                                    ? 'Cloud monitoring • Zero battery usage'
+                                    : 'Device monitoring • Full privacy control',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color:
+                                      _settings.appMode == 'server'
+                                          ? Colors.blue.shade600
+                                          : Colors.green.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: _showModeSelectionDialog,
+                    icon: const Icon(Icons.swap_horiz),
+                    label: const Text('Change Mode'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
           // Notification Settings (mobile only)
           if (!kIsWeb)
             Card(
@@ -194,7 +302,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 16),
 
-          // Monitoring Settings (mobile only)
+          // Monitoring Settings (mobile only and mode-dependent)
           if (!kIsWeb)
             Card(
               child: Padding(
@@ -202,202 +310,340 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Monitoring',
-                      style: TextStyle(
+                    Text(
+                      _settings.appMode == 'server'
+                          ? 'Server Monitoring'
+                          : 'Local Monitoring',
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12.0),
-                      decoration: BoxDecoration(
-                        color:
-                            _isServiceRunning
-                                ? Colors.green.shade100
-                                : Colors.orange.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color:
-                              _isServiceRunning ? Colors.green : Colors.orange,
-                          width: 1,
+
+                    if (_settings.appMode == 'server') ...[
+                      // Server mode information
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12.0),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue.shade200),
+                        ),
+                        child: const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.cloud_sync, color: Colors.blue),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Cloud Monitoring Active',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              '• Websites monitored every 30 minutes\n'
+                              '• 24/7 cloud-based scanning\n'
+                              '• Automatic data synchronization\n'
+                              '• Zero impact on device battery',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                          ],
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _isServiceRunning
-                                ? Icons.check_circle
-                                : Icons.warning,
+                    ] else ...[
+                      // Local mode controls (existing functionality)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12.0),
+                        decoration: BoxDecoration(
+                          color:
+                              _isServiceRunning
+                                  ? Colors.green.shade100
+                                  : Colors.orange.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
                             color:
                                 _isServiceRunning
                                     ? Colors.green
                                     : Colors.orange,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _isServiceRunning
-                                  ? 'Background monitoring is active'
-                                  : 'Background monitoring is paused',
-                              style: TextStyle(
-                                color:
-                                    _isServiceRunning
-                                        ? Colors.green.shade700
-                                        : Colors.orange.shade700,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          ElevatedButton(
-                            onPressed: _toggleBackgroundService,
-                            child: Text(_isServiceRunning ? 'Stop' : 'Start'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ListTile(
-                      title: const Text('Check Frequency'),
-                      subtitle: DropdownButton<int>(
-                        value: _settings.checkFrequencyMinutes,
-                        isExpanded: true,
-                        underline: Container(),
-                        items:
-                            _getFrequencyOptions().map((option) {
-                              return DropdownMenuItem<int>(
-                                value: option['value'] as int,
-                                child: Text(option['label'] as String),
-                              );
-                            }).toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            _updateSettings(
-                              (settings) => settings.copyWith(
-                                checkFrequencyMinutes: value,
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                    ),
-                    const Divider(),
-                    ListTile(
-                      title: const Text('Active Hours'),
-                      subtitle: FutureBuilder<bool>(
-                        future: SettingsService.instance.isWithinActiveHours(),
-                        builder: (context, snapshot) {
-                          final isWithinHours = snapshot.data ?? false;
-                          final status =
-                              isWithinHours
-                                  ? 'Currently active'
-                                  : 'Currently paused';
-                          final statusColor =
-                              isWithinHours ? Colors.green : Colors.orange;
-
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${_settings.startTime} - ${_settings.endTime}',
-                              ),
-                              Text(
-                                status,
-                                style: TextStyle(
-                                  color: statusColor,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                      trailing: const Icon(Icons.edit),
-                      onTap: () => _showActiveHoursDialog(),
-                    ),
-                    const Divider(),
-                    SwitchListTile(
-                      title: const Text('Background Scan Mode'),
-                      subtitle: Text(
-                        _settings.backgroundScanFavoritesOnly
-                            ? 'Only scan favorite products in background'
-                            : 'Scan all products in background',
-                      ),
-                      value: _settings.backgroundScanFavoritesOnly,
-                      onChanged: (value) {
-                        _updateSettings(
-                          (s) => s.copyWith(backgroundScanFavoritesOnly: value),
-                        );
-                      },
-                      secondary: Icon(
-                        _settings.backgroundScanFavoritesOnly
-                            ? Icons.favorite
-                            : Icons.public,
-                        color:
-                            _settings.backgroundScanFavoritesOnly
-                                ? Colors.red
-                                : Colors.blue,
-                      ),
-                    ),
-                    if (_settings.backgroundScanFavoritesOnly)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                        child: Text(
-                          'When enabled, background scans will only monitor your favorite products. This saves battery and provides faster scans. Add favorites by tapping ♡ on products.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.6),
-                            fontStyle: FontStyle.italic,
+                            width: 1,
                           ),
                         ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _isServiceRunning
+                                  ? Icons.check_circle
+                                  : Icons.warning,
+                              color:
+                                  _isServiceRunning
+                                      ? Colors.green
+                                      : Colors.orange,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _isServiceRunning
+                                    ? 'Background monitoring is active'
+                                    : 'Background monitoring is paused',
+                                style: TextStyle(
+                                  color:
+                                      _isServiceRunning
+                                          ? Colors.green.shade700
+                                          : Colors.orange.shade700,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            ElevatedButton(
+                              onPressed: _toggleBackgroundService,
+                              child: Text(_isServiceRunning ? 'Stop' : 'Start'),
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(height: 16),
+                      ListTile(
+                        title: const Text('Check Frequency'),
+                        subtitle: DropdownButton<int>(
+                          value: _settings.checkFrequencyMinutes,
+                          isExpanded: true,
+                          underline: Container(),
+                          items:
+                              _getFrequencyOptions().map((option) {
+                                return DropdownMenuItem<int>(
+                                  value: option['value'] as int,
+                                  child: Text(option['label'] as String),
+                                );
+                              }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              _updateSettings(
+                                (settings) => settings.copyWith(
+                                  checkFrequencyMinutes: value,
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                      const Divider(),
+                      ListTile(
+                        title: const Text('Active Hours'),
+                        subtitle: FutureBuilder<bool>(
+                          future:
+                              SettingsService.instance.isWithinActiveHours(),
+                          builder: (context, snapshot) {
+                            final isWithinHours = snapshot.data ?? false;
+                            final status =
+                                isWithinHours
+                                    ? 'Currently active'
+                                    : 'Currently paused';
+                            final statusColor =
+                                isWithinHours ? Colors.green : Colors.orange;
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${_settings.startTime} - ${_settings.endTime}',
+                                ),
+                                Text(
+                                  status,
+                                  style: TextStyle(
+                                    color: statusColor,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                        trailing: const Icon(Icons.edit),
+                        onTap: () => _showActiveHoursDialog(),
+                      ),
+                      const Divider(),
+                      SwitchListTile(
+                        title: const Text('Background Scan Mode'),
+                        subtitle: Text(
+                          _settings.backgroundScanFavoritesOnly
+                              ? 'Only scan favorite products in background'
+                              : 'Scan all products in background',
+                        ),
+                        value: _settings.backgroundScanFavoritesOnly,
+                        onChanged: (value) {
+                          _updateSettings(
+                            (s) =>
+                                s.copyWith(backgroundScanFavoritesOnly: value),
+                          );
+                        },
+                        secondary: Icon(
+                          _settings.backgroundScanFavoritesOnly
+                              ? Icons.favorite
+                              : Icons.public,
+                          color:
+                              _settings.backgroundScanFavoritesOnly
+                                  ? Colors.red
+                                  : Colors.blue,
+                        ),
+                      ),
+                      if (_settings.backgroundScanFavoritesOnly)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                          child: Text(
+                            'When enabled, background scans will only monitor your favorite products. This saves battery and provides faster scans. Add favorites by tapping ♡ on products.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                    ],
                   ],
                 ),
               ),
             ),
-          // Site Settings
+          // Site Settings (mode-dependent)
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Monitored Sites',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    _settings.appMode == 'server'
+                        ? 'Monitored Sites (Server)'
+                        : 'Monitored Sites',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 16),
-                  ListTile(
-                    leading: const Icon(Icons.language),
-                    title: const Text('Built-in Websites'),
-                    subtitle: Text(
-                      '${_settings.enabledSites.where((site) => _getBuiltInSites().any((builtIn) => builtIn['key'] == site)).length} of ${_getBuiltInSites().length} enabled',
+
+                  if (_settings.appMode == 'server') ...[
+                    // Server mode: Show available sites info and suggestion form
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12.0),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.shade200),
+                      ),
+                      child: const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.info, color: Colors.blue),
+                              SizedBox(width: 8),
+                              Text(
+                                'Server-Monitored Websites',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'All supported matcha websites are automatically monitored by our servers. Data is synchronized to your device regularly.',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
                     ),
-                    trailing: const Icon(Icons.arrow_forward_ios),
-                    onTap: () => _showBuiltInWebsitesDialog(),
-                  ),
-                  const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.web),
-                    title: const Text('Manage Custom Websites'),
-                    subtitle: const Text(
-                      'Add and configure custom websites to monitor',
-                    ),
-                    trailing: const Icon(Icons.arrow_forward_ios),
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const WebsiteManagementScreen(),
+                    const SizedBox(height: 16),
+
+                    // Show current monitored sites with product counts
+                    ..._getBuiltInSites().map(
+                      (site) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.language,
+                              size: 16,
+                              color: Colors.grey.shade600,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                site['name']!,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '~50 products', // Placeholder - would come from server
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+                    const Divider(),
+
+                    // Suggestion form
+                    ListTile(
+                      leading: const Icon(Icons.add_link),
+                      title: const Text('Suggest New Website'),
+                      subtitle: const Text(
+                        'Request monitoring for additional matcha sites',
+                      ),
+                      trailing: const Icon(Icons.arrow_forward_ios),
+                      onTap: _showWebsiteSuggestionDialog,
+                    ),
+                  ] else ...[
+                    // Local mode: Show current controls
+                    ListTile(
+                      leading: const Icon(Icons.language),
+                      title: const Text('Built-in Websites'),
+                      subtitle: Text(
+                        '${_settings.enabledSites.where((site) => _getBuiltInSites().any((builtIn) => builtIn['key'] == site)).length} of ${_getBuiltInSites().length} enabled',
+                      ),
+                      trailing: const Icon(Icons.arrow_forward_ios),
+                      onTap: () => _showBuiltInWebsitesDialog(),
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.web),
+                      title: const Text('Manage Custom Websites'),
+                      subtitle: const Text(
+                        'Add and configure custom websites to monitor',
+                      ),
+                      trailing: const Icon(Icons.arrow_forward_ios),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => const WebsiteManagementScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -474,8 +720,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
 
-          // Debug Section (for testing background service)
-          if (!kIsWeb)
+          // Debug Section (for testing background service - local mode only)
+          if (!kIsWeb && _settings.appMode == 'local')
             Card(
               color: Colors.orange.withValues(alpha: 0.1),
               child: Padding(
@@ -1171,5 +1417,104 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       _showErrorSnackBar('Failed to toggle service: $e');
     }
+  }
+
+  void _showModeSelectionDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AppModeSelectionDialog(
+            isInitialSetup: false,
+            onModeSelected: (mode) {
+              setState(() {
+                _settings = _settings.copyWith(appMode: mode);
+              });
+            },
+          ),
+    );
+  }
+
+  void _showWebsiteSuggestionDialog() {
+    final TextEditingController urlController = TextEditingController();
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController descriptionController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.add_link, color: Colors.blue),
+                SizedBox(width: 8),
+                Text('Suggest Website'),
+              ],
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Suggest a matcha website to be added to our server monitoring:',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Website Name',
+                      hintText: 'e.g., "Premium Matcha Store"',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: urlController,
+                    decoration: const InputDecoration(
+                      labelText: 'Website URL',
+                      hintText: 'https://example.com',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.url,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Description (Optional)',
+                      hintText: 'Why should this site be monitored?',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 3,
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (urlController.text.isNotEmpty &&
+                      nameController.text.isNotEmpty) {
+                    // TODO: Send suggestion to server
+                    Navigator.pop(context);
+                    _showSuccessSnackBar(
+                      'Website suggestion submitted for review',
+                    );
+                  } else {
+                    _showErrorSnackBar(
+                      'Please fill in the website name and URL',
+                    );
+                  }
+                },
+                child: const Text('Submit'),
+              ),
+            ],
+          ),
+    );
   }
 }

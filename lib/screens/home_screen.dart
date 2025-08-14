@@ -600,16 +600,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ],
           ),
 
-          // Floating Action Button positioned in the stack
-          Builder(
-            builder: (context) {
-              return Positioned(
-                bottom: 64,
-                right: 16,
-                child: _buildFloatingActionButtons(),
-              );
-            },
-          ),
+          // Floating Action Button positioned in the stack (local mode only)
+          if (_userSettings.appMode == 'local')
+            Builder(
+              builder: (context) {
+                return Positioned(
+                  bottom: 64,
+                  right: 16,
+                  child: _buildFloatingActionButtons(),
+                );
+              },
+            ),
 
           // Filter overlay
           if (_showFilters)

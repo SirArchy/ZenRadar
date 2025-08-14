@@ -292,6 +292,8 @@ class UserSettings {
   final String preferredCurrency; // "EUR", "USD", "JPY", etc.
   final bool
   backgroundScanFavoritesOnly; // New setting for background scan mode
+  final String
+  appMode; // "local" or "server" - determines data source and crawler mode
 
   UserSettings({
     this.checkFrequencyMinutes = 360, // Default 6 hours = 360 minutes
@@ -316,6 +318,7 @@ class UserSettings {
     this.sortAscending = true,
     this.preferredCurrency = "EUR",
     this.backgroundScanFavoritesOnly = false, // Default: scan all products
+    this.appMode = "local", // Default: local mode for existing users
   });
 
   factory UserSettings.fromJson(Map<String, dynamic> json) {
@@ -349,6 +352,7 @@ class UserSettings {
       sortAscending: json['sortAscending'] ?? true,
       preferredCurrency: json['preferredCurrency'] ?? "EUR",
       backgroundScanFavoritesOnly: json['backgroundScanFavoritesOnly'] ?? false,
+      appMode: json['appMode'] ?? "local", // Default to local for migration
     );
   }
 
@@ -365,6 +369,7 @@ class UserSettings {
       'sortAscending': sortAscending,
       'preferredCurrency': preferredCurrency,
       'backgroundScanFavoritesOnly': backgroundScanFavoritesOnly,
+      'appMode': appMode,
     };
   }
 
@@ -380,6 +385,7 @@ class UserSettings {
     bool? sortAscending,
     String? preferredCurrency,
     bool? backgroundScanFavoritesOnly,
+    String? appMode,
   }) {
     return UserSettings(
       checkFrequencyMinutes:
@@ -395,6 +401,7 @@ class UserSettings {
       preferredCurrency: preferredCurrency ?? this.preferredCurrency,
       backgroundScanFavoritesOnly:
           backgroundScanFavoritesOnly ?? this.backgroundScanFavoritesOnly,
+      appMode: appMode ?? this.appMode,
     );
   }
 }

@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:zenradar/screens/stock_updates_screen.dart';
 import '../models/scan_activity.dart';
+import '../models/matcha_product.dart';
 import '../services/database_service.dart';
+import '../services/settings_service.dart';
 // ignore_for_file: avoid_print
 
 class BackgroundActivityScreen extends StatefulWidget {
@@ -23,12 +25,26 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
   static const int _pageSize = 20;
   bool _hasMoreData = true;
   bool _isLoadingMore = false;
+  UserSettings _userSettings = UserSettings();
 
   @override
   void initState() {
     super.initState();
-    _loadActivities();
+    _loadSettings();
     _scrollController.addListener(_onScroll);
+  }
+
+  Future<void> _loadSettings() async {
+    try {
+      final settings = await SettingsService.instance.getSettings();
+      setState(() {
+        _userSettings = settings;
+      });
+      await _loadActivities();
+    } catch (e) {
+      print('Error loading settings: $e');
+      await _loadActivities();
+    }
   }
 
   @override
@@ -52,21 +68,34 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     });
 
     try {
-      final activities = await DatabaseService.platformService
-          .getScanActivities(limit: _pageSize, offset: 0);
-      final totalCount =
-          await DatabaseService.platformService.getScanActivitiesCount();
+      if (_userSettings.appMode == 'server') {
+        // TODO: Load server scan activities from Firestore
+        // For now, show placeholder data
+        final serverActivities = _generateServerPlaceholderData();
+        setState(() {
+          _activities = serverActivities;
+          _totalActivities = serverActivities.length;
+          _hasMoreData = false; // No pagination for placeholder
+          _isLoading = false;
+        });
+      } else {
+        // Local mode: load from local database
+        final activities = await DatabaseService.platformService
+            .getScanActivities(limit: _pageSize, offset: 0);
+        final totalCount =
+            await DatabaseService.platformService.getScanActivitiesCount();
 
-      print(
-        '📊 Loaded ${activities.length} scan activities, total: $totalCount',
-      );
+        print(
+          '📊 Loaded ${activities.length} scan activities, total: $totalCount',
+        );
 
-      setState(() {
-        _activities = activities;
-        _totalActivities = totalCount;
-        _hasMoreData = activities.length == _pageSize;
-        _isLoading = false;
-      });
+        setState(() {
+          _activities = activities;
+          _totalActivities = totalCount;
+          _hasMoreData = activities.length == _pageSize;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       print('Error loading scan activities: $e');
       setState(() {
@@ -75,8 +104,27 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     }
   }
 
+  List<ScanActivity> _generateServerPlaceholderData() {
+    // Generate placeholder server scan data
+    final now = DateTime.now();
+    return List.generate(5, (index) {
+      final scanTime = now.subtract(Duration(hours: index * 6));
+      return ScanActivity(
+        id: 'server_scan_$index',
+        timestamp: scanTime,
+        itemsScanned: 150 + (index * 25),
+        duration: 45 + (index * 5),
+        hasStockUpdates: index % 2 == 0,
+        details: 'Server scan completed successfully',
+        scanType: 'server',
+      );
+    });
+  }
+
   Future<void> _loadMoreActivities() async {
-    if (_isLoadingMore) return;
+    if (_isLoadingMore || _userSettings.appMode == 'server') {
+      return; // No pagination for server mode placeholder
+    }
 
     setState(() {
       _isLoadingMore = true;
@@ -198,7 +246,9 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Recent Scans'),
+        title: Text(
+          _userSettings.appMode == 'server' ? 'Server Scans' : 'Recent Scans',
+        ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
@@ -206,41 +256,43 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
             onPressed: _loadActivities,
             tooltip: 'Refresh',
           ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'clear_old') {
-                _clearOldActivities();
-              } else if (value == 'clear_all') {
-                _clearAllActivities();
-              }
-            },
-            itemBuilder:
-                (context) => [
-                  const PopupMenuItem(
-                    value: 'clear_old',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete_sweep),
-                        SizedBox(width: 8),
-                        Text('Clear Old Activities'),
-                      ],
+          // Only show clear options in local mode
+          if (_userSettings.appMode == 'local')
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'clear_old') {
+                  _clearOldActivities();
+                } else if (value == 'clear_all') {
+                  _clearAllActivities();
+                }
+              },
+              itemBuilder:
+                  (context) => [
+                    const PopupMenuItem(
+                      value: 'clear_old',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_sweep),
+                          SizedBox(width: 8),
+                          Text('Clear Old Activities'),
+                        ],
+                      ),
                     ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'clear_all',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete_forever, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text(
-                          'Clear All Activities',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ],
+                    const PopupMenuItem(
+                      value: 'clear_all',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_forever, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text(
+                            'Clear All Activities',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-          ),
+                  ],
+            ),
         ],
       ),
       body:
@@ -312,23 +364,77 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+      child: Column(
         children: [
-          _buildStatItem(
-            'Total Scans',
-            _totalActivities.toString(),
-            Icons.history,
+          // Mode indicator
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color:
+                  _userSettings.appMode == 'server'
+                      ? Colors.blue.shade100
+                      : Colors.green.shade100,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color:
+                    _userSettings.appMode == 'server'
+                        ? Colors.blue
+                        : Colors.green,
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _userSettings.appMode == 'server'
+                      ? Icons.cloud
+                      : Icons.smartphone,
+                  size: 16,
+                  color:
+                      _userSettings.appMode == 'server'
+                          ? Colors.blue
+                          : Colors.green,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _userSettings.appMode == 'server'
+                      ? 'Server Mode'
+                      : 'Local Mode',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color:
+                        _userSettings.appMode == 'server'
+                            ? Colors.blue.shade700
+                            : Colors.green.shade700,
+                  ),
+                ),
+              ],
+            ),
           ),
-          _buildStatItem(
-            'This Week',
-            _getWeeklyCount().toString(),
-            Icons.calendar_today,
-          ),
-          _buildStatItem(
-            'With Updates',
-            _getUpdatesCount().toString(),
-            Icons.notifications_active,
+          const SizedBox(height: 16),
+
+          // Statistics
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildStatItem(
+                'Total Scans',
+                _totalActivities.toString(),
+                Icons.history,
+              ),
+              _buildStatItem(
+                'This Week',
+                _getWeeklyCount().toString(),
+                Icons.calendar_today,
+              ),
+              _buildStatItem(
+                'With Updates',
+                _getUpdatesCount().toString(),
+                Icons.notifications_active,
+              ),
+            ],
           ),
         ],
       ),

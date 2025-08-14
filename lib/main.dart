@@ -7,7 +7,7 @@ import 'services/web_background_service.dart';
 import 'services/database_service.dart';
 import 'services/theme_service.dart';
 import 'services/battery_optimization_service.dart';
-import 'screens/home_screen.dart';
+import 'screens/app_initializer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,7 +70,7 @@ class ZenRadarApp extends StatelessWidget {
           theme: ThemeService.lightTheme,
           darkTheme: ThemeService.darkTheme,
           themeMode: ThemeService.instance.flutterThemeMode,
-          home: const HomeScreen(),
+          home: const AppInitializer(),
           debugShowCheckedModeBanner: false,
         );
       },
