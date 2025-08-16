@@ -15,6 +15,7 @@ import '../widgets/site_selection_dialog.dart';
 import 'settings_screen.dart';
 import 'background_activity_screen.dart';
 import 'product_detail_page.dart';
+import 'website_overview_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -572,6 +573,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               );
             },
             tooltip: 'Recent Scans',
+          ),
+          IconButton(
+            icon: const Icon(Icons.timeline),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const WebsiteOverviewScreen(),
+                ),
+              );
+            },
+            tooltip: 'Website Analytics',
           ),
           IconButton(
             icon: const Icon(Icons.settings),

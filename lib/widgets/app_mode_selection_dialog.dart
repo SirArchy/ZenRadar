@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/settings_service.dart';
 
@@ -19,6 +20,15 @@ class _AppModeSelectionDialogState extends State<AppModeSelectionDialog> {
   String? _selectedMode;
 
   @override
+  void initState() {
+    super.initState();
+    // Auto-select server mode for web users
+    if (kIsWeb) {
+      _selectedMode = 'server';
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Row(
@@ -37,65 +47,104 @@ class _AppModeSelectionDialogState extends State<AppModeSelectionDialog> {
       ),
       content: SizedBox(
         width: double.maxFinite,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (widget.isInitialSetup)
-              const Padding(
-                padding: EdgeInsets.only(bottom: 16),
-                child: Text(
-                  'Choose how ZenRadar should operate:',
-                  style: TextStyle(fontSize: 16),
-                  textAlign: TextAlign.center,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Web-specific message
+              if (kIsWeb)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(Icons.web, color: Colors.blue.shade600, size: 32),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Web Version',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue.shade700,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'The web version automatically uses server mode for optimal performance and to avoid CORS restrictions.',
+                        style: TextStyle(
+                          color: Colors.blue.shade600,
+                          fontSize: 14,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
                 ),
+
+              if (widget.isInitialSetup && !kIsWeb)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    'Choose how ZenRadar should operate:',
+                    style: TextStyle(fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+
+              // Local Mode Card - only show on mobile
+              if (!kIsWeb)
+                _buildModeCard(
+                  mode: 'local',
+                  title: '📱 Local Mode',
+                  subtitle: 'Run everything on your device',
+                  pros: [
+                    '✅ Complete privacy',
+                    '✅ Works offline',
+                    '✅ Full control',
+                    '✅ No server dependencies',
+                  ],
+                  cons: [
+                    '❌ Uses device battery',
+                    '❌ Limited by device resources',
+                    '❌ May be killed by system',
+                  ],
+                  description:
+                      'Your device crawls websites and stores all data locally.',
+                ),
+
+              if (!kIsWeb) const SizedBox(height: 16),
+
+              // Server Mode Card
+              _buildModeCard(
+                mode: 'server',
+                title: '☁️ Server Mode',
+                subtitle: 'Use cloud-based monitoring',
+                pros: [
+                  '✅ Zero battery usage',
+                  '✅ Always-on monitoring',
+                  '✅ Reliable & fast',
+                  '✅ Shared data improvements',
+                ],
+                cons: [
+                  '❌ Requires internet',
+                  '❌ Data stored in cloud',
+                  '❌ Limited customization',
+                ],
+                description:
+                    'Cloud servers monitor websites and sync data to your device.',
               ),
-
-            // Local Mode Card
-            _buildModeCard(
-              mode: 'local',
-              title: '📱 Local Mode',
-              subtitle: 'Run everything on your device',
-              pros: [
-                '✅ Complete privacy',
-                '✅ Works offline',
-                '✅ Full control',
-                '✅ No server dependencies',
-              ],
-              cons: [
-                '❌ Uses device battery',
-                '❌ Limited by device resources',
-                '❌ May be killed by system',
-              ],
-              description:
-                  'Your device crawls websites and stores all data locally.',
-            ),
-
-            const SizedBox(height: 16),
-
-            // Server Mode Card
-            _buildModeCard(
-              mode: 'server',
-              title: '☁️ Server Mode',
-              subtitle: 'Use cloud-based monitoring',
-              pros: [
-                '✅ Zero battery usage',
-                '✅ Always-on monitoring',
-                '✅ Reliable & fast',
-                '✅ Shared data improvements',
-              ],
-              cons: [
-                '❌ Requires internet',
-                '❌ Data stored in cloud',
-                '❌ Limited customization',
-              ],
-              description:
-                  'Cloud servers monitor websites and sync data to your device.',
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       actions: [
-        if (!widget.isInitialSetup)
+        if (!widget.isInitialSetup && !kIsWeb)
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
@@ -106,7 +155,13 @@ class _AppModeSelectionDialogState extends State<AppModeSelectionDialog> {
             backgroundColor: Colors.blue,
             foregroundColor: Colors.white,
           ),
-          child: Text(widget.isInitialSetup ? 'Start App' : 'Apply Changes'),
+          child: Text(
+            kIsWeb
+                ? (widget.isInitialSetup
+                    ? 'Continue with Server Mode'
+                    : 'Continue')
+                : (widget.isInitialSetup ? 'Start App' : 'Apply Changes'),
+          ),
         ),
       ],
     );
@@ -132,7 +187,7 @@ class _AppModeSelectionDialogState extends State<AppModeSelectionDialog> {
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
-          color: isSelected ? Colors.blue.shade50 : null,
+          color: isSelected ? const Color.fromARGB(255, 56, 61, 65) : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -8,6 +8,7 @@ import '../services/notification_service.dart';
 import '../services/background_service.dart';
 import '../services/settings_service.dart';
 import '../services/theme_service.dart';
+import '../services/cloud_crawler_service.dart';
 import '../widgets/matcha_icon.dart';
 import '../widgets/app_mode_selection_dialog.dart';
 import 'website_management_screen.dart';
@@ -240,19 +241,104 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: _showModeSelectionDialog,
-                    icon: const Icon(Icons.swap_horiz),
-                    label: const Text('Change Mode'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
+                  // Only show mode change button on mobile platforms
+                  if (!kIsWeb)
+                    ElevatedButton.icon(
+                      onPressed: _showModeSelectionDialog,
+                      icon: const Icon(Icons.swap_horiz),
+                      label: const Text('Change Mode'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                      ),
                     ),
-                  ),
+                  // Show web mode indicator instead of change button
+                  if (kIsWeb)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12.0),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.web, color: Colors.blue.shade600),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Web version automatically uses server mode for optimal performance',
+                              style: TextStyle(
+                                color: Colors.blue.shade700,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
           ),
+
+          const SizedBox(height: 16),
+
+          // Cloud Integration (server mode only)
+          if (_settings.appMode == 'server')
+            Card(
+              color: Colors.purple.withValues(alpha: 0.1),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.cloud_sync, color: Colors.purple),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Cloud Integration',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildCloudStatusCard(),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _triggerManualCrawl,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Manual Crawl'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.purple,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: _checkServerHealth,
+                          icon: const Icon(Icons.health_and_safety),
+                          label: const Text('Health'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
           const SizedBox(height: 16),
 
@@ -1516,5 +1602,128 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
     );
+  }
+
+  // Cloud Integration Methods
+  ServerHealthStatus? _serverHealth;
+  String? _lastCrawlRequestId;
+
+  Widget _buildCloudStatusCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color:
+            _serverHealth?.isHealthy == true
+                ? Colors.green.shade100
+                : Colors.orange.shade100,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color:
+              _serverHealth?.isHealthy == true ? Colors.green : Colors.orange,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _serverHealth?.isHealthy == true
+                    ? Icons.cloud_done
+                    : Icons.cloud_off,
+                color:
+                    _serverHealth?.isHealthy == true
+                        ? Colors.green
+                        : Colors.orange,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _serverHealth?.isHealthy == true
+                    ? 'Server Online'
+                    : 'Server Status Unknown',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          if (_serverHealth?.message != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              _serverHealth!.message,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+          ],
+          if (_lastCrawlRequestId != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Last Request: $_lastCrawlRequestId',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _triggerManualCrawl() async {
+    try {
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder:
+            (context) => const AlertDialog(
+              content: Row(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 16),
+                  Text('Triggering crawl...'),
+                ],
+              ),
+            ),
+      );
+
+      final requestId = await CloudCrawlerService.instance.triggerManualCrawl(
+        sites: ['tokichi', 'marukyu', 'ippodo'], // Default sites
+        userId: 'flutter-user-${DateTime.now().millisecondsSinceEpoch}',
+      );
+
+      setState(() {
+        _lastCrawlRequestId = requestId;
+      });
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      _showSuccessSnackBar('Crawl triggered successfully: $requestId');
+    } catch (e) {
+      // Close loading dialog
+      Navigator.of(context).pop();
+      _showErrorSnackBar('Failed to trigger crawl: $e');
+    }
+  }
+
+  Future<void> _checkServerHealth() async {
+    try {
+      final health = await CloudCrawlerService.instance.checkServerHealth();
+      setState(() {
+        _serverHealth = health;
+      });
+
+      _showSuccessSnackBar(
+        health.isHealthy ? 'Server is healthy' : 'Server status checked',
+      );
+    } catch (e) {
+      setState(() {
+        _serverHealth = ServerHealthStatus(
+          isHealthy: false,
+          lastCrawlTime: null,
+          recentCrawlCount: 0,
+          message: 'Error checking server: $e',
+        );
+      });
+      _showErrorSnackBar('Failed to check server health: $e');
+    }
   }
 }

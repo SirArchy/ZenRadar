@@ -1,0 +1,21 @@
+# Settings for Backend (on Cloud Run).
+# See https://firebase.google.com/docs/app-hosting/configure#cloud-run
+runConfig:
+  minInstances: 0
+  maxInstances: 10
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+
+# Build configuration for Flutter web
+env:
+  # Flutter build environment variables
+  - variable: FLUTTER_WEB
+    value: "true"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: FLUTTER_BUILD_MODE
+    value: "release"
+    availability:
+      - BUILD

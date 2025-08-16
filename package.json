@@ -1,0 +1,20 @@
+{
+  "name": "zenradar-web",
+  "version": "1.0.0",
+  "description": "ZenRadar Flutter Web App",
+  "scripts": {
+    "build": "flutter build web --release",
+    "build:deploy": "flutter clean && flutter pub get && flutter build web --release",
+    "deploy": "npm run build:deploy && firebase deploy --only hosting",
+    "deploy:all": "npm run build:deploy && firebase deploy",
+    "start": "flutter run -d web-server --web-port 8080",
+    "clean": "flutter clean && flutter pub get",
+    "analyze": "flutter analyze",
+    "test": "flutter test"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

@@ -62,6 +62,8 @@ class ScanActivity {
         return 'Manual';
       case 'favorites':
         return 'Favorites';
+      case 'server':
+        return 'Server';
       default:
         return 'Unknown';
     }

@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/settings_service.dart';
+import '../models/matcha_product.dart';
 import '../widgets/app_mode_selection_dialog.dart';
 import 'home_screen.dart';
 
@@ -24,8 +26,21 @@ class _AppInitializerState extends State<AppInitializer> {
     try {
       final settings = await SettingsService.instance.getSettings();
 
-      // Check if this is a fresh install or if appMode is not set
-      // For existing users, default to local mode
+      // For web users, automatically use server mode and skip mode selection
+      if (kIsWeb) {
+        if (settings.appMode.isEmpty || settings.appMode != 'server') {
+          // Set server mode for web users
+          final updatedSettings = settings.copyWith(appMode: 'server');
+          await SettingsService.instance.saveSettings(updatedSettings);
+        }
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // For mobile users, check if this is a fresh install or if appMode is not set
+      // For existing mobile users, default to local mode
       if (settings.appMode.isEmpty) {
         setState(() {
           _needsModeSelection = true;
@@ -37,11 +52,28 @@ class _AppInitializerState extends State<AppInitializer> {
         });
       }
     } catch (e) {
-      // If settings can't be loaded, show mode selection
-      setState(() {
-        _needsModeSelection = true;
-        _isLoading = false;
-      });
+      // If settings can't be loaded
+      if (kIsWeb) {
+        // For web, force server mode even if settings fail
+        try {
+          final defaultSettings = UserSettings().copyWith(appMode: 'server');
+          await SettingsService.instance.saveSettings(defaultSettings);
+          setState(() {
+            _isLoading = false;
+          });
+        } catch (saveError) {
+          // If we can't save settings, still continue with web defaults
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      } else {
+        // For mobile, show mode selection
+        setState(() {
+          _needsModeSelection = true;
+          _isLoading = false;
+        });
+      }
     }
   }
 

@@ -71,6 +71,41 @@ class MatchaProduct {
     );
   }
 
+  // Factory for Firestore data (for server mode)
+  factory MatchaProduct.fromFirestore(String id, Map<String, dynamic> data) {
+    return MatchaProduct(
+      id: id,
+      name: data['name'] ?? '',
+      normalizedName:
+          data['normalizedName'] ??
+          MatchaProduct.normalizeName(data['name'] ?? ''),
+      site: data['site'] ?? '',
+      url: data['url'] ?? '',
+      isInStock: data['isInStock'] ?? false,
+      isDiscontinued: data['isDiscontinued'] ?? false,
+      missedScans: data['missedScans'] ?? 0,
+      lastChecked:
+          data['lastChecked'] != null
+              ? (data['lastChecked'] as dynamic).toDate()
+              : DateTime.now(),
+      firstSeen:
+          data['firstSeen'] != null
+              ? (data['firstSeen'] as dynamic).toDate()
+              : DateTime.now(),
+      price: data['price'],
+      priceValue: data['priceValue']?.toDouble(),
+      currency: data['currency'],
+      imageUrl: data['imageUrl'],
+      description: data['description'],
+      category: data['category'],
+      weight: data['weight'],
+      metadata:
+          data['metadata'] != null
+              ? Map<String, dynamic>.from(data['metadata'])
+              : null,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -311,6 +346,7 @@ class UserSettings {
       "mamecha",
       "enjoyemeri",
       "poppatea",
+      "horiishichimeien",
     ],
     this.itemsPerPage = 20,
     this.maxStorageMB = 100,
@@ -344,6 +380,7 @@ class UserSettings {
               "mamecha",
               "enjoyemeri",
               "poppatea",
+              "horiishichimeien",
             ],
       ),
       itemsPerPage: json['itemsPerPage'] ?? 20,

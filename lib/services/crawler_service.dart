@@ -130,6 +130,17 @@ class CrawlerService {
           '.price__regular', // Prices in price__regular elements (not price-item)
       linkSelector: 'a[href*="/products/"]', // Product links
     ),
+    'horiishichimeien': SiteConfig(
+      name: 'Horiishichimeien',
+      baseUrl:
+          'https://horiishichimeien.com/en/collections/all?selected=%E6%8A%B9%E8%8C%B6',
+      stockSelector:
+          '.variant-picker select option', // Stock indicated by available options
+      productSelector: '.product-card',
+      nameSelector: '.product-card__title, h3, .product-title',
+      priceSelector: '.price, .product-price',
+      linkSelector: 'a[href*="/products/"]',
+    ),
   };
 
   Future<List<MatchaProduct>> crawlAllSites() async {
@@ -335,6 +346,129 @@ class CrawlerService {
     return products;
   }
 
+  Future<List<MatchaProduct>> crawlHoriishichimeien() async {
+    const baseUrl =
+        'https://horiishichimeien.com/en/collections/all?selected=%E6%8A%B9%E8%8C%B6';
+    final client = http.Client();
+    final List<MatchaProduct> products = [];
+
+    try {
+      final response = await client.get(Uri.parse(baseUrl));
+      if (response.statusCode != 200) {
+        throw Exception('Failed to load Horiishichimeien');
+      }
+
+      final document = parse(response.body);
+
+      // Find all product containers
+      final productCards = document.querySelectorAll(
+        '.product-card, .product-item',
+      );
+
+      for (final card in productCards) {
+        try {
+          // Extract basic product info
+          final nameEl = card.querySelector(
+            '.product-card__title, h3, .product-title',
+          );
+          final priceEl = card.querySelector('.price, .product-price');
+          final linkEl = card.querySelector('a[href*="/products/"]');
+
+          if (nameEl == null || linkEl == null) continue;
+
+          final name = nameEl.text.trim();
+          final href = linkEl.attributes['href'];
+          if (href == null || name.isEmpty) continue;
+
+          // Check if it's matcha (Japanese or English)
+          final nameLC = name.toLowerCase();
+          if (!nameLC.contains('matcha') && !nameLC.contains('抹茶')) {
+            continue;
+          }
+
+          final productUrl =
+              href.startsWith('http')
+                  ? href
+                  : 'https://horiishichimeien.com$href';
+
+          // Check individual product page for stock status
+          try {
+            final productResponse = await client.get(Uri.parse(productUrl));
+            if (productResponse.statusCode != 200) continue;
+
+            final productDoc = parse(productResponse.body);
+
+            // Check for stock indicators (variant options mean stock is available)
+            final variantOptions = productDoc.querySelectorAll(
+              '.variant-picker select option',
+            );
+            final addToCartButton = productDoc.querySelector(
+              '.btn-product-form, [name="add"], .add-to-cart',
+            );
+
+            // Product is in stock if it has variant options or an enabled add to cart button
+            final isInStock =
+                variantOptions.isNotEmpty ||
+                (addToCartButton != null &&
+                    !addToCartButton.classes.contains('disabled'));
+
+            if (!isInStock) continue;
+
+            // Extract price from product page if not found on main page
+            String price = priceEl?.text.trim() ?? '';
+            if (price.isEmpty) {
+              final productPagePrice = productDoc.querySelector(
+                '.price, .product-price, .money',
+              );
+              price = productPagePrice?.text.trim() ?? '';
+            }
+
+            products.add(
+              MatchaProduct(
+                id: 'horiishichimeien_${name.hashCode}',
+                name: name,
+                normalizedName:
+                    name
+                        .toLowerCase()
+                        .replaceAll(RegExp(r'[^\w\s]'), '')
+                        .trim(),
+                site: 'Horiishichimeien',
+                url: productUrl,
+                isInStock: isInStock,
+                price: price.isNotEmpty ? price : null,
+                priceValue: double.tryParse(
+                  price.replaceAll(RegExp(r'[^\d.,]'), '').replaceAll(',', '.'),
+                ),
+                currency: 'JPY', // Assuming Japanese Yen
+                imageUrl: null,
+                description: null,
+                category: null,
+                weight: null,
+                metadata: null,
+                lastChecked: DateTime.now(),
+                firstSeen: DateTime.now(),
+                isDiscontinued: false,
+                missedScans: 0,
+              ),
+            );
+          } catch (productErr) {
+            print('Error checking product details for $name: $productErr');
+            continue;
+          }
+        } catch (cardErr) {
+          print('Error processing product card: $cardErr');
+          continue;
+        }
+      }
+    } catch (e) {
+      print('Error crawling Horiishichimeien: $e');
+    } finally {
+      client.close();
+    }
+
+    return products;
+  }
+
   /// Crawl only the specified sites
   Future<List<MatchaProduct>> crawlSelectedSites(
     List<String> selectedSiteKeys,
@@ -511,6 +645,16 @@ class CrawlerService {
       // Special handling for Poppatea
       if (siteKey == 'poppatea') {
         products = await crawlPoppatea();
+        // Check for stock changes and update DB
+        for (final product in products) {
+          await _checkStockChange(product);
+        }
+        return products;
+      }
+
+      // Special handling for Horiishichimeien
+      if (siteKey == 'horiishichimeien') {
+        products = await crawlHoriishichimeien();
         // Check for stock changes and update DB
         for (final product in products) {
           await _checkStockChange(product);
