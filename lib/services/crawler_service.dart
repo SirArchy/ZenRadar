@@ -9,6 +9,7 @@ import 'database_service.dart';
 import 'notification_service.dart';
 import 'crawler_logger.dart';
 import 'settings_service.dart';
+import 'currency_price_service.dart';
 
 class CrawlerService {
   static final CrawlerService _instance = CrawlerService._internal();
@@ -20,6 +21,7 @@ class CrawlerService {
   final dynamic _db = DatabaseService.platformService;
   final NotificationService _notifications = NotificationService.instance;
   final CrawlerLogger _logger = CrawlerLogger.instance;
+  final CurrencyPriceService _priceService = CurrencyPriceService.instance;
 
   // Site configurations
   final Map<String, SiteConfig> _siteConfigs = {
@@ -1316,229 +1318,8 @@ class CrawlerService {
 
   /// Cleans and normalizes price strings from different sites
   String _cleanPrice(String rawPrice, String siteKey) {
-    if (rawPrice.isEmpty) return rawPrice;
-
-    String cleaned = rawPrice.trim();
-
-    switch (siteKey) {
-      case 'marukyu':
-        // For Marukyu-Koyamaen, handle multi-currency display
-        // Example: "4209.61€8.26£7.15¥68.39" or "100~14.21~€12.21~"
-        if (cleaned.contains('€') &&
-            cleaned.contains('£') &&
-            cleaned.contains('¥')) {
-          // Extract individual currencies and format nicely
-          final eurMatch = RegExp(r'(\d+[.,]\d+)€').firstMatch(cleaned);
-          final gbpMatch = RegExp(r'(\d+[.,]\d+)£').firstMatch(cleaned);
-          final jpyMatch = RegExp(r'(\d+[.,]\d+)¥').firstMatch(cleaned);
-          final usdMatch = RegExp(r'\$(\d+[.,]\d+)').firstMatch(cleaned);
-
-          List<String> prices = [];
-          if (usdMatch != null) prices.add('\$${usdMatch.group(1)}');
-          if (eurMatch != null) prices.add('€${eurMatch.group(1)}');
-          if (gbpMatch != null) prices.add('£${gbpMatch.group(1)}');
-          if (jpyMatch != null) prices.add('¥${jpyMatch.group(1)}');
-
-          return prices.isNotEmpty ? prices.join(' | ') : cleaned;
-        }
-
-        // Handle tilde-separated prices: "100~14.21~€12.21~"
-        if (cleaned.contains('~')) {
-          final parts =
-              cleaned.split('~').where((p) => p.trim().isNotEmpty).toList();
-          List<String> validPrices = [];
-
-          for (String part in parts) {
-            part = part.trim();
-            if (RegExp(r'^[\d.,]+$').hasMatch(part)) {
-              // Pure number, likely USD
-              validPrices.add('\$$part');
-            } else if (RegExp(r'^[€£¥\$][\d.,]+$').hasMatch(part)) {
-              // Currency symbol at start
-              validPrices.add(part);
-            } else if (RegExp(r'^[\d.,]+[€£¥]$').hasMatch(part)) {
-              // Currency symbol at end
-              validPrices.add(part);
-            }
-          }
-
-          return validPrices.isNotEmpty ? validPrices.join(' | ') : cleaned;
-        }
-        break;
-
-      case 'sho-cha':
-        // For Sho-Cha, handle German Euro formatting
-        // Example: "24,00 €" or "$24.00" -> "24,00 €"
-        cleaned =
-            cleaned
-                .replaceAll('\u00A0', ' ') // Replace non-breaking space
-                .replaceAll('\n', ' ')
-                .replaceAll(RegExp(r'\s+'), ' ')
-                .trim();
-
-        // Extract price in German format (XX,XX €)
-        // For sale items, prefer the first price (which is the sale price)
-        final euroPriceMatch = RegExp(
-          r'(\d+(?:,\d{2})?\s*€)',
-        ).firstMatch(cleaned);
-        if (euroPriceMatch != null) {
-          final price = euroPriceMatch.group(1)!.trim();
-          // Only return if it's not a zero price
-          if (!price.startsWith('0,00') && !price.startsWith('00,')) {
-            return price;
-          }
-        }
-
-        // Try USD format and convert
-        final usdPriceMatch = RegExp(
-          r'\$(\d+(?:\.\d{2})?)',
-        ).firstMatch(cleaned);
-        if (usdPriceMatch != null) {
-          final dollarAmount = usdPriceMatch.group(1)!;
-          if (dollarAmount != '0.00' && dollarAmount != '00.00') {
-            return '\$$dollarAmount';
-          }
-        }
-
-        // Extract any numeric price pattern
-        final numericMatch = RegExp(r'(\d+[.,]\d{2})').firstMatch(cleaned);
-        if (numericMatch != null) {
-          final number = numericMatch.group(1)!;
-          if (!number.startsWith('0,00') &&
-              !number.startsWith('00,') &&
-              !number.startsWith('0.00') &&
-              !number.startsWith('00.')) {
-            return '$number €';
-          }
-        }
-
-        return ''; // Invalid price
-
-      case 'matcha-karu':
-        // For Matcha Kāru, handle German price formatting
-        // Example: "AngebotspreisAb 19,00 €" -> "19,00 €"
-        cleaned = cleaned.replaceAll('\n', ' ').replaceAll(RegExp(r'\s+'), ' ');
-
-        // Remove German text prefixes
-        cleaned = cleaned.replaceAll('Angebotspreis', '');
-        cleaned = cleaned.replaceAll('Ab ', '');
-        cleaned = cleaned.replaceAll('ab ', '');
-        cleaned = cleaned.trim();
-
-        // Extract price with Euro symbol and maintain proper spacing
-        final priceMatch = RegExp(r'(\d+[.,]\d+)\s*€').firstMatch(cleaned);
-        if (priceMatch != null) {
-          return '${priceMatch.group(1)} €'; // Add space before Euro symbol
-        }
-
-        // Fallback: if it contains a price-like pattern, try to extract it
-        final fallbackMatch = RegExp(r'(\d+[.,]\d+)').firstMatch(cleaned);
-        if (fallbackMatch != null) {
-          return '${fallbackMatch.group(1)} €';
-        }
-
-        // Check if it's just invalid/zero price - return empty for invalid prices
-        if (cleaned == '00' ||
-            cleaned == '0' ||
-            cleaned.startsWith('00 ') ||
-            cleaned.isEmpty) {
-          return '';
-        }
-
-        // Return cleaned string if it looks like a valid price
-        if (cleaned.contains('€') && RegExp(r'\d').hasMatch(cleaned)) {
-          return cleaned;
-        }
-
-        return ''; // Invalid price
-
-      case 'yoshien':
-        // For Yoshi En, extract price from German format like "Ab 14,90 € 14,90 €"
-        cleaned = cleaned.replaceAll('Ab ', '').trim();
-
-        // Extract the first valid price
-        final priceMatch = RegExp(r'(\d+[.,]\d+)\s*€').firstMatch(cleaned);
-        if (priceMatch != null) {
-          return '${priceMatch.group(1)}€';
-        }
-        break;
-
-      case 'sazentea':
-        // For Sazen Tea, extract the first price from formats like "$6.48 / 20 g BOX" or multiple prices
-        cleaned = cleaned.replaceAll('\n', ' ').replaceAll(RegExp(r'\s+'), ' ');
-
-        // Extract the first price with dollar sign
-        final priceMatch = RegExp(r'\$(\d+\.\d+)').firstMatch(cleaned);
-        if (priceMatch != null) {
-          return '\$${priceMatch.group(1)}';
-        }
-
-        // Fallback for other currency formats
-        final currencyMatch = RegExp(
-          r'([\$€£¥]\s*\d+[.,]\d+)',
-        ).firstMatch(cleaned);
-        if (currencyMatch != null) {
-          return currencyMatch.group(1)!.replaceAll(RegExp(r'\s+'), '');
-        }
-        break;
-
-      case 'mamecha':
-        // For Mamecha, clean up and extract price with € symbol
-        cleaned = cleaned.replaceAll('\n', ' ').replaceAll(RegExp(r'\s+'), ' ');
-
-        // Look for specific price patterns like "15,20 €" or "9,10 €"
-        final priceMatch = RegExp(r'(\d+[.,]\d+)\s*€').firstMatch(cleaned);
-        if (priceMatch != null) {
-          return '${priceMatch.group(1)}€';
-        }
-
-        // Fallback for currency patterns
-        final currencyMatch = RegExp(
-          r'([\$€£¥]\s*\d+[.,]\d+)',
-        ).firstMatch(cleaned);
-        if (currencyMatch != null) {
-          return currencyMatch.group(1)!.replaceAll(RegExp(r'\s+'), '');
-        }
-        break;
-
-      case 'poppatea':
-        // For Poppatea, handle German Euro formatting
-        // Example: "Ab €15,00" -> "15,00 €"
-        cleaned =
-            cleaned
-                .replaceAll('\u00A0', ' ') // Replace non-breaking space
-                .replaceAll('\n', ' ')
-                .replaceAll(RegExp(r'\s+'), ' ')
-                .trim();
-
-        // Remove "Ab" prefix and extract price
-        cleaned = cleaned.replaceAll('Ab ', '').trim();
-
-        // Extract price in German format (€XX,XX or XX,XX €)
-        final priceMatch = RegExp(r'€?(\d+,\d{2})\s*€?').firstMatch(cleaned);
-        if (priceMatch != null) {
-          return '${priceMatch.group(1)} €';
-        }
-
-        // Fallback: if it contains € and digits, try to extract
-        if (cleaned.contains('€') && RegExp(r'\d').hasMatch(cleaned)) {
-          return cleaned;
-        }
-
-        return ''; // Invalid price
-    }
-
-    // General cleanup for all sites
-    cleaned = cleaned.replaceAll('\n', ' ').replaceAll(RegExp(r'\s+'), ' ');
-
-    // Remove dollar sign for backward compatibility (except when it's the only currency)
-    if (!cleaned.contains('€') &&
-        !cleaned.contains('£') &&
-        !cleaned.contains('¥')) {
-      cleaned = cleaned.replaceAll('\$', '');
-    }
-
-    return cleaned.trim();
+    final priceInfo = _priceService.extractPrice(rawPrice, siteKey);
+    return priceInfo.displayPrice;
   }
 
   /// Extract numeric price value from price string for filtering and comparison
