@@ -91,17 +91,6 @@ class CrawlerService {
         stockKeywords: ['add to cart', 'in stock', 'available'],
         outOfStockKeywords: ['out of stock', 'sold out', 'unavailable']
       },
-      'mamecha': {
-        name: 'Mamecha',
-        baseUrl: 'https://www.mamecha.de',
-        categoryUrl: 'https://www.mamecha.de/collections/alle-tees',
-        productSelector: '.product-item',
-        nameSelector: '.product-item__title a, h1',
-        priceSelector: '.price-item--regular, .price-item--sale, .product__price',
-        stockSelector: '.product-item__title a, .add-to-cart',
-        stockKeywords: ['add to cart', 'in den warenkorb', 'verfügbar'],
-        outOfStockKeywords: ['ausverkauft', 'nicht auf lager', 'sold out']
-      },
       'enjoyemeri': {
         name: 'Emeri',
         baseUrl: 'https://www.enjoyemeri.com',
@@ -428,13 +417,6 @@ class CrawlerService {
         const priceExists = $(config.priceSelector).length > 0;
         return priceExists;
 
-      case 'mamecha':
-        // For Mamecha, check German availability text
-        if (pageText.includes('out of stock') || pageText.includes('ausverkauft')) return false;
-        if (pageText.includes('verfügbar')) return true;
-        const pricePresent = $(config.priceSelector).length > 0;
-        return pricePresent;
-
       case 'enjoyemeri':
         // For Enjoyemeri (Shopify), check for price and no out of stock text
         const priceAvailable = $(config.priceSelector).length > 0;
@@ -517,7 +499,6 @@ class CrawlerService {
 
       case 'yoshien':
       case 'sazentea':
-      case 'mamecha':
       case 'poppatea':
       case 'horiishichimeien':
         // Standard cleanup for these sites

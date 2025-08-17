@@ -674,7 +674,6 @@ Future<void> _performStockCheck() async {
         'matcha-karu': 'Matcha Kāru',
         'sho-cha': 'Sho-Cha',
         'sazentea': 'Sazen Tea',
-        'mamecha': 'Mamecha',
         'enjoyemeri': 'Emeri',
         'poppatea': 'Poppatea',
       };

@@ -160,23 +160,41 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
+              // Fixed layout for header row
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.dashboard_outlined,
-                    color: Theme.of(context).primaryColor,
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.dashboard_outlined,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Overall Summary',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Overall Summary',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const Spacer(),
-                  Chip(
-                    label: Text(_getTimeRangeLabel(_selectedTimeRange)),
-                    backgroundColor: Theme.of(
-                      context,
-                    ).primaryColor.withAlpha(50),
+                  const SizedBox(height: 8),
+                  // Time range selector moved to separate row
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 200),
+                      child: Chip(
+                        label: Text(
+                          _getTimeRangeLabel(_selectedTimeRange),
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        backgroundColor: Theme.of(
+                          context,
+                        ).primaryColor.withAlpha(50),
+                      ),
+                    ),
                   ),
                 ],
               ),

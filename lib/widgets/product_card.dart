@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/matcha_product.dart';
+import '../services/product_price_converter.dart';
 import 'category_icon.dart';
 
-class ProductCard extends StatelessWidget {
+class ProductCard extends StatefulWidget {
   final MatchaProduct product;
   final VoidCallback? onTap;
   final String? preferredCurrency;
@@ -20,122 +21,73 @@ class ProductCard extends StatelessWidget {
     this.extraInfo,
   });
 
-  /// Extracts the price for the preferred currency from a multi-currency price string
-  String? _extractPriceForCurrency(String? priceString, String currency) {
-    if (priceString == null || priceString.isEmpty) return null;
+  @override
+  State<ProductCard> createState() => _ProductCardState();
+}
 
-    // Common currency symbols and patterns
-    final Map<String, List<String>> currencyPatterns = {
-      'EUR': ['€', 'EUR'],
-      'USD': ['\$', 'USD'],
-      'JPY': ['¥', '円', 'JPY'],
-      'GBP': ['£', 'GBP'],
-      'CHF': ['CHF'],
-      'CAD': ['CAD'],
-      'AUD': ['AUD'],
-    };
+class _ProductCardState extends State<ProductCard> {
+  String? _convertedPrice;
+  bool _isConvertingPrice = false;
 
-    final patterns = currencyPatterns[currency] ?? [currency];
+  @override
+  void initState() {
+    super.initState();
+    _convertPrice();
+  }
 
-    // First, try to find currency-specific patterns in the full string
-    for (final pattern in patterns) {
-      // Look for complete price patterns with this currency
-      // Pattern for currency symbol followed by or preceding numbers with decimal separators
-      if (pattern == '€') {
-        // Euro patterns: €15,99 or 15,99€ or €15.99 or 15.99€
-        final euroMatch = RegExp(
-          r'€\s*(\d+[.,]\d+)|(\d+[.,]\d+)\s*€',
-        ).firstMatch(priceString);
-        if (euroMatch != null) {
-          final price = euroMatch.group(1) ?? euroMatch.group(2);
-          return pattern == '€' && euroMatch.group(0)!.contains('€')
-              ? euroMatch.group(0)!.trim()
-              : '$price€';
-        }
-        // Also handle whole euro amounts: €15 or 15€
-        final euroWholeMatch = RegExp(
-          r'€\s*(\d+)|(\d+)\s*€',
-        ).firstMatch(priceString);
-        if (euroWholeMatch != null) {
-          return euroWholeMatch.group(0)!.trim();
-        }
-      } else if (pattern == '\$') {
-        // Dollar patterns: $15.99 or 15.99$ (less common)
-        final dollarMatch = RegExp(
-          r'\$\s*(\d+[.,]\d+)|(\d+[.,]\d+)\s*\$',
-        ).firstMatch(priceString);
-        if (dollarMatch != null) {
-          return dollarMatch.group(0)!.trim();
-        }
-        // Also handle whole dollar amounts
-        final dollarWholeMatch = RegExp(
-          r'\$\s*(\d+)|(\d+)\s*\$',
-        ).firstMatch(priceString);
-        if (dollarWholeMatch != null) {
-          return dollarWholeMatch.group(0)!.trim();
-        }
-      } else if (pattern == '¥') {
-        // Yen patterns: ¥1000 or 1000¥ or ¥1,000
-        final yenMatch = RegExp(
-          r'¥\s*(\d+[.,]?\d*)|(\d+[.,]?\d*)\s*¥',
-        ).firstMatch(priceString);
-        if (yenMatch != null) {
-          return yenMatch.group(0)!.trim();
-        }
-      } else if (pattern == '£') {
-        // Pound patterns: £15.99 or 15.99£
-        final poundMatch = RegExp(
-          r'£\s*(\d+[.,]\d+)|(\d+[.,]\d+)\s*£',
-        ).firstMatch(priceString);
-        if (poundMatch != null) {
-          return poundMatch.group(0)!.trim();
-        }
-        // Also handle whole pound amounts
-        final poundWholeMatch = RegExp(
-          r'£\s*(\d+)|(\d+)\s*£',
-        ).firstMatch(priceString);
-        if (poundWholeMatch != null) {
-          return poundWholeMatch.group(0)!.trim();
-        }
-      }
+  @override
+  void didUpdateWidget(ProductCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.preferredCurrency != widget.preferredCurrency ||
+        oldWidget.product.price != widget.product.price) {
+      _convertPrice();
+    }
+  }
+
+  Future<void> _convertPrice() async {
+    if (widget.product.price == null || widget.preferredCurrency == null) {
+      return;
     }
 
-    // Fallback: split by pipe, semicolon, forward slash, and newlines (but NOT commas)
-    // as commas are used as decimal separators in many currencies
-    final parts = priceString.split(RegExp(r'[|;/\n\r]+'));
+    setState(() {
+      _isConvertingPrice = true;
+    });
 
-    for (final part in parts) {
-      final trimmed = part.trim();
-      if (trimmed.isEmpty) continue;
+    try {
+      final convertedPrice = await ProductPriceConverter.instance.convertPrice(
+        rawPrice: widget.product.price,
+        productCurrency: widget.product.currency,
+        preferredCurrency: widget.preferredCurrency!,
+        siteKey: widget.product.site.toLowerCase().replaceAll(' ', '-'),
+        priceValue: widget.product.priceValue,
+      );
 
-      // Check if this part contains our currency
-      for (final pattern in patterns) {
-        if (trimmed.contains(pattern)) {
-          return trimmed;
-        }
+      if (mounted) {
+        setState(() {
+          _convertedPrice = convertedPrice;
+          _isConvertingPrice = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _convertedPrice = widget.product.price; // Fallback to original
+          _isConvertingPrice = false;
+        });
       }
     }
-
-    // If no specific currency found, return the first non-empty part
-    for (final part in parts) {
-      final trimmed = part.trim();
-      if (trimmed.isNotEmpty) {
-        return trimmed;
-      }
-    }
-
-    return priceString;
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isUnavailable = !product.isInStock || product.isDiscontinued;
+    final bool isUnavailable =
+        !widget.product.isInStock || widget.product.isDiscontinued;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12.0),
       elevation: isUnavailable ? 1 : 2,
       child: InkWell(
-        onTap: onTap,
+        onTap: widget.onTap,
         borderRadius: BorderRadius.circular(8),
         child: Opacity(
           opacity: isUnavailable ? 0.6 : 1.0,
@@ -157,7 +109,7 @@ class ProductCard extends StatelessWidget {
                   Row(
                     children: [
                       CategoryIcon(
-                        category: product.category,
+                        category: widget.product.category,
                         size: 32,
                         color:
                             isUnavailable
@@ -169,7 +121,7 @@ class ProductCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          product.name,
+                          widget.product.name,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -179,7 +131,7 @@ class ProductCard extends StatelessWidget {
                                         .withValues(alpha: 0.6)
                                     : null,
                             decoration:
-                                product.isDiscontinued
+                                widget.product.isDiscontinued
                                     ? TextDecoration.lineThrough
                                     : null,
                           ),
@@ -191,19 +143,19 @@ class ProductCard extends StatelessWidget {
                       _buildStatusChip(context),
                       const SizedBox(width: 8),
                       // Favorite button
-                      if (onFavoriteToggle != null)
+                      if (widget.onFavoriteToggle != null)
                         InkWell(
-                          onTap: onFavoriteToggle,
+                          onTap: widget.onFavoriteToggle,
                           borderRadius: BorderRadius.circular(16),
                           child: Padding(
                             padding: const EdgeInsets.all(4.0),
                             child: Icon(
-                              isFavorite
+                              widget.isFavorite
                                   ? Icons.favorite
                                   : Icons.favorite_border,
                               size: 20,
                               color:
-                                  isFavorite
+                                  widget.isFavorite
                                       ? Colors.red
                                       : Theme.of(context).colorScheme.onSurface
                                           .withValues(alpha: 0.6),
@@ -232,7 +184,7 @@ class ProductCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        product.site,
+                        widget.product.site,
                         style: TextStyle(
                           color: Theme.of(
                             context,
@@ -241,29 +193,32 @@ class ProductCard extends StatelessWidget {
                         ),
                       ),
                       const Spacer(),
-                      if (product.price != null) ...[
-                        Text(
-                          _extractPriceForCurrency(
-                                product.price!,
-                                preferredCurrency ?? 'EUR',
-                              ) ??
-                              product.price!,
-                          style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.6),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            decoration:
-                                product.isDiscontinued
-                                    ? TextDecoration.lineThrough
-                                    : null,
+                      if (widget.product.price != null) ...[
+                        if (_isConvertingPrice)
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        else
+                          Text(
+                            _convertedPrice ?? widget.product.price!,
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              decoration:
+                                  widget.product.isDiscontinued
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                            ),
                           ),
-                        ),
                       ],
                     ],
                   ),
-                  if (product.category != null) ...[
+                  if (widget.product.category != null) ...[
                     const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -277,7 +232,7 @@ class ProductCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        product.category!,
+                        widget.product.category!,
                         style: TextStyle(
                           color:
                               Theme.of(context).colorScheme.onPrimaryContainer,
@@ -299,7 +254,7 @@ class ProductCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'Last checked: ${_formatDateTime(product.lastChecked)}',
+                        'Last checked: ${_formatDateTime(widget.product.lastChecked)}',
                         style: TextStyle(
                           color: Theme.of(
                             context,
@@ -308,9 +263,10 @@ class ProductCard extends StatelessWidget {
                         ),
                       ),
                       const Spacer(),
-                      if (product.firstSeen != product.lastChecked)
+                      if (widget.product.firstSeen !=
+                          widget.product.lastChecked)
                         Text(
-                          'Added ${_formatDateTime(product.firstSeen)}',
+                          'Added ${_formatDateTime(widget.product.firstSeen)}',
                           style: TextStyle(
                             color: Theme.of(
                               context,
@@ -320,9 +276,9 @@ class ProductCard extends StatelessWidget {
                         ),
                     ],
                   ),
-                  if (extraInfo != null) ...[
+                  if (widget.extraInfo != null) ...[
                     const SizedBox(height: 8),
-                    extraInfo!,
+                    widget.extraInfo!,
                   ],
                 ],
               ),
@@ -338,11 +294,11 @@ class ProductCard extends StatelessWidget {
     IconData chipIcon;
     String chipText;
 
-    if (product.isDiscontinued) {
+    if (widget.product.isDiscontinued) {
       chipColor = Theme.of(context).colorScheme.outline;
       chipIcon = Icons.not_interested;
       chipText = 'Discontinued';
-    } else if (product.isInStock) {
+    } else if (widget.product.isInStock) {
       chipColor = Theme.of(context).colorScheme.primary;
       chipIcon = Icons.check_circle;
       chipText = 'In Stock';

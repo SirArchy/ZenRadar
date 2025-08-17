@@ -345,7 +345,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         isUnavailable
                             ? Theme.of(
                               context,
-                            ).colorScheme.onSurface.withAlpha(100)
+                            ).colorScheme.onSurface.withValues(alpha: 100 / 255)
                             : null,
                   ),
                   const SizedBox(width: 12),

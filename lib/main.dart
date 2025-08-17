@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'services/notification_service.dart';
 import 'services/background_service.dart';
 import 'services/web_background_service.dart';
@@ -11,6 +13,21 @@ import 'screens/app_initializer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase for Firestore support (server mode)
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    if (kDebugMode) {
+      print('Firebase initialized successfully');
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print('Firebase initialization failed: $e');
+      print('Continuing without Firebase - server mode will not work');
+    }
+  }
 
   // Initialize services
   await DatabaseService.platformService.initDatabase();

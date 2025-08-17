@@ -775,122 +775,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 16),
 
-          // About Section
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'About',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  const ListTile(
-                    leading: Icon(Icons.info),
-                    title: Text('ZenRadar'),
-                    subtitle: Text(
-                      'Matcha stock monitoring app\nVersion 1.0.0',
-                    ),
-                  ),
-                  const ListTile(
-                    leading: Icon(Icons.language),
-                    title: Text('Monitored Sites'),
-                    subtitle: Text(
-                      'Nakamura Tokichi, Marukyu-Koyamaen, Ippodo Tea,\nYoshi En, Matcha Kāru, Sho-Cha, Sazen Tea,\nMamecha, Emeri, Poppatea + Custom websites',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Debug Section (for testing background service - local mode only)
-          if (!kIsWeb && _settings.appMode == 'local')
-            Card(
-              color: Colors.orange.withValues(alpha: 0.1),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.bug_report, color: Colors.orange),
-                        SizedBox(width: 8),
-                        Text(
-                          'Debug Tools',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Use these tools to test background service functionality:',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        try {
-                          _showSuccessSnackBar('Testing background service...');
-                          await BackgroundServiceController.instance
-                              .triggerManualCheck();
-                          _showSuccessSnackBar('Manual check triggered');
-                        } catch (e) {
-                          _showErrorSnackBar('Failed to trigger check: $e');
-                        }
-                      },
-                      icon: const Icon(Icons.play_arrow),
-                      label: const Text('Trigger Manual Check'),
-                    ),
-                    const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        try {
-                          final isRunning =
-                              await BackgroundServiceController.instance
-                                  .isServiceRunning();
-                          _showSuccessSnackBar('Service running: $isRunning');
-                        } catch (e) {
-                          _showErrorSnackBar('Failed to check service: $e');
-                        }
-                      },
-                      icon: const Icon(Icons.info),
-                      label: const Text('Check Service Status'),
-                    ),
-                    const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        try {
-                          _showSuccessSnackBar(
-                            'Restarting background service...',
-                          );
-                          await BackgroundServiceController.instance
-                              .stopService();
-                          await Future.delayed(const Duration(seconds: 2));
-                          await BackgroundServiceController.instance
-                              .startService();
-                          _showSuccessSnackBar('Service restarted');
-                        } catch (e) {
-                          _showErrorSnackBar('Failed to restart service: $e');
-                        }
-                      },
-                      icon: const Icon(Icons.restart_alt),
-                      label: const Text('Restart Service'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
           // Contact Section
           Card(
             margin: const EdgeInsets.only(top: 16),
@@ -1024,7 +908,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       {'key': 'matcha-karu', 'name': 'Matcha Kāru', 'url': 'matchakaru.com'},
       {'key': 'sho-cha', 'name': 'Sho-Cha', 'url': 'sho-cha.com'},
       {'key': 'sazentea', 'name': 'Sazen Tea', 'url': 'sazentea.com'},
-      {'key': 'mamecha', 'name': 'Mamecha', 'url': 'mamecha.co.jp'},
       {'key': 'enjoyemeri', 'name': 'Emeri', 'url': 'enjoyemeri.com'},
       {'key': 'poppatea', 'name': 'Poppatea', 'url': 'poppatea.com'},
     ];

@@ -101,17 +101,6 @@ class CrawlerService {
       priceSelector: '.product-price', // Price is in .product-price
       linkSelector: 'a[href*="/products/"]', // Product links to detail pages
     ),
-    'mamecha': SiteConfig(
-      name: 'Mamecha',
-      baseUrl: 'https://www.mamecha.de/collections/alle-tees',
-      stockSelector:
-          '.product-item__title a', // Product names indicate availability
-      productSelector: '.product-item', // Products in product-item containers
-      nameSelector: '.product-item__title a', // Product names in title links
-      priceSelector:
-          '.price-item--regular, .price-item--sale', // Prices in price items
-      linkSelector: '.product-item__title a', // Product links
-    ),
     'enjoyemeri': SiteConfig(
       name: 'Emeri',
       baseUrl: 'https://www.enjoyemeri.com/collections/shop-all',
@@ -1245,38 +1234,6 @@ class CrawlerService {
 
         return false;
 
-      case 'mamecha':
-        // For Mamecha, check for product name and availability
-        final nameElement = productElement.querySelector(config.nameSelector);
-        if (nameElement == null || nameElement.text.trim().isEmpty) {
-          return false;
-        }
-
-        final elementText = productElement.text.toLowerCase();
-        if (elementText.contains('out of stock') ||
-            elementText.contains('sold out') ||
-            elementText.contains('ausverkauft') ||
-            elementText.contains('leider ausverkauft')) {
-          return false;
-        }
-
-        // Check if "verfügbar" (available) is present
-        if (elementText.contains('verfügbar')) {
-          return true;
-        }
-
-        // Check for price presence as fallback
-        final priceElement = productElement.querySelector(
-          '.cc-shop-product-price-current',
-        );
-        if (priceElement != null &&
-            priceElement.text.contains('€') &&
-            !priceElement.text.contains('0,00')) {
-          return true;
-        }
-
-        return false;
-
       case 'enjoyemeri':
         // For Enjoyemeri (Shopify), check for price presence and no out of stock text
         final priceElement = productElement.querySelector(config.priceSelector);
@@ -1671,27 +1628,6 @@ class CrawlerService {
                 'Uji matcha for making koicha from Kanbayashi Shunsho.',
             imageUrl: '',
             weight: 20,
-          ),
-        ];
-
-      case 'Mamecha':
-        return [
-          MatchaProduct(
-            id: 'mamecha_demo_1',
-            name: 'Sencha Bio',
-            normalizedName: 'sencha bio',
-            site: siteName,
-            url: 'https://www.mamecha.de/products/sencha-bio',
-            price: '12,90€',
-            priceValue: 2800.0,
-            currency: 'JPY',
-            isInStock: true,
-            lastChecked: now,
-            firstSeen: now,
-            category: 'Traditional Grade',
-            description: 'Authentic Japanese matcha blend.',
-            imageUrl: '',
-            weight: 30,
           ),
         ];
 

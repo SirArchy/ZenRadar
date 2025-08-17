@@ -170,7 +170,6 @@ class _SiteSelectionDialogState extends State<SiteSelectionDialog> {
       'matcha-karu': 'Organic matcha specialist',
       'sho-cha': 'Artisan tea collection',
       'sazentea': 'Japanese tea direct import',
-      'mamecha': 'German tea boutique',
       'enjoyemeri': 'Curated tea selection',
     };
 

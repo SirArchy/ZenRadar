@@ -380,9 +380,6 @@ class NotificationService {
       case 'sazentea':
         displayName = 'Sazen Tea';
         break;
-      case 'mamecha':
-        displayName = 'Mamecha';
-        break;
       case 'enjoyemeri':
         displayName = 'Emeri';
         break;

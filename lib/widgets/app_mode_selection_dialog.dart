@@ -22,10 +22,8 @@ class _AppModeSelectionDialogState extends State<AppModeSelectionDialog> {
   @override
   void initState() {
     super.initState();
-    // Auto-select server mode for web users
-    if (kIsWeb) {
-      _selectedMode = 'server';
-    }
+    // Auto-select server mode (active mode) for all users by default
+    _selectedMode = 'server';
   }
 
   @override

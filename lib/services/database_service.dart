@@ -3,11 +3,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/matcha_product.dart';
 import '../models/scan_activity.dart';
 import '../models/price_history.dart';
 import '../models/stock_history.dart';
 import 'web_database_service.dart';
+import 'firestore_service.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -32,11 +34,7 @@ class DatabaseService {
 
   // Factory method to get the appropriate database service
   static dynamic get platformService {
-    if (kIsWeb) {
-      return WebDatabaseService.instance;
-    } else {
-      return DatabaseService.instance;
-    }
+    return _PlatformDatabaseService();
   }
 
   Future<Database> _initDatabase() async {
@@ -1052,5 +1050,178 @@ class DatabaseService {
     }
 
     return {'totalEntries': 0, 'trackedProducts': 0};
+  }
+}
+
+/// Platform-aware database service that automatically chooses between local and server modes
+class _PlatformDatabaseService {
+  Future<bool> _isServerMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    final appMode = prefs.getString('appMode') ?? 'local';
+    return appMode == 'server';
+  }
+
+  Future<PaginatedProducts> getProductsPaginated({
+    int page = 1,
+    int itemsPerPage = 20,
+    ProductFilter? filter,
+    String sortBy = 'name',
+    bool sortAscending = true,
+  }) async {
+    if (await _isServerMode()) {
+      // Use Firestore for server mode
+      await FirestoreService.instance.initDatabase();
+      return await FirestoreService.instance.getProductsPaginated(
+        page: page,
+        itemsPerPage: itemsPerPage,
+        filter: filter,
+        sortBy: sortBy,
+        sortAscending: sortAscending,
+      );
+    } else {
+      // Use local database for local mode
+      if (kIsWeb) {
+        return await WebDatabaseService.instance.getProductsPaginated(
+          page: page,
+          itemsPerPage: itemsPerPage,
+          filter: filter,
+          sortBy: sortBy,
+          sortAscending: sortAscending,
+        );
+      } else {
+        return await DatabaseService.instance.getProductsPaginated(
+          page: page,
+          itemsPerPage: itemsPerPage,
+          filter: filter,
+          sortBy: sortBy,
+          sortAscending: sortAscending,
+        );
+      }
+    }
+  }
+
+  Future<List<MatchaProduct>> getAllProducts({ProductFilter? filter}) async {
+    if (await _isServerMode()) {
+      // Use Firestore for server mode
+      await FirestoreService.instance.initDatabase();
+      return await FirestoreService.instance.getAllProducts(filter: filter);
+    } else {
+      // Use local database for local mode
+      if (kIsWeb) {
+        return await WebDatabaseService.instance.getAllProducts();
+      } else {
+        return await DatabaseService.instance.getAllProducts();
+      }
+    }
+  }
+
+  Future<List<MatchaProduct>> getProductsBySite(String site) async {
+    if (await _isServerMode()) {
+      // Use Firestore for server mode
+      await FirestoreService.instance.initDatabase();
+      return await FirestoreService.instance.getProductsBySite(site);
+    } else {
+      // Use local database for local mode
+      if (kIsWeb) {
+        return await WebDatabaseService.instance.getProductsBySite(site);
+      } else {
+        return await DatabaseService.instance.getProductsBySite(site);
+      }
+    }
+  }
+
+  Future<MatchaProduct?> getProduct(String id) async {
+    if (await _isServerMode()) {
+      // Use Firestore for server mode
+      await FirestoreService.instance.initDatabase();
+      return await FirestoreService.instance.getProductById(id);
+    } else {
+      // Use local database for local mode
+      if (kIsWeb) {
+        return await WebDatabaseService.instance.getProduct(id);
+      } else {
+        return await DatabaseService.instance.getProduct(id);
+      }
+    }
+  }
+
+  Future<List<String>> getAvailableCategories() async {
+    if (await _isServerMode()) {
+      // Use Firestore for server mode
+      await FirestoreService.instance.initDatabase();
+      return await FirestoreService.instance.getUniqueCategories();
+    } else {
+      // Use local database for local mode
+      if (kIsWeb) {
+        return await WebDatabaseService.instance.getAvailableCategories();
+      } else {
+        return await DatabaseService.instance.getAvailableCategories();
+      }
+    }
+  }
+
+  Future<List<String>> getUniqueSites() async {
+    if (await _isServerMode()) {
+      // Use Firestore for server mode
+      await FirestoreService.instance.initDatabase();
+      return await FirestoreService.instance.getUniqueSites();
+    } else {
+      // Use local database for local mode - these services don't have getUniqueSites, so we'll extract from products
+      final products = await getAllProducts();
+      final sites = products.map((p) => p.site).toSet().toList();
+      sites.sort();
+      return sites;
+    }
+  }
+
+  // For server mode, these methods will only work locally as Firestore doesn't store favorites locally
+  Future<bool> isFavorite(String productId) async {
+    // Favorites are always stored locally regardless of mode
+    if (kIsWeb) {
+      return await WebDatabaseService.instance.isFavorite(productId);
+    } else {
+      return await DatabaseService.instance.isFavorite(productId);
+    }
+  }
+
+  Future<void> addToFavorites(String productId) async {
+    // Favorites are always stored locally regardless of mode
+    if (kIsWeb) {
+      await WebDatabaseService.instance.addToFavorites(productId);
+    } else {
+      await DatabaseService.instance.addToFavorites(productId);
+    }
+  }
+
+  Future<void> removeFromFavorites(String productId) async {
+    // Favorites are always stored locally regardless of mode
+    if (kIsWeb) {
+      await WebDatabaseService.instance.removeFromFavorites(productId);
+    } else {
+      await DatabaseService.instance.removeFromFavorites(productId);
+    }
+  }
+
+  Future<List<String>> getFavoriteProductIds() async {
+    // Favorites are always stored locally regardless of mode
+    if (kIsWeb) {
+      return await WebDatabaseService.instance.getFavoriteProductIds();
+    } else {
+      return await DatabaseService.instance.getFavoriteProductIds();
+    }
+  }
+
+  // Delegate other methods to local database service
+  Future<void> initDatabase() async {
+    if (kIsWeb) {
+      await WebDatabaseService.instance.initDatabase();
+    } else {
+      await DatabaseService.instance.initDatabase();
+    }
+
+    // Also initialize Firestore if in server mode
+    if (await _isServerMode()) {
+      await FirestoreService.instance.initDatabase();
+    }
   }
 }

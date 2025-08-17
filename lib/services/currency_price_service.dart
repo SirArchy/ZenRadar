@@ -41,8 +41,6 @@ class CurrencyPriceService {
         return _extractMatchaKaruPrice(cleaned);
       case 'poppatea':
         return _extractPoppateaPrice(cleaned);
-      case 'mamecha':
-        return _extractMamechaPrice(cleaned);
       case 'yoshien':
         return _extractYoshienPrice(cleaned);
       case 'sazentea':
@@ -358,34 +356,6 @@ class CurrencyPriceService {
 
     // Extract price in German format (€XX,XX or XX,XX €)
     final priceMatch = RegExp(r'€?(\d+,\d{2})\s*€?').firstMatch(cleaned);
-    if (priceMatch != null) {
-      final priceText = priceMatch.group(1)!.replaceAll(',', '.');
-      final priceValue = double.tryParse(priceText);
-      if (priceValue != null && priceValue > 0) {
-        return PriceInfo(
-          originalPrice: cleaned,
-          normalizedEuroPrice: '€${priceText.replaceAll('.', ',')}',
-          currency: 'EUR',
-          priceValue: priceValue,
-        );
-      }
-    }
-
-    return PriceInfo(
-      originalPrice: cleaned,
-      normalizedEuroPrice: null,
-      currency: 'EUR',
-      priceValue: null,
-    );
-  }
-
-  /// Handle Mamecha price extraction
-  PriceInfo _extractMamechaPrice(String cleaned) {
-    // Clean up the text
-    cleaned = cleaned.replaceAll('\n', ' ').replaceAll(RegExp(r'\s+'), ' ');
-
-    // Look for price patterns like "15,20 €" or "9,10 €"
-    final priceMatch = RegExp(r'(\d+[.,]\d+)\s*€').firstMatch(cleaned);
     if (priceMatch != null) {
       final priceText = priceMatch.group(1)!.replaceAll(',', '.');
       final priceValue = double.tryParse(priceText);
