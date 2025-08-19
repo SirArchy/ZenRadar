@@ -402,6 +402,9 @@ class NotificationService {
       case 'poppatea':
         displayName = 'Poppatea';
         break;
+      case 'horrimeicha':
+        displayName = 'Horrimeicha';
+        break;
     }
 
     final AndroidNotificationDetails androidPlatformChannelSpecifics =

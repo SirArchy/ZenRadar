@@ -6,6 +6,7 @@ import 'firebase_options.dart';
 import 'services/notification_service.dart';
 import 'services/background_service.dart';
 import 'services/database_service.dart';
+import 'services/firestore_service.dart';
 import 'services/theme_service.dart';
 import 'services/battery_optimization_service.dart';
 import 'screens/app_initializer.dart';
@@ -21,6 +22,9 @@ void main() async {
     if (kDebugMode) {
       print('Firebase initialized successfully');
     }
+
+    // Initialize Firestore service
+    await FirestoreService.instance.initDatabase();
   } catch (e) {
     if (kDebugMode) {
       print('Firebase initialization failed: $e');

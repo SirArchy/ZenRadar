@@ -119,6 +119,17 @@ class SettingsService {
     );
   }
 
+  Future<bool> getServerMode() async {
+    final settings = await getSettings();
+    return settings.appMode == "server";
+  }
+
+  Future<void> setServerMode(bool enabled) async {
+    await updateSettings(
+      (settings) => settings.copyWith(appMode: enabled ? "server" : "local"),
+    );
+  }
+
   /// Check if current time is within active hours
   Future<bool> isWithinActiveHours() async {
     final settings = await getSettings();

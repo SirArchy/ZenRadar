@@ -8,6 +8,7 @@ import '../models/matcha_product.dart';
 import '../models/scan_activity.dart';
 import '../models/price_history.dart';
 import '../models/stock_history.dart';
+import 'settings_service.dart';
 import 'web_database_service.dart';
 import 'firestore_service.dart';
 
@@ -1056,9 +1057,15 @@ class DatabaseService {
 /// Platform-aware database service that automatically chooses between local and server modes
 class _PlatformDatabaseService {
   Future<bool> _isServerMode() async {
-    final prefs = await SharedPreferences.getInstance();
-    final appMode = prefs.getString('appMode') ?? 'local';
-    return appMode == 'server';
+    try {
+      final settings = await SettingsService.instance.getSettings();
+      return settings.appMode == 'server';
+    } catch (e) {
+      // Fallback to shared preferences if settings service fails
+      final prefs = await SharedPreferences.getInstance();
+      final appMode = prefs.getString('appMode') ?? 'local';
+      return appMode == 'server';
+    }
   }
 
   Future<PaginatedProducts> getProductsPaginated({
@@ -1185,25 +1192,46 @@ class _PlatformDatabaseService {
   }
 
   Future<void> addToFavorites(String productId) async {
-    // Favorites are always stored locally regardless of mode
+    // Store locally first
     if (kIsWeb) {
       await WebDatabaseService.instance.addToFavorites(productId);
     } else {
       await DatabaseService.instance.addToFavorites(productId);
     }
+
+    // Also sync to Firestore if in server mode
+    if (await _isServerMode()) {
+      await FirestoreService.instance.addToFavorites(productId);
+    }
   }
 
   Future<void> removeFromFavorites(String productId) async {
-    // Favorites are always stored locally regardless of mode
+    // Remove locally first
     if (kIsWeb) {
       await WebDatabaseService.instance.removeFromFavorites(productId);
     } else {
       await DatabaseService.instance.removeFromFavorites(productId);
     }
+
+    // Also remove from Firestore if in server mode
+    if (await _isServerMode()) {
+      await FirestoreService.instance.removeFromFavorites(productId);
+    }
   }
 
   Future<List<String>> getFavoriteProductIds() async {
-    // Favorites are always stored locally regardless of mode
+    if (await _isServerMode()) {
+      // In server mode, try to get from Firestore first, fallback to local
+      try {
+        final firestoreFavorites =
+            await FirestoreService.instance.getFavoriteProductIds();
+        return firestoreFavorites.toList();
+      } catch (e) {
+        print('Failed to get Firestore favorites, falling back to local: $e');
+      }
+    }
+
+    // Get from local storage
     if (kIsWeb) {
       return await WebDatabaseService.instance.getFavoriteProductIds();
     } else {

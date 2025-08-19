@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/settings_service.dart';
 import '../services/background_service.dart';
+import '../services/auth_service.dart';
+import '../screens/auth_screen.dart';
 
 class AppModeSelectionDialog extends StatefulWidget {
   final bool isInitialSetup;
@@ -291,6 +293,49 @@ class _AppModeSelectionDialogState extends State<AppModeSelectionDialog> {
       // Get current settings to check previous mode
       final currentSettings = await SettingsService.instance.getSettings();
       final previousMode = currentSettings.appMode;
+
+      // If switching to server mode, check authentication
+      if (_selectedMode == 'server') {
+        // Check if user is already authenticated
+        if (!AuthService.instance.isSignedIn) {
+          // Show authentication screen
+          if (mounted) {
+            final authResult = await Navigator.of(context).push<bool>(
+              MaterialPageRoute(
+                builder:
+                    (context) => AuthScreen(
+                      isOnboarding: false,
+                      onAuthSuccess: () {
+                        Navigator.of(context).pop(true);
+                      },
+                      onSkip: () {
+                        // User chose to skip authentication, stay in current mode
+                        Navigator.of(context).pop(false);
+                      },
+                    ),
+              ),
+            );
+
+            // If authentication was cancelled or failed, don't change mode
+            if (authResult != true) {
+              return;
+            }
+
+            // Verify user is authenticated before proceeding
+            if (!AuthService.instance.isSignedIn) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Authentication required for server mode'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+              return;
+            }
+          }
+        }
+      }
 
       // Update settings with selected mode
       await SettingsService.instance.updateSettings(

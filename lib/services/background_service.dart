@@ -23,13 +23,15 @@ Future<void> initializeService() async {
   try {
     final prefs = await SharedPreferences.getInstance();
     final settingsJson = prefs.getString('user_settings');
-    
+
     if (settingsJson != null) {
       final settingsMap = json.decode(settingsJson) as Map<String, dynamic>;
       final appMode = settingsMap['appMode'] as String?;
-      
+
       if (appMode != 'local') {
-        print('🔄 App is in server mode - skipping background service initialization');
+        print(
+          '🔄 App is in server mode - skipping background service initialization',
+        );
         return;
       }
     } else {
@@ -37,7 +39,9 @@ Future<void> initializeService() async {
       print('📱 No app mode settings found - defaulting to local mode');
     }
   } catch (e) {
-    print('⚠️ Could not determine app mode: $e - proceeding with service initialization');
+    print(
+      '⚠️ Could not determine app mode: $e - proceeding with service initialization',
+    );
   }
 
   final service = FlutterBackgroundService();
@@ -690,6 +694,7 @@ Future<void> _performStockCheck() async {
         'tokichi': 'Nakamura Tokichi',
         'marukyu': 'Marukyu-Koyamaen',
         'ippodo': 'Ippodo Tea',
+        'horrimeicha': 'Horrimeicha',
         'yoshien': 'Yoshi En',
         'matcha-karu': 'Matcha Kāru',
         'sho-cha': 'Sho-Cha',
@@ -937,7 +942,7 @@ Future<UserSettings> _getUserSettings() async {
     startTime: "08:00",
     endTime: "20:00",
     notificationsEnabled: true,
-    enabledSites: const ["tokichi", "marukyu", "ippodo"],
+    enabledSites: const ["tokichi", "marukyu", "ippodo", "horrimeicha"],
   );
 }
 
@@ -1023,7 +1028,7 @@ class BackgroundServiceController {
     try {
       final prefs = await SharedPreferences.getInstance();
       final settingsJson = prefs.getString('user_settings');
-      
+
       if (settingsJson != null) {
         final settingsMap = json.decode(settingsJson) as Map<String, dynamic>;
         final appMode = settingsMap['appMode'] as String?;
@@ -1039,54 +1044,54 @@ class BackgroundServiceController {
 
   Future<void> startService() async {
     if (kIsWeb) return;
-    
+
     final isLocal = await _isLocalMode();
     if (!isLocal) {
       print('🔄 App is in server mode - background service not needed');
       return;
     }
-    
+
     await (_service as FlutterBackgroundService).startService();
   }
 
   Future<void> stopService() async {
     if (kIsWeb) return;
-    
+
     (_service as FlutterBackgroundService).invoke('stopService');
   }
 
   Future<void> triggerManualCheck() async {
     if (kIsWeb) return;
-    
+
     final isLocal = await _isLocalMode();
     if (!isLocal) {
       print('🔄 App is in server mode - manual check handled by cloud service');
       return;
     }
-    
+
     (_service as FlutterBackgroundService).invoke('manualCheck');
   }
 
   Future<void> updateSettings() async {
     if (kIsWeb) return;
-    
+
     final isLocal = await _isLocalMode();
     if (!isLocal) {
       print('🔄 App is in server mode - no background service to update');
       return;
     }
-    
+
     (_service as FlutterBackgroundService).invoke('updateSettings');
   }
 
   Future<bool> isServiceRunning() async {
     if (kIsWeb) return false;
-    
+
     final isLocal = await _isLocalMode();
     if (!isLocal) {
       return false; // Service should not be running in server mode
     }
-    
+
     return await (_service as FlutterBackgroundService).isRunning();
   }
 

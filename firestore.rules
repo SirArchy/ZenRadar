@@ -2,6 +2,41 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Allow authenticated users to read products and related data
+    match /products/{document} {
+      allow read: if request.auth != null;
+      allow write: if false; // Products are written by server only
+    }
+    
+    // Allow authenticated users to read stock history
+    match /stock_history/{document} {
+      allow read: if request.auth != null;
+      allow write: if false; // Stock history is written by server only
+    }
+    
+    // Allow authenticated users to read crawl requests for activity monitoring
+    match /crawl_requests/{document} {
+      allow read: if request.auth != null;
+      allow write: if false; // Crawl requests are managed by server only
+    }
+    
+    // Allow authenticated users to manage their own favorites
+    match /user_favorites/{document} {
+      allow read, write: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Allow authenticated users to submit website suggestions
+    match /website_suggestions/{document} {
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+    }
+    
+    // Deny all other access
     match /{document=**} {
       allow read, write: if false;
     }

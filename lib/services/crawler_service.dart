@@ -59,6 +59,15 @@ class CrawlerService {
           '.m-product-card__price', // Updated to use the correct price selector
       linkSelector: 'a[href*="/products/"]',
     ),
+    'horrimeicha': SiteConfig(
+      name: 'Horrimeicha',
+      baseUrl: 'https://horrimeicha.com',
+      stockSelector: '.out-of-stock',
+      productSelector: '.product-item',
+      nameSelector: '.product-title',
+      priceSelector: '.product-price',
+      linkSelector: '.product-link',
+    ),
     'yoshien': SiteConfig(
       name: 'Yoshi En',
       baseUrl: 'https://www.yoshien.com/matcha/matcha-tee/',
@@ -1112,6 +1121,12 @@ class CrawlerService {
         final outOfStockElement = productElement.querySelector('.out-of-stock');
         return outOfStockElement ==
             null; // In stock if NO .out-of-stock element found
+
+      case 'horrimeicha':
+        // For Horrimeicha, check if "Out of stock" text is present
+        final outOfStockText = productElement.text.toLowerCase();
+        return !outOfStockText.contains('out of stock') &&
+            !outOfStockText.contains('sold out');
 
       case 'marukyu':
         // For Marukyu, check for stock classes (positive: instock, negative: outofstock)

@@ -1,219 +1,280 @@
 // ignore_for_file: avoid_print
 
+import 'dart:async';
 import '../models/website_stock_analytics.dart';
+import '../models/matcha_product.dart';
 import '../models/stock_history.dart';
-import '../services/database_service.dart';
 import '../services/settings_service.dart';
-import '../services/crawler_service.dart';
+import '../services/firestore_service.dart';
 
-/// Service for fetching and analyzing website stock update patterns
 class WebsiteAnalyticsService {
   static final WebsiteAnalyticsService _instance =
       WebsiteAnalyticsService._internal();
-  factory WebsiteAnalyticsService() => _instance;
-  WebsiteAnalyticsService._internal();
-
   static WebsiteAnalyticsService get instance => _instance;
 
-  final DatabaseService _db = DatabaseService.instance;
-  final CrawlerService _crawlerService = CrawlerService.instance;
+  WebsiteAnalyticsService._internal();
 
-  /// Get analytics for all websites based on current app mode
+  final SettingsService _settingsService = SettingsService();
+  final FirestoreService _firestoreService = FirestoreService();
+
+  // Supported websites
+  static const List<String> supportedWebsites = [
+    'tokichi',
+    'ippodo',
+    'marukyu-koyamaen',
+    'horrimeicha',
+  ];
+
+  /// Get analytics data for all websites
   Future<List<WebsiteStockAnalytics>> getAllWebsiteAnalytics({
-    String timeRange = 'month',
+    required String timeRange,
   }) async {
-    final settings = await SettingsService.instance.getSettings();
+    return await getWebsiteAnalytics(timeRange: timeRange);
+  }
 
-    if (settings.appMode == 'server') {
-      // For now, use local analytics even in server mode
-      // TODO: Implement Firestore analytics when needed
-      return _getLocalWebsiteAnalytics(timeRange: timeRange);
-    } else {
-      return _getLocalWebsiteAnalytics(timeRange: timeRange);
+  /// Get analytics data for all websites (internal method)
+  Future<List<WebsiteStockAnalytics>> getWebsiteAnalytics({
+    required String timeRange,
+  }) async {
+    try {
+      // Check if server mode is enabled
+      bool isServerMode = await _settingsService.getServerMode();
+
+      if (isServerMode) {
+        return await _getFirestoreWebsiteAnalytics(timeRange: timeRange);
+      } else {
+        return await _getLocalWebsiteAnalytics(timeRange: timeRange);
+      }
+    } catch (e) {
+      print('Error getting website analytics: $e');
+      return [];
     }
   }
 
-  /// Get analytics from local SQLite database
-  Future<List<WebsiteStockAnalytics>> _getLocalWebsiteAnalytics({
-    String timeRange = 'month',
+  /// Get analytics summary across all websites (public method)
+  Future<Map<String, dynamic>> getOverallSummary({
+    required String timeRange,
   }) async {
-    final List<WebsiteStockAnalytics> analyticsData = [];
+    return await getAnalyticsSummary(timeRange: timeRange);
+  }
 
-    // Get all available site keys from the crawler service
-    final availableSites = _crawlerService.getAvailableSites();
+  /// Get analytics summary across all websites (internal method)
+  Future<Map<String, dynamic>> getAnalyticsSummary({
+    required String timeRange,
+  }) async {
+    try {
+      final analytics = await getWebsiteAnalytics(timeRange: timeRange);
 
-    for (final siteKey in availableSites) {
-      try {
-        final siteName = _crawlerService.getSiteName(siteKey);
+      int totalProducts = 0;
+      int totalInStock = 0;
+      int totalOutOfStock = 0;
+      double totalStockPercentage = 0.0;
 
-        // Get all products for this site
-        final allProducts = await _db.getAllProducts();
-        final siteProducts =
-            allProducts
-                .where(
-                  (p) =>
-                      p.site
-                          .toLowerCase()
-                          .replaceAll(' ', '')
-                          .replaceAll('-', '') ==
-                      siteName
-                          .toLowerCase()
-                          .replaceAll(' ', '')
-                          .replaceAll('-', ''),
-                )
-                .toList();
+      for (final website in analytics) {
+        totalProducts += website.totalProducts;
+        totalInStock += website.productsInStock;
+        totalOutOfStock += website.productsOutOfStock;
+      }
 
-        if (siteProducts.isEmpty) {
-          // Add empty analytics for sites with no products
-          analyticsData.add(
-            WebsiteStockAnalytics(
-              siteKey: siteKey,
-              siteName: siteName,
-              stockUpdates: [],
-              totalProducts: 0,
-              productsInStock: 0,
-              productsOutOfStock: 0,
-              stockPercentage: 0.0,
-              recentUpdates: [],
-              hourlyUpdatePattern: {},
-              dailyUpdatePattern: {},
-            ),
-          );
-          continue;
-        }
+      if (analytics.isNotEmpty && totalProducts > 0) {
+        totalStockPercentage = (totalInStock / totalProducts) * 100;
+      }
 
-        // Get stock history for all products from this site
-        final List<StockHistory> allStockHistory = [];
-        final Map<String, bool> currentProductStates = {};
+      return {
+        'totalWebsites': analytics.length,
+        'totalProducts': totalProducts,
+        'totalInStock': totalInStock,
+        'totalOutOfStock': totalOutOfStock,
+        'averageStockPercentage': totalStockPercentage,
+        'lastUpdated': DateTime.now().toIso8601String(),
+      };
+    } catch (e) {
+      print('Error getting analytics summary: $e');
+      return {
+        'totalWebsites': 0,
+        'totalProducts': 0,
+        'totalInStock': 0,
+        'totalOutOfStock': 0,
+        'averageStockPercentage': 0.0,
+        'lastUpdated': DateTime.now().toIso8601String(),
+      };
+    }
+  }
 
-        for (final product in siteProducts) {
-          final productHistory = await _db.getStockHistoryForProduct(
-            product.id,
-          );
+  /// Get Firestore-based analytics (server mode)
+  Future<List<WebsiteStockAnalytics>> _getFirestoreWebsiteAnalytics({
+    required String timeRange,
+  }) async {
+    List<WebsiteStockAnalytics> websiteAnalytics = [];
 
-          // Filter by time range
-          final DateTime cutoff;
-          switch (timeRange) {
-            case 'day':
-              cutoff = DateTime.now().subtract(const Duration(days: 1));
-              break;
-            case 'week':
-              cutoff = DateTime.now().subtract(const Duration(days: 7));
-              break;
-            case 'month':
-              cutoff = DateTime.now().subtract(const Duration(days: 30));
-              break;
-            case 'all':
-            default:
-              cutoff = DateTime.fromMillisecondsSinceEpoch(0);
-              break;
-          }
+    try {
+      for (String siteName in supportedWebsites) {
+        // Get products for this site
+        List<MatchaProduct> products = await _firestoreService
+            .getProductsBySite(siteName);
 
-          final filteredHistory =
-              productHistory.where((h) => h.timestamp.isAfter(cutoff)).toList();
-          allStockHistory.addAll(filteredHistory);
+        // Get stock history for analysis
+        List<StockHistory> stockHistory = await _firestoreService
+            .getStockHistoryForSite(
+              siteName,
+              _getCutoffDate(timeRange),
+              DateTime.now(),
+            );
+
+        // Create current product states map
+        Map<String, bool> currentProductStates = {};
+        for (MatchaProduct product in products) {
           currentProductStates[product.id] = product.isInStock;
         }
 
-        // Create analytics for this website
-        final analytics = WebsiteStockAnalytics.fromStockHistory(
-          siteKey: siteKey,
-          siteName: siteName,
-          stockHistory: allStockHistory,
-          currentProductStates: currentProductStates,
-        );
+        // Create analytics using the factory method
+        WebsiteStockAnalytics analytics =
+            WebsiteStockAnalytics.fromStockHistory(
+              siteKey: siteName,
+              siteName: _getDisplayName(siteName),
+              stockHistory: stockHistory,
+              currentProductStates: currentProductStates,
+            );
 
-        analyticsData.add(analytics);
-      } catch (e) {
-        print('Error getting analytics for $siteKey: $e');
-        // Add empty analytics on error
-        analyticsData.add(
-          WebsiteStockAnalytics(
-            siteKey: siteKey,
-            siteName: _crawlerService.getSiteName(siteKey),
-            stockUpdates: [],
-            totalProducts: 0,
-            productsInStock: 0,
-            productsOutOfStock: 0,
-            stockPercentage: 0.0,
-            recentUpdates: [],
-            hourlyUpdatePattern: {},
-            dailyUpdatePattern: {},
-          ),
-        );
+        websiteAnalytics.add(analytics);
       }
+    } catch (e) {
+      print('Error getting Firestore website analytics: $e');
     }
 
-    return analyticsData;
+    return websiteAnalytics;
   }
 
-  /// Get analytics for a specific website
-  Future<WebsiteStockAnalytics?> getWebsiteAnalytics(
-    String siteKey, {
-    String timeRange = 'month',
+  /// Get local analytics (local mode - placeholder)
+  Future<List<WebsiteStockAnalytics>> _getLocalWebsiteAnalytics({
+    required String timeRange,
   }) async {
-    final allAnalytics = await getAllWebsiteAnalytics(timeRange: timeRange);
+    // For local mode, we would read from local database
+    // For now, return empty list or mock data
+    return [];
+  }
+
+  /// Get cutoff date based on time range
+  DateTime _getCutoffDate(String timeRange) {
+    DateTime now = DateTime.now();
+
+    switch (timeRange.toLowerCase()) {
+      case 'day':
+        return now.subtract(const Duration(days: 1));
+      case 'week':
+        return now.subtract(const Duration(days: 7));
+      case 'month':
+        return now.subtract(const Duration(days: 30));
+      case 'year':
+        return now.subtract(const Duration(days: 365));
+      default:
+        return now.subtract(const Duration(days: 30)); // Default to month
+    }
+  }
+
+  /// Get display name for website
+  String _getDisplayName(String siteName) {
+    switch (siteName.toLowerCase()) {
+      case 'tokichi':
+        return 'Tokichi';
+      case 'ippodo':
+        return 'Ippodo Tea';
+      case 'marukyu-koyamaen':
+        return 'Marukyu Koyamaen';
+      case 'horrimeicha':
+        return 'Horrimeicha';
+      default:
+        return siteName.toUpperCase();
+    }
+  }
+
+  /// Get website stock trends for charting
+  Future<Map<String, List<Map<String, dynamic>>>> getWebsiteStockTrends({
+    required String timeRange,
+  }) async {
+    Map<String, List<Map<String, dynamic>>> trends = {};
 
     try {
-      return allAnalytics.firstWhere(
-        (analytics) => analytics.siteKey == siteKey,
-      );
-    } catch (e) {
-      return null;
-    }
-  }
+      bool isServerMode = await _settingsService.getServerMode();
 
-  /// Get summary statistics across all websites
-  Future<Map<String, dynamic>> getOverallSummary({
-    String timeRange = 'month',
-  }) async {
-    final allAnalytics = await getAllWebsiteAnalytics(timeRange: timeRange);
+      if (isServerMode) {
+        for (String siteName in supportedWebsites) {
+          List<StockHistory> history = await _firestoreService
+              .getStockHistoryForSite(
+                siteName,
+                _getCutoffDate(timeRange),
+                DateTime.now(),
+              );
 
-    int totalWebsites = allAnalytics.length;
-    int activeWebsites = allAnalytics.where((a) => a.totalProducts > 0).length;
-    int totalProducts = allAnalytics.fold(0, (sum, a) => sum + a.totalProducts);
-    int totalInStock = allAnalytics.fold(
-      0,
-      (sum, a) => sum + a.productsInStock,
-    );
-    int totalUpdates = allAnalytics.fold(
-      0,
-      (sum, a) => sum + a.stockUpdates.length,
-    );
-
-    double overallStockPercentage =
-        totalProducts > 0 ? (totalInStock / totalProducts) * 100 : 0.0;
-
-    // Find most active website
-    WebsiteStockAnalytics? mostActiveWebsite;
-    int maxUpdates = 0;
-    for (final analytics in allAnalytics) {
-      if (analytics.stockUpdates.length > maxUpdates) {
-        maxUpdates = analytics.stockUpdates.length;
-        mostActiveWebsite = analytics;
-      }
-    }
-
-    // Find most recent update
-    DateTime? mostRecentUpdate;
-    for (final analytics in allAnalytics) {
-      if (analytics.lastStockChange != null) {
-        if (mostRecentUpdate == null ||
-            analytics.lastStockChange!.isAfter(mostRecentUpdate)) {
-          mostRecentUpdate = analytics.lastStockChange;
+          trends[siteName] = _processStockTrendsData(history, timeRange);
+        }
+      } else {
+        // Local mode - return empty or mock data
+        for (String siteName in supportedWebsites) {
+          trends[siteName] = [];
         }
       }
+    } catch (e) {
+      print('Error getting website stock trends: $e');
     }
 
-    return {
-      'totalWebsites': totalWebsites,
-      'activeWebsites': activeWebsites,
-      'totalProducts': totalProducts,
-      'totalInStock': totalInStock,
-      'overallStockPercentage': overallStockPercentage,
-      'totalUpdates': totalUpdates,
-      'mostActiveWebsite': mostActiveWebsite?.siteName,
-      'mostRecentUpdate': mostRecentUpdate,
-    };
+    return trends;
+  }
+
+  /// Process stock history into trend data for charting
+  List<Map<String, dynamic>> _processStockTrendsData(
+    List<StockHistory> history,
+    String timeRange,
+  ) {
+    if (history.isEmpty) return [];
+
+    // Group by day/hour depending on time range
+    Map<String, Map<String, int>> groupedData = {};
+
+    for (StockHistory entry in history) {
+      String key = _getTimeKey(entry.timestamp, timeRange);
+
+      if (!groupedData.containsKey(key)) {
+        groupedData[key] = {'inStock': 0, 'outOfStock': 0};
+      }
+
+      if (entry.isInStock) {
+        groupedData[key]!['inStock'] = groupedData[key]!['inStock']! + 1;
+      } else {
+        groupedData[key]!['outOfStock'] = groupedData[key]!['outOfStock']! + 1;
+      }
+    }
+
+    // Convert to chart data format
+    List<Map<String, dynamic>> chartData = [];
+    List<String> sortedKeys = groupedData.keys.toList()..sort();
+
+    for (String key in sortedKeys) {
+      chartData.add({
+        'time': key,
+        'inStock': groupedData[key]!['inStock'],
+        'outOfStock': groupedData[key]!['outOfStock'],
+        'total':
+            groupedData[key]!['inStock']! + groupedData[key]!['outOfStock']!,
+      });
+    }
+
+    return chartData;
+  }
+
+  /// Get time key for grouping data
+  String _getTimeKey(DateTime timestamp, String timeRange) {
+    switch (timeRange.toLowerCase()) {
+      case 'day':
+        return '${timestamp.hour}:00';
+      case 'week':
+        return '${timestamp.month}/${timestamp.day}';
+      case 'month':
+        return '${timestamp.month}/${timestamp.day}';
+      case 'year':
+        return '${timestamp.year}/${timestamp.month}';
+      default:
+        return '${timestamp.month}/${timestamp.day}';
+    }
   }
 }

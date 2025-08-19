@@ -1,10 +1,14 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:onboarding/onboarding.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../services/settings_service.dart';
 import '../services/background_service.dart';
+import '../services/auth_service.dart';
 import '../widgets/matcha_icon.dart';
+import 'auth_screen.dart';
 import 'home_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -1173,6 +1177,48 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _selectedMode ??= kIsWeb ? 'server' : 'local';
 
     try {
+      // If server mode is selected, show authentication screen first
+      if (_selectedMode == 'server') {
+        if (mounted) {
+          final authResult = await Navigator.of(context).push<bool>(
+            MaterialPageRoute(
+              builder:
+                  (context) => AuthScreen(
+                    isOnboarding: true,
+                    onAuthSuccess: () {
+                      Navigator.of(context).pop(true);
+                    },
+                    onSkip: () {
+                      // User chose to skip authentication, switch to local mode
+                      setState(() {
+                        _selectedMode = 'local';
+                      });
+                      Navigator.of(context).pop(false);
+                    },
+                  ),
+            ),
+          );
+
+          // If authentication was cancelled or failed, don't complete onboarding
+          if (authResult != true) {
+            return;
+          }
+
+          // Verify user is authenticated before proceeding
+          if (!AuthService.instance.isSignedIn) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Authentication required for server mode'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+            return;
+          }
+        }
+      }
+
       // Save the selected mode to settings
       final settings = await SettingsService.instance.getSettings();
       final updatedSettings = settings.copyWith(appMode: _selectedMode);

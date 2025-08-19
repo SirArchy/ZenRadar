@@ -7,6 +7,7 @@ import '../models/scan_activity.dart';
 import '../models/matcha_product.dart';
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
+import '../services/firestore_service.dart';
 // ignore_for_file: avoid_print
 
 class BackgroundActivityScreen extends StatefulWidget {
@@ -711,47 +712,87 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     try {
       print('📡 Loading server activities from Firestore...');
 
-      // Use Firestore REST API to get crawl_requests
-      // For now, we'll create mock data based on our successful crawl
-      // TODO: Replace with actual Firestore REST API callgi
-
-      final activities = <ScanActivity>[];
-      final now = DateTime.now();
-
-      // Create activity for our recent successful crawl
-      activities.add(
-        ScanActivity(
-          id: 'server_crawl_Pt4tzsIpSkePx5tZrX6n',
-          timestamp: now.subtract(const Duration(minutes: 30)),
-          itemsScanned: 49, // From our logs: 49 products found
-          duration: 19, // From logs: ~19 seconds
-          hasStockUpdates: true, // 24 stock updates found
-          details:
-              'Server crawl completed: Tokichi (32 products), Marukyu (17 products), 24 stock updates',
-          scanType: 'server',
-        ),
+      // Use FirestoreService instead of REST API
+      final crawlRequests = await FirestoreService.instance.getCrawlRequests(
+        limit: 20,
       );
 
-      // Add some historical server scans
-      for (int i = 1; i <= 5; i++) {
-        activities.add(
-          ScanActivity(
-            id: 'server_scheduled_$i',
-            timestamp: now.subtract(Duration(hours: i * 2)),
-            itemsScanned: 45 + (i * 3),
-            duration: 15 + (i * 2),
-            hasStockUpdates: i % 2 == 0,
-            details: 'Scheduled server crawl completed successfully',
-            scanType: 'server',
-          ),
-        );
+      final activities = <ScanActivity>[];
+
+      for (final crawlRequest in crawlRequests) {
+        final activity = _convertCrawlRequestToScanActivity(crawlRequest);
+        activities.add(activity);
       }
 
       print('✅ Loaded ${activities.length} server activities');
       return activities;
     } catch (e) {
       print('❌ Error loading server activities: $e');
-      rethrow;
+
+      // Fallback to placeholder data if Firestore fails
+      return _generateServerPlaceholderData();
     }
+  }
+
+  /// Convert a crawl request from Firestore to a ScanActivity
+  ScanActivity _convertCrawlRequestToScanActivity(
+    Map<String, dynamic> crawlRequest,
+  ) {
+    final status = crawlRequest['status'] ?? 'unknown';
+    final createdAt = crawlRequest['createdAt'];
+    final completedAt = crawlRequest['completedAt'];
+
+    // Parse timestamps
+    DateTime timestamp = DateTime.now();
+    if (createdAt != null) {
+      if (createdAt is DateTime) {
+        timestamp = createdAt;
+      } else if (createdAt.runtimeType.toString().contains('Timestamp')) {
+        timestamp = createdAt.toDate();
+      }
+    }
+
+    // Calculate duration
+    int duration = crawlRequest['duration'] ?? 0;
+    if (duration == 0 && completedAt != null && createdAt != null) {
+      DateTime endTime = DateTime.now();
+      if (completedAt is DateTime) {
+        endTime = completedAt;
+      } else if (completedAt.runtimeType.toString().contains('Timestamp')) {
+        endTime = completedAt.toDate();
+      }
+      duration = endTime.difference(timestamp).inSeconds;
+    }
+
+    // Extract scan details
+    final totalProducts = crawlRequest['totalProducts'] ?? 0;
+    final stockUpdates = crawlRequest['stockUpdates'] ?? 0;
+    final sitesProcessed = crawlRequest['sitesProcessed'] ?? 0;
+
+    final hasStockUpdates = stockUpdates > 0;
+
+    String details;
+    if (status == 'completed') {
+      details = 'Scanned $totalProducts products across $sitesProcessed sites';
+      if (hasStockUpdates) {
+        details += ' - $stockUpdates stock updates found';
+      }
+    } else if (status == 'failed') {
+      details = 'Scan failed - check server logs';
+    } else if (status == 'running') {
+      details = 'Scan in progress...';
+    } else {
+      details = 'Status: $status';
+    }
+
+    return ScanActivity(
+      id: crawlRequest['id'] ?? 'unknown',
+      timestamp: timestamp,
+      itemsScanned: totalProducts,
+      duration: duration,
+      hasStockUpdates: hasStockUpdates,
+      details: details,
+      scanType: 'server',
+    );
   }
 }

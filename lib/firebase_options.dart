@@ -44,20 +44,20 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'your-web-api-key',
-    appId: 'your-app-id',
-    messagingSenderId: 'your-sender-id',
-    projectId: 'your-project-id',
-    authDomain: 'your-project-id.firebaseapp.com',
-    storageBucket: 'your-project-id.appspot.com',
+    apiKey: 'AIzaSyDW8V4NXxESPjj7zu2aRIq71xf26rryJZ8',
+    appId: '1:989787576521:web:4f2ad306f7630876165518',
+    messagingSenderId: '989787576521',
+    projectId: 'zenradar-acb85',
+    authDomain: 'zenradar-acb85.firebaseapp.com',
+    storageBucket: 'zenradar-acb85.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'your-android-api-key',
-    appId: 'your-android-app-id',
-    messagingSenderId: 'your-sender-id',
-    projectId: 'your-project-id',
-    storageBucket: 'your-project-id.appspot.com',
+    apiKey: 'AIzaSyCODfKRCnmHe5ys00AjXZXo8zaMdmnBeP8',
+    appId: '1:989787576521:android:059e855ed71481f8165518',
+    messagingSenderId: '989787576521',
+    projectId: 'zenradar-acb85',
+    storageBucket: 'zenradar-acb85.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

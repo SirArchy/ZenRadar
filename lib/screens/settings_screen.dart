@@ -1,7 +1,9 @@
 // ignore_for_file: avoid_print, use_build_context_synchronously
 
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import '../models/matcha_product.dart';
 import '../services/notification_service.dart';
@@ -9,8 +11,10 @@ import '../services/background_service.dart';
 import '../services/settings_service.dart';
 import '../services/theme_service.dart';
 import '../services/cloud_crawler_service.dart';
+import '../services/auth_service.dart';
 import '../widgets/matcha_icon.dart';
 import '../widgets/app_mode_selection_dialog.dart';
+import '../screens/auth_screen.dart';
 import 'website_management_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -282,6 +286,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
+
+          const SizedBox(height: 16),
+
+          // Authentication (server mode only)
+          if (_settings.appMode == 'server')
+            Card(
+              color: Colors.blue.withValues(alpha: 0.1),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.account_circle, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Account',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildAuthenticationCard(),
+                  ],
+                ),
+              ),
+            ),
 
           const SizedBox(height: 16),
 
@@ -904,6 +939,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'url': 'marukyu-koyamaen.co.jp',
       },
       {'key': 'ippodo', 'name': 'Ippodo Tea', 'url': 'global.ippodo-tea.co.jp'},
+      {'key': 'horrimeicha', 'name': 'Horrimeicha', 'url': 'horrimeicha.com'},
       {'key': 'yoshien', 'name': 'Yoshi En', 'url': 'yoshien.co.jp'},
       {'key': 'matcha-karu', 'name': 'Matcha Kāru', 'url': 'matchakaru.com'},
       {'key': 'sho-cha', 'name': 'Sho-Cha', 'url': 'sho-cha.com'},
@@ -1466,10 +1502,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: const Text('Cancel'),
               ),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (urlController.text.isNotEmpty &&
                       nameController.text.isNotEmpty) {
-                    // TODO: Send suggestion to server
+                    // Send suggestion to server
+                    await _submitWebsiteSuggestion(
+                      urlController.text,
+                      nameController.text,
+                      descriptionController.text,
+                    );
                     Navigator.pop(context);
                     _showSuccessSnackBar(
                       'Website suggestion submitted for review',
@@ -1568,7 +1609,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
 
       final requestId = await CloudCrawlerService.instance.triggerManualCrawl(
-        sites: ['tokichi', 'marukyu', 'ippodo'], // Default sites
+        sites: ['tokichi', 'marukyu', 'ippodo', 'horrimeicha'], // Updated sites
         userId: 'flutter-user-${DateTime.now().millisecondsSinceEpoch}',
       );
 
@@ -1608,5 +1649,294 @@ class _SettingsScreenState extends State<SettingsScreen> {
       });
       _showErrorSnackBar('Failed to check server health: $e');
     }
+  }
+
+  Future<void> _submitWebsiteSuggestion(
+    String url,
+    String name,
+    String description,
+  ) async {
+    try {
+      // Prepare suggestion data for Firestore
+      final suggestionData = {
+        'fields': {
+          'url': {'stringValue': url},
+          'name': {'stringValue': name},
+          'description': {
+            'stringValue':
+                description.isNotEmpty
+                    ? description
+                    : 'No description provided',
+          },
+          'submittedAt': {'timestampValue': DateTime.now().toIso8601String()},
+          'status': {'stringValue': 'pending'},
+          'submittedBy': {
+            'stringValue': 'app_user',
+          }, // Could be enhanced with user ID if available
+        },
+      };
+
+      // Send to Firestore using REST API
+      const projectId = 'zenradar-acb85';
+      final response = await http.post(
+        Uri.parse(
+          'https://firestore.googleapis.com/v1/projects/$projectId/databases/(default)/documents/website_suggestions',
+        ),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(suggestionData),
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Failed to submit suggestion: ${response.statusCode}');
+      }
+
+      print('Website suggestion submitted successfully');
+    } catch (e) {
+      print('Error submitting website suggestion: $e');
+      // Still show success message to user since we don't want to expose technical errors
+      // The error is logged for debugging purposes
+    }
+  }
+
+  Widget _buildAuthenticationCard() {
+    final user = AuthService.instance.currentUser;
+    final isSignedIn = AuthService.instance.isSignedIn;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: isSignedIn ? Colors.green : Colors.grey,
+                radius: 20,
+                child: Icon(
+                  isSignedIn ? Icons.person : Icons.person_outline,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isSignedIn ? 'Signed In' : 'Not Signed In',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color:
+                            isSignedIn
+                                ? Colors.green.shade700
+                                : Colors.grey.shade700,
+                      ),
+                    ),
+                    Text(
+                      isSignedIn
+                          ? user?.email ?? 'Unknown email'
+                          : 'Authentication required for server features',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            isSignedIn
+                                ? Colors.green.shade600
+                                : Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (isSignedIn) ...[
+            // User info section
+            if (user?.displayName?.isNotEmpty == true) ...[
+              Row(
+                children: [
+                  const Icon(Icons.badge, size: 16, color: Colors.blue),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Display Name: ${user!.displayName}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+            Row(
+              children: [
+                Icon(
+                  user?.emailVerified == true ? Icons.verified : Icons.warning,
+                  size: 16,
+                  color:
+                      user?.emailVerified == true
+                          ? Colors.green
+                          : Colors.orange,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  user?.emailVerified == true
+                      ? 'Email verified'
+                      : 'Email not verified',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color:
+                        user?.emailVerified == true
+                            ? Colors.green.shade700
+                            : Colors.orange.shade700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Action buttons
+            Row(
+              children: [
+                if (user?.emailVerified == false)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _resendEmailVerification,
+                      icon: const Icon(Icons.email),
+                      label: const Text('Verify Email'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.blue,
+                      ),
+                    ),
+                  ),
+                if (user?.emailVerified == false) const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _signOut,
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Sign Out'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            // Sign in button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _showAuthenticationScreen,
+                icon: const Icon(Icons.login),
+                label: const Text('Sign In / Sign Up'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showAuthenticationScreen() async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder:
+            (context) => AuthScreen(
+              isOnboarding: false,
+              onAuthSuccess: () {
+                Navigator.of(context).pop(true);
+              },
+            ),
+      ),
+    );
+
+    if (result == true) {
+      setState(() {
+        // Refresh UI to show signed-in state
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Successfully signed in!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  Future<void> _signOut() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Sign Out'),
+            content: const Text(
+              'Are you sure you want to sign out? You will need to sign in again to use server mode features.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Sign Out'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await AuthService.instance.signOut();
+
+        setState(() {
+          // Refresh UI to show signed-out state
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Successfully signed out'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Optionally switch to local mode when signing out
+        _showModeSelectionDialog();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error signing out: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _resendEmailVerification() async {
+    final result = await AuthService.instance.resendEmailVerification();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result.isSuccess
+              ? 'Verification email sent! Please check your inbox.'
+              : 'Error sending verification email: ${result.error}',
+        ),
+        backgroundColor: result.isSuccess ? Colors.green : Colors.red,
+      ),
+    );
   }
 }

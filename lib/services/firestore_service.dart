@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../models/matcha_product.dart';
+import '../models/stock_history.dart';
 
 /// Firestore database service for server mode
 /// Handles direct integration with Cloud Firestore for real-time data
@@ -110,7 +112,7 @@ class FirestoreService {
 
         if (filter.favoritesOnly) {
           // Get favorite product IDs from local storage
-          final favoriteIds = await _getFavoriteProductIds();
+          final favoriteIds = await getFavoriteProductIds();
           filteredProducts =
               filteredProducts
                   .where((product) => favoriteIds.contains(product.id))
@@ -210,27 +212,6 @@ class FirestoreService {
     } catch (e) {
       if (kDebugMode) {
         print('Error loading all products from Firestore: $e');
-      }
-      rethrow;
-    }
-  }
-
-  /// Get products by site
-  Future<List<MatchaProduct>> getProductsBySite(String siteName) async {
-    try {
-      final snapshot =
-          await _firestore
-              .collection('products')
-              .where('site', isEqualTo: siteName)
-              .orderBy('lastChecked', descending: true)
-              .get();
-
-      return snapshot.docs
-          .map((doc) => MatchaProduct.fromFirestore(doc.id, doc.data()))
-          .toList();
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error loading products by site from Firestore: $e');
       }
       rethrow;
     }
@@ -373,11 +354,267 @@ class FirestoreService {
     }
   }
 
-  /// Helper method to get favorite product IDs (placeholder)
-  /// In a real implementation, this would sync with user preferences
-  Future<Set<String>> _getFavoriteProductIds() async {
-    // TODO: Implement user favorites sync with Firestore
-    // For now, return empty set
-    return <String>{};
+  /// Get favorite product IDs from Firestore for the current user
+  Future<Set<String>> getFavoriteProductIds() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        if (kDebugMode) {
+          print('No authenticated user for favorites');
+        }
+        return <String>{};
+      }
+
+      final querySnapshot =
+          await _firestore
+              .collection('user_favorites')
+              .where('userId', isEqualTo: user.uid)
+              .get();
+
+      final favoriteIds = <String>{};
+
+      for (final doc in querySnapshot.docs) {
+        final data = doc.data();
+        final productId = data['productId'] as String?;
+        if (productId != null) {
+          favoriteIds.add(productId);
+        }
+      }
+
+      return favoriteIds;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error loading user favorites from Firestore: $e');
+      }
+      return <String>{};
+    }
+  }
+
+  /// Add a product to user favorites in Firestore
+  Future<void> addToFavorites(String productId) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        if (kDebugMode) {
+          print('No authenticated user - cannot add to favorites');
+        }
+        return;
+      }
+
+      // Check if already exists to avoid duplicates
+      final existingQuery =
+          await _firestore
+              .collection('user_favorites')
+              .where('userId', isEqualTo: user.uid)
+              .where('productId', isEqualTo: productId)
+              .limit(1)
+              .get();
+
+      if (existingQuery.docs.isEmpty) {
+        await _firestore.collection('user_favorites').add({
+          'userId': user.uid,
+          'productId': productId,
+          'addedAt': FieldValue.serverTimestamp(),
+        });
+
+        if (kDebugMode) {
+          print('Product $productId added to favorites in Firestore');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error adding favorite to Firestore: $e');
+      }
+    }
+  }
+
+  /// Remove a product from user favorites in Firestore
+  Future<void> removeFromFavorites(String productId) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        if (kDebugMode) {
+          print('No authenticated user - cannot remove from favorites');
+        }
+        return;
+      }
+
+      // Find and delete the document
+      final querySnapshot =
+          await _firestore
+              .collection('user_favorites')
+              .where('userId', isEqualTo: user.uid)
+              .where('productId', isEqualTo: productId)
+              .get();
+
+      for (final doc in querySnapshot.docs) {
+        await doc.reference.delete();
+      }
+
+      if (kDebugMode) {
+        print('Product $productId removed from favorites in Firestore');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error removing favorite from Firestore: $e');
+      }
+    }
+  }
+
+  /// Get products for a specific site
+  Future<List<MatchaProduct>> getProductsBySite(String siteKey) async {
+    try {
+      final querySnapshot =
+          await _firestore
+              .collection('products')
+              .where('site', isEqualTo: siteKey)
+              .get();
+
+      return querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        return MatchaProduct(
+          id: data['id'] ?? doc.id,
+          name: data['name'] ?? '',
+          normalizedName:
+              data['normalizedName'] ?? data['name']?.toLowerCase() ?? '',
+          site: data['site'] ?? '',
+          url: data['url'] ?? '',
+          isInStock: data['isInStock'] ?? false,
+          isDiscontinued: data['isDiscontinued'] ?? false,
+          missedScans: data['missedScans'] ?? 0,
+          lastChecked:
+              (data['lastChecked'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          firstSeen:
+              (data['firstSeen'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          price: data['price'] ?? '',
+          priceValue: (data['priceValue'] as num?)?.toDouble() ?? 0.0,
+          currency: data['currency'] ?? 'EUR',
+          category: data['category'] ?? 'Matcha',
+        );
+      }).toList();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error fetching products for site $siteKey: $e');
+      }
+      return [];
+    }
+  }
+
+  /// Get stock history for a site within a date range
+  Future<List<StockHistory>> getStockHistoryForSite(
+    String siteKey,
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    try {
+      final querySnapshot =
+          await _firestore
+              .collection('stock_history')
+              .where('site', isEqualTo: siteKey)
+              .where(
+                'timestamp',
+                isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
+              )
+              .where(
+                'timestamp',
+                isLessThanOrEqualTo: Timestamp.fromDate(endDate),
+              )
+              .orderBy('timestamp', descending: true)
+              .get();
+
+      return querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        return StockHistory(
+          id: null, // Firestore documents don't have integer IDs
+          productId: data['productId'] ?? '',
+          isInStock: data['isInStock'] ?? false,
+          timestamp:
+              (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+        );
+      }).toList();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error fetching stock history for site $siteKey: $e');
+      }
+      return [];
+    }
+  }
+
+  /// Get crawl requests for background activity screen
+  Future<List<Map<String, dynamic>>> getCrawlRequests({int limit = 20}) async {
+    try {
+      final querySnapshot =
+          await _firestore
+              .collection('crawl_requests')
+              .orderBy('createdAt', descending: true)
+              .limit(limit)
+              .get();
+
+      return querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': doc.id,
+          'status': data['status'] ?? 'unknown',
+          'createdAt': data['createdAt'],
+          'completedAt': data['completedAt'],
+          'duration': data['duration'] ?? 0,
+          'totalProducts': data['totalProducts'] ?? 0,
+          'stockUpdates': data['stockUpdates'] ?? 0,
+          'sitesProcessed': data['sitesProcessed'] ?? 0,
+          'triggerType': data['triggerType'] ?? 'unknown',
+          'results': data['results'] ?? {},
+        };
+      }).toList();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error fetching crawl requests: $e');
+      }
+      return [];
+    }
+  }
+
+  /// Get price range from all products
+  Future<Map<String, double>> getPriceRange() async {
+    try {
+      final querySnapshot = await _firestore.collection('products').get();
+
+      double minPrice = double.infinity;
+      double maxPrice = 0.0;
+
+      for (final doc in querySnapshot.docs) {
+        final data = doc.data();
+        final priceValue = (data['priceValue'] as num?)?.toDouble();
+        if (priceValue != null && priceValue > 0) {
+          if (priceValue < minPrice) minPrice = priceValue;
+          if (priceValue > maxPrice) maxPrice = priceValue;
+        }
+      }
+
+      return {
+        'min': minPrice == double.infinity ? 0.0 : minPrice,
+        'max': maxPrice,
+      };
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting price range from Firestore: $e');
+      }
+      return {'min': 0.0, 'max': 1000.0};
+    }
+  }
+
+  /// Get custom websites (placeholder - not applicable for server mode)
+  Future<List<dynamic>> getCustomWebsites() async {
+    // Custom websites are only available in local mode
+    // Return empty list for server mode
+    return [];
+  }
+
+  /// Insert scan activity (placeholder - activities are server-generated in server mode)
+  Future<void> insertScanActivity(dynamic scanActivity) async {
+    // Scan activities are generated by the server in server mode
+    // This is a no-op for client-side
+    if (kDebugMode) {
+      print('insertScanActivity: Not applicable in server mode');
+    }
   }
 }
