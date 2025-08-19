@@ -13,14 +13,27 @@ class FirestoreService {
 
   static FirestoreService get instance => _instance;
 
-  late final FirebaseFirestore _firestore;
+  FirebaseFirestore? _firestore;
+  bool _isInitialized = false;
+
+  /// Get the Firestore instance, ensuring it's initialized
+  FirebaseFirestore get firestore {
+    if (_firestore == null) {
+      throw StateError(
+        'FirestoreService not initialized. Call initDatabase() first.',
+      );
+    }
+    return _firestore!;
+  }
 
   /// Initialize Firestore service
   Future<void> initDatabase() async {
-    _firestore = FirebaseFirestore.instance;
-
-    if (kDebugMode) {
-      print('Firestore service initialized');
+    if (!_isInitialized) {
+      _firestore = FirebaseFirestore.instance;
+      _isInitialized = true;
+      if (kDebugMode) {
+        print('Firestore service initialized');
+      }
     }
   }
 
@@ -33,7 +46,7 @@ class FirestoreService {
     bool sortAscending = false,
   }) async {
     try {
-      Query<Map<String, dynamic>> query = _firestore.collection('products');
+      Query<Map<String, dynamic>> query = firestore.collection('products');
 
       // Apply filters
       if (filter != null) {
@@ -58,7 +71,8 @@ class FirestoreService {
       final snapshot = await query.limit(itemsPerPage * page).get();
 
       // Get total count separately (if needed for pagination info)
-      final countQuery = _firestore.collection('products');
+      // Get total count
+      final countQuery = firestore.collection('products');
       final countSnapshot = await countQuery.count().get();
       final totalItems = countSnapshot.count ?? 0;
       final totalPages = (totalItems / itemsPerPage).ceil();
@@ -144,7 +158,7 @@ class FirestoreService {
   /// Get all products (for non-paginated queries)
   Future<List<MatchaProduct>> getAllProducts({ProductFilter? filter}) async {
     try {
-      Query<Map<String, dynamic>> query = _firestore.collection('products');
+      Query<Map<String, dynamic>> query = firestore.collection('products');
 
       // Apply filters
       if (filter != null) {
@@ -220,7 +234,7 @@ class FirestoreService {
   /// Get product by ID
   Future<MatchaProduct?> getProductById(String productId) async {
     try {
-      final doc = await _firestore.collection('products').doc(productId).get();
+      final doc = await firestore.collection('products').doc(productId).get();
 
       if (doc.exists && doc.data() != null) {
         return MatchaProduct.fromFirestore(doc.id, doc.data()!);
@@ -238,7 +252,7 @@ class FirestoreService {
   /// Listen to product updates in real-time
   Stream<List<MatchaProduct>> listenToProducts({ProductFilter? filter}) {
     try {
-      Query<Map<String, dynamic>> query = _firestore.collection('products');
+      Query<Map<String, dynamic>> query = firestore.collection('products');
 
       // Apply filters
       if (filter != null) {
@@ -313,7 +327,7 @@ class FirestoreService {
   /// Get unique sites from products
   Future<List<String>> getUniqueSites() async {
     try {
-      final snapshot = await _firestore.collection('products').get();
+      final snapshot = await firestore.collection('products').get();
       final sites =
           snapshot.docs
               .map((doc) => doc.data()['site'] as String?)
@@ -335,7 +349,7 @@ class FirestoreService {
   /// Get unique categories from products
   Future<List<String>> getUniqueCategories() async {
     try {
-      final snapshot = await _firestore.collection('products').get();
+      final snapshot = await firestore.collection('products').get();
       final categories =
           snapshot.docs
               .map((doc) => doc.data()['category'] as String?)
@@ -366,7 +380,7 @@ class FirestoreService {
       }
 
       final querySnapshot =
-          await _firestore
+          await firestore
               .collection('user_favorites')
               .where('userId', isEqualTo: user.uid)
               .get();
@@ -403,7 +417,7 @@ class FirestoreService {
 
       // Check if already exists to avoid duplicates
       final existingQuery =
-          await _firestore
+          await firestore
               .collection('user_favorites')
               .where('userId', isEqualTo: user.uid)
               .where('productId', isEqualTo: productId)
@@ -411,7 +425,7 @@ class FirestoreService {
               .get();
 
       if (existingQuery.docs.isEmpty) {
-        await _firestore.collection('user_favorites').add({
+        await firestore.collection('user_favorites').add({
           'userId': user.uid,
           'productId': productId,
           'addedAt': FieldValue.serverTimestamp(),
@@ -441,7 +455,7 @@ class FirestoreService {
 
       // Find and delete the document
       final querySnapshot =
-          await _firestore
+          await firestore
               .collection('user_favorites')
               .where('userId', isEqualTo: user.uid)
               .where('productId', isEqualTo: productId)
@@ -465,7 +479,7 @@ class FirestoreService {
   Future<List<MatchaProduct>> getProductsBySite(String siteKey) async {
     try {
       final querySnapshot =
-          await _firestore
+          await firestore
               .collection('products')
               .where('site', isEqualTo: siteKey)
               .get();
@@ -508,7 +522,7 @@ class FirestoreService {
   ) async {
     try {
       final querySnapshot =
-          await _firestore
+          await firestore
               .collection('stock_history')
               .where('site', isEqualTo: siteKey)
               .where(
@@ -544,7 +558,7 @@ class FirestoreService {
   Future<List<Map<String, dynamic>>> getCrawlRequests({int limit = 20}) async {
     try {
       final querySnapshot =
-          await _firestore
+          await firestore
               .collection('crawl_requests')
               .orderBy('createdAt', descending: true)
               .limit(limit)
@@ -576,7 +590,7 @@ class FirestoreService {
   /// Get price range from all products
   Future<Map<String, double>> getPriceRange() async {
     try {
-      final querySnapshot = await _firestore.collection('products').get();
+      final querySnapshot = await firestore.collection('products').get();
 
       double minPrice = double.infinity;
       double maxPrice = 0.0;

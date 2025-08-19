@@ -9,6 +9,8 @@ import '../services/database_service.dart';
 import '../services/settings_service.dart';
 import '../services/crawler_service.dart';
 import '../services/crawler_logger.dart';
+import '../services/search_history_service.dart';
+import '../services/recommendation_service.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_filters.dart';
 import '../widgets/matcha_icon.dart';
@@ -34,6 +36,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _hasMoreProducts = true;
   bool _isFullCheckRunning = false;
   bool _showFilters = false;
+
+  // Search enhancement state
+  bool _showSearchSuggestions = false;
+  List<String> _recentSearches = [];
+  List<MatchaProduct> _recommendedProducts = [];
+  bool _isLoadingRecommendations = false;
 
   // Endless loading state
   ProductFilter _filter = ProductFilter();
@@ -131,6 +139,48 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _loadFavorites();
     _loadFilterOptions();
     _restoreFilterAndLoadProducts();
+    _loadSearchEnhancements();
+  }
+
+  Future<void> _loadSearchEnhancements() async {
+    // Load recent searches
+    _loadRecentSearches();
+
+    // Load recommendations
+    _loadRecommendations();
+  }
+
+  Future<void> _loadRecentSearches() async {
+    try {
+      final searches = await SearchHistoryService.getSearchHistory();
+      setState(() {
+        _recentSearches = searches;
+      });
+    } catch (e) {
+      print('Error loading recent searches: $e');
+    }
+  }
+
+  Future<void> _loadRecommendations() async {
+    setState(() {
+      _isLoadingRecommendations = true;
+    });
+
+    try {
+      final recommendations = await RecommendationService.getRecommendations(
+        limit: 6,
+        excludeProductIds: _products.map((p) => p.id).toList(),
+      );
+      setState(() {
+        _recommendedProducts = recommendations;
+        _isLoadingRecommendations = false;
+      });
+    } catch (e) {
+      print('Error loading recommendations: $e');
+      setState(() {
+        _isLoadingRecommendations = false;
+      });
+    }
   }
 
   Future<void> _restoreFilterAndLoadProducts() async {
@@ -531,6 +581,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _filter = _filter.copyWith(searchTerm: query);
     });
     _saveFilterToPrefs(_filter);
+
+    // Save to search history if it's a meaningful search (at least 2 characters)
+    if (query.trim().length >= 2) {
+      SearchHistoryService.addSearchTerm(query.trim()).then((_) {
+        _loadRecentSearches(); // Refresh recent searches
+      });
+    }
+
     _loadProducts(); // Reset products when search changes
   }
 
@@ -616,76 +674,86 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          // Main content
-          Column(
-            children: [
-              // Search bar
-              _buildSearchBar(),
+      body: GestureDetector(
+        onTap: () {
+          // Hide search suggestions when tapping outside
+          if (_showSearchSuggestions) {
+            setState(() {
+              _showSearchSuggestions = false;
+            });
+          }
+        },
+        child: Stack(
+          children: [
+            // Main content
+            Column(
+              children: [
+                // Search bar
+                _buildSearchBar(),
 
-              // Products list with pagination
-              Expanded(child: _buildProductsList()),
-            ],
-          ),
-
-          // Floating Action Button positioned in the stack (local mode only)
-          if (_userSettings.appMode == 'local')
-            Builder(
-              builder: (context) {
-                return Positioned(
-                  bottom: 64,
-                  right: 16,
-                  child: _buildFloatingActionButtons(),
-                );
-              },
+                // Products list with pagination
+                Expanded(child: _buildProductsList()),
+              ],
             ),
 
-          // Filter overlay
-          if (_showFilters)
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _showFilters = false;
-                });
-              },
-              child: Container(
-                color: Colors.black54,
-                child: GestureDetector(
-                  onTap: () {}, // Prevent closing when tapping inside filter
-                  child: DraggableScrollableSheet(
-                    initialChildSize: 0.6,
-                    minChildSize: 0.3,
-                    maxChildSize: 0.9,
-                    builder: (context, scrollController) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(20),
-                            topRight: Radius.circular(20),
+            // Floating Action Button positioned in the stack (local mode only)
+            if (_userSettings.appMode == 'local')
+              Builder(
+                builder: (context) {
+                  return Positioned(
+                    bottom: 64,
+                    right: 16,
+                    child: _buildFloatingActionButtons(),
+                  );
+                },
+              ),
+
+            // Filter overlay
+            if (_showFilters)
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _showFilters = false;
+                  });
+                },
+                child: Container(
+                  color: Colors.black54,
+                  child: GestureDetector(
+                    onTap: () {}, // Prevent closing when tapping inside filter
+                    child: DraggableScrollableSheet(
+                      initialChildSize: 0.6,
+                      minChildSize: 0.3,
+                      maxChildSize: 0.9,
+                      builder: (context, scrollController) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(20),
+                              topRight: Radius.circular(20),
+                            ),
                           ),
-                        ),
-                        child: ProductFilters(
-                          filter: _filter,
-                          onFilterChanged: _onFilterChanged,
-                          availableSites: _availableSites,
-                          availableCategories: _availableCategories,
-                          priceRange: _priceRange,
-                          scrollController: scrollController,
-                          onClose: () {
-                            setState(() {
-                              _showFilters = false;
-                            });
-                          },
-                        ),
-                      );
-                    },
+                          child: ProductFilters(
+                            filter: _filter,
+                            onFilterChanged: _onFilterChanged,
+                            availableSites: _availableSites,
+                            availableCategories: _availableCategories,
+                            priceRange: _priceRange,
+                            scrollController: scrollController,
+                            onClose: () {
+                              setState(() {
+                                _showFilters = false;
+                              });
+                            },
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -709,46 +777,58 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Row(
             children: [
               Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: _onSearchChanged,
-                  decoration: InputDecoration(
-                    hintText: 'Search matcha products...',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon:
-                        _searchQuery.isNotEmpty
-                            ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: _clearSearch,
-                            )
-                            : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.outline.withAlpha((0.3 * 255).toInt()),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _searchController,
+                      onChanged: _onSearchChanged,
+                      onTap: () {
+                        setState(() {
+                          _showSearchSuggestions = true;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Search matcha products...',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon:
+                            _searchQuery.isNotEmpty
+                                ? IconButton(
+                                  icon: const Icon(Icons.clear),
+                                  onPressed: _clearSearch,
+                                )
+                                : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.outline
+                                .withAlpha((0.3 * 255).toInt()),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.outline
+                                .withAlpha((0.3 * 255).toInt()),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 12.0,
+                        ),
                       ),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.outline.withAlpha((0.3 * 255).toInt()),
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).primaryColor,
-                      ),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16.0,
-                      vertical: 12.0,
-                    ),
-                  ),
+                    // Search suggestions
+                    if (_showSearchSuggestions &&
+                        (_recentSearches.isNotEmpty ||
+                            _recommendedProducts.isNotEmpty))
+                      _buildSearchSuggestions(),
+                  ],
                 ),
               ),
               const SizedBox(width: 12),
@@ -762,6 +842,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 onPressed: () {
                   setState(() {
                     _showFilters = !_showFilters;
+                    _showSearchSuggestions =
+                        false; // Hide suggestions when showing filters
                   });
                 },
               ),
@@ -774,6 +856,189 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ],
       ),
     );
+  }
+
+  Widget _buildSearchSuggestions() {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(8.0),
+        border: Border.all(
+          color: Theme.of(
+            context,
+          ).colorScheme.outline.withAlpha((0.3 * 255).toInt()),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha((0.1 * 255).toInt()),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      constraints: const BoxConstraints(maxHeight: 300),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Recent searches section
+            if (_recentSearches.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.history,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Recent Searches',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: _clearSearchHistory,
+                      child: const Text('Clear'),
+                    ),
+                  ],
+                ),
+              ),
+              ...(_recentSearches
+                  .take(5)
+                  .map(
+                    (search) => ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.history, size: 18),
+                      title: Text(search),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.close, size: 16),
+                        onPressed: () => _removeSearchTerm(search),
+                      ),
+                      onTap: () => _selectSearchTerm(search),
+                    ),
+                  )),
+              if (_recommendedProducts.isNotEmpty) const Divider(height: 1),
+            ],
+
+            // You might like section
+            if (_recommendedProducts.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.lightbulb_outline,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'You Might Like',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (_isLoadingRecommendations)
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else
+                ...(_recommendedProducts
+                    .take(3)
+                    .map(
+                      (product) => ListTile(
+                        dense: true,
+                        leading: CircleAvatar(
+                          radius: 16,
+                          backgroundImage:
+                              product.imageUrl != null
+                                  ? NetworkImage(product.imageUrl!)
+                                  : null,
+                          child:
+                              product.imageUrl == null
+                                  ? const Icon(Icons.local_cafe, size: 16)
+                                  : null,
+                        ),
+                        title: Text(
+                          product.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          '${product.site}${product.price != null ? ' • ${product.price}' : ''}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: Icon(
+                          product.isInStock ? Icons.check_circle : Icons.cancel,
+                          color: product.isInStock ? Colors.green : Colors.red,
+                          size: 16,
+                        ),
+                        onTap: () => _selectProduct(product),
+                      ),
+                    )),
+            ],
+
+            // Close button
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Center(
+                child: TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _showSearchSuggestions = false;
+                    });
+                  },
+                  child: const Text('Close'),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _selectSearchTerm(String term) {
+    _searchController.text = term;
+    _onSearchChanged(term);
+    setState(() {
+      _showSearchSuggestions = false;
+    });
+  }
+
+  void _selectProduct(MatchaProduct product) {
+    setState(() {
+      _showSearchSuggestions = false;
+    });
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProductDetailPage(product: product),
+      ),
+    );
+  }
+
+  Future<void> _clearSearchHistory() async {
+    await SearchHistoryService.clearSearchHistory();
+    _loadRecentSearches();
+  }
+
+  Future<void> _removeSearchTerm(String term) async {
+    await SearchHistoryService.removeSearchTerm(term);
+    _loadRecentSearches();
   }
 
   Widget _buildStockStatusChips() {

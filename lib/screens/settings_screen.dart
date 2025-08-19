@@ -49,6 +49,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _launchUserJolt() async {
+    final Uri userJoltUri = Uri.parse(
+      'https://app.userjot.com/cmej2w8560011nc0h8jn15t1d/d/requests?status=%5B"PENDING"%2C"REVIEW"%2C"PLANNED"%2C"PROGRESS"%5D&board=%5B%5D&tag=%5B%5D&order=newest&search=',
+    );
+    if (await canLaunchUrl(userJoltUri)) {
+      await launchUrl(userJoltUri, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open feedback board.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _launchBuyMeACoffee() async {
     final Uri coffeeUri = Uri.parse('https://ko-fi.com/sirarchy');
     if (await canLaunchUrl(coffeeUri)) {
@@ -916,6 +934,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _launchBuyMeACoffee,
                       ),
                     ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Feedback Section
+          Card(
+            margin: const EdgeInsets.only(top: 16),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionTitle('Feedback & Suggestions'),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.feedback,
+                      color: Colors.orange,
+                      size: 28,
+                    ),
+                    title: const Text('Submit Feedback'),
+                    subtitle: const Text(
+                      'Share your ideas and suggestions on our feedback board',
+                    ),
+                    trailing: const Icon(Icons.open_in_new),
+                    onTap: _launchUserJolt,
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.lightbulb,
+                          color: Colors.orange.shade700,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Your feedback helps improve ZenRadar! Vote on existing ideas or submit new ones.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.orange.shade700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

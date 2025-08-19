@@ -764,10 +764,14 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       duration = endTime.difference(timestamp).inSeconds;
     }
 
-    // Extract scan details
-    final totalProducts = crawlRequest['totalProducts'] ?? 0;
-    final stockUpdates = crawlRequest['stockUpdates'] ?? 0;
-    final sitesProcessed = crawlRequest['sitesProcessed'] ?? 0;
+    // Extract scan details - check both root level and results object
+    final results = crawlRequest['results'] ?? {};
+    final totalProducts =
+        crawlRequest['totalProducts'] ?? results['totalProducts'] ?? 0;
+    final stockUpdates =
+        crawlRequest['stockUpdates'] ?? results['stockUpdates'] ?? 0;
+    final sitesProcessed =
+        crawlRequest['sitesProcessed'] ?? results['sitesProcessed'] ?? 0;
 
     final hasStockUpdates = stockUpdates > 0;
 
