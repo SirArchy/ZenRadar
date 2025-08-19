@@ -1,6 +1,9 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/settings_service.dart';
+import '../services/background_service.dart';
 
 class AppModeSelectionDialog extends StatefulWidget {
   final bool isInitialSetup;
@@ -285,10 +288,35 @@ class _AppModeSelectionDialogState extends State<AppModeSelectionDialog> {
     if (_selectedMode == null) return;
 
     try {
+      // Get current settings to check previous mode
+      final currentSettings = await SettingsService.instance.getSettings();
+      final previousMode = currentSettings.appMode;
+
       // Update settings with selected mode
       await SettingsService.instance.updateSettings(
         (settings) => settings.copyWith(appMode: _selectedMode),
       );
+
+      // Handle background service based on mode change
+      if (!kIsWeb && previousMode != _selectedMode) {
+        if (_selectedMode == 'local') {
+          // Switching to local mode - start background service
+          try {
+            await initializeService();
+            print('✅ Background service started for local mode');
+          } catch (e) {
+            print('❌ Failed to start background service: $e');
+          }
+        } else if (_selectedMode == 'server' && previousMode == 'local') {
+          // Switching from local to server mode - stop background service
+          try {
+            await BackgroundServiceController.instance.stopService();
+            print('✅ Background service stopped for server mode');
+          } catch (e) {
+            print('❌ Failed to stop background service: $e');
+          }
+        }
+      }
 
       // Call callback if provided
       if (widget.onModeSelected != null) {

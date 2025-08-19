@@ -713,7 +713,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
 
       // Use Firestore REST API to get crawl_requests
       // For now, we'll create mock data based on our successful crawl
-      // TODO: Replace with actual Firestore REST API call
+      // TODO: Replace with actual Firestore REST API callgi
 
       final activities = <ScanActivity>[];
       final now = DateTime.now();

@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_print, use_build_context_synchronously
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/matcha_product.dart';
@@ -16,6 +17,7 @@ import 'settings_screen.dart';
 import 'background_activity_screen.dart';
 import 'product_detail_page.dart';
 import 'website_overview_screen.dart';
+import 'onboarding_screen_new.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -562,6 +564,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          // Debug button to test onboarding (only show in debug mode)
+          if (kDebugMode)
+            IconButton(
+              icon: const Icon(Icons.ondemand_video),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const OnboardingScreen(),
+                  ),
+                );
+              },
+              tooltip: 'Test Onboarding',
+            ),
           IconButton(
             icon: const Icon(Icons.history),
             onPressed: () {

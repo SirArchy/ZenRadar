@@ -22,32 +22,48 @@ class NotificationService {
       return;
     }
 
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@drawable/notification_icon');
+    try {
+      const AndroidInitializationSettings initializationSettingsAndroid =
+          AndroidInitializationSettings('@drawable/notification_icon');
 
-    const DarwinInitializationSettings initializationSettingsIOS =
-        DarwinInitializationSettings(
-          requestAlertPermission: true,
-          requestBadgePermission: true,
-          requestSoundPermission: true,
-        );
+      const DarwinInitializationSettings initializationSettingsIOS =
+          DarwinInitializationSettings(
+            requestAlertPermission: true,
+            requestBadgePermission: true,
+            requestSoundPermission: true,
+          );
 
-    const InitializationSettings initializationSettings =
-        InitializationSettings(
-          android: initializationSettingsAndroid,
-          iOS: initializationSettingsIOS,
-        );
+      const InitializationSettings initializationSettings =
+          InitializationSettings(
+            android: initializationSettingsAndroid,
+            iOS: initializationSettingsIOS,
+          );
 
-    await _flutterLocalNotificationsPlugin.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) async {
-        final url = response.payload;
-        if (url != null && url.isNotEmpty) {
-          // Use url_launcher to open the URL
-          await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-        }
-      },
-    );
+      await _flutterLocalNotificationsPlugin.initialize(
+        initializationSettings,
+        onDidReceiveNotificationResponse: (
+          NotificationResponse response,
+        ) async {
+          final url = response.payload;
+          if (url != null && url.isNotEmpty) {
+            // Use url_launcher to open the URL
+            await launchUrl(
+              Uri.parse(url),
+              mode: LaunchMode.externalApplication,
+            );
+          }
+        },
+      );
+
+      if (kDebugMode) {
+        print('✅ Notifications initialized successfully');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Failed to initialize notifications: $e');
+      }
+      // Don't rethrow - allow app to continue without notifications
+    }
 
     // Create notification channels
     await _createNotificationChannels();

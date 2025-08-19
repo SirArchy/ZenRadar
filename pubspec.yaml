@@ -59,6 +59,7 @@ dependencies:
   
   # Charts for price history visualization
   fl_chart: ^0.69.0
+  onboarding: ^4.0.2
 
 dev_dependencies:
   flutter_test:

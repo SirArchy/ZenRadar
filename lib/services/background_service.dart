@@ -12,12 +12,32 @@ import '../models/scan_activity.dart';
 import 'crawler_service.dart';
 import 'database_service.dart';
 import 'notification_service.dart';
-import 'web_background_service.dart';
 
 Future<void> initializeService() async {
   // Skip background service initialization on web
   if (kIsWeb) {
     return;
+  }
+
+  // Check if user is in local mode - only initialize service for local mode
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final settingsJson = prefs.getString('user_settings');
+    
+    if (settingsJson != null) {
+      final settingsMap = json.decode(settingsJson) as Map<String, dynamic>;
+      final appMode = settingsMap['appMode'] as String?;
+      
+      if (appMode != 'local') {
+        print('🔄 App is in server mode - skipping background service initialization');
+        return;
+      }
+    } else {
+      // No settings found - assume local mode for backward compatibility
+      print('📱 No app mode settings found - defaulting to local mode');
+    }
+  } catch (e) {
+    print('⚠️ Could not determine app mode: $e - proceeding with service initialization');
   }
 
   final service = FlutterBackgroundService();
@@ -993,63 +1013,107 @@ class BackgroundServiceController {
 
   // Use platform-specific service
   dynamic get _service {
-    if (kIsWeb) {
-      return WebBackgroundServiceController.instance;
-    } else {
+    if (!kIsWeb) {
       return FlutterBackgroundService();
     }
   }
 
-  Future<void> startService() async {
-    if (kIsWeb) {
-      await (_service as WebBackgroundServiceController).startService();
-    } else {
-      await (_service as FlutterBackgroundService).startService();
+  /// Check if the app is in local mode (background service should only run in local mode)
+  Future<bool> _isLocalMode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final settingsJson = prefs.getString('user_settings');
+      
+      if (settingsJson != null) {
+        final settingsMap = json.decode(settingsJson) as Map<String, dynamic>;
+        final appMode = settingsMap['appMode'] as String?;
+        return appMode == 'local';
+      }
+      // Default to local mode if no settings found
+      return true;
+    } catch (e) {
+      print('Error checking app mode: $e');
+      return true; // Default to local mode on error
     }
+  }
+
+  Future<void> startService() async {
+    if (kIsWeb) return;
+    
+    final isLocal = await _isLocalMode();
+    if (!isLocal) {
+      print('🔄 App is in server mode - background service not needed');
+      return;
+    }
+    
+    await (_service as FlutterBackgroundService).startService();
   }
 
   Future<void> stopService() async {
-    if (kIsWeb) {
-      (_service as WebBackgroundServiceController).stopService();
-    } else {
-      (_service as FlutterBackgroundService).invoke('stopService');
-    }
+    if (kIsWeb) return;
+    
+    (_service as FlutterBackgroundService).invoke('stopService');
   }
 
   Future<void> triggerManualCheck() async {
-    if (kIsWeb) {
-      await (_service as WebBackgroundServiceController).triggerManualCheck();
-    } else {
-      (_service as FlutterBackgroundService).invoke('manualCheck');
+    if (kIsWeb) return;
+    
+    final isLocal = await _isLocalMode();
+    if (!isLocal) {
+      print('🔄 App is in server mode - manual check handled by cloud service');
+      return;
     }
+    
+    (_service as FlutterBackgroundService).invoke('manualCheck');
   }
 
   Future<void> updateSettings() async {
-    if (kIsWeb) {
-      await (_service as WebBackgroundServiceController).updateSettings();
-    } else {
-      (_service as FlutterBackgroundService).invoke('updateSettings');
+    if (kIsWeb) return;
+    
+    final isLocal = await _isLocalMode();
+    if (!isLocal) {
+      print('🔄 App is in server mode - no background service to update');
+      return;
     }
+    
+    (_service as FlutterBackgroundService).invoke('updateSettings');
   }
 
   Future<bool> isServiceRunning() async {
-    if (kIsWeb) {
-      return await (_service as WebBackgroundServiceController)
-          .isServiceRunning();
-    } else {
-      return await (_service as FlutterBackgroundService).isRunning();
+    if (kIsWeb) return false;
+    
+    final isLocal = await _isLocalMode();
+    if (!isLocal) {
+      return false; // Service should not be running in server mode
     }
+    
+    return await (_service as FlutterBackgroundService).isRunning();
   }
 
   /// Start a watchdog mechanism to monitor and restart the service if needed
-  void startServiceWatchdog() {
+  void startServiceWatchdog() async {
     if (kIsWeb) {
       // Web doesn't need watchdog as it handles its own lifecycle
       return;
     }
 
+    // Check if we should start the watchdog (only in local mode)
+    final isLocal = await _isLocalMode();
+    if (!isLocal) {
+      print('🔄 App is in server mode - service watchdog not needed');
+      return;
+    }
+
     Timer.periodic(const Duration(minutes: 3), (timer) async {
       try {
+        // Re-check if still in local mode
+        final stillLocal = await _isLocalMode();
+        if (!stillLocal) {
+          print('🔄 App switched to server mode - stopping service watchdog');
+          timer.cancel();
+          return;
+        }
+
         final prefs = await SharedPreferences.getInstance();
         final lastHeartbeat = prefs.getInt('service_last_heartbeat') ?? 0;
         final currentTime = DateTime.now().millisecondsSinceEpoch;
@@ -1072,6 +1136,6 @@ class BackgroundServiceController {
       }
     });
 
-    print('🐕 Service watchdog started');
+    print('🐕 Service watchdog started for local mode');
   }
 }

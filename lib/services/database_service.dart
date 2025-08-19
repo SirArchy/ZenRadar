@@ -1224,4 +1224,108 @@ class _PlatformDatabaseService {
       await FirestoreService.instance.initDatabase();
     }
   }
+
+  Future<Map<String, double>> getPriceRange() async {
+    if (await _isServerMode()) {
+      // For Firestore, we need to calculate price range from products
+      try {
+        final products = await FirestoreService.instance.getAllProducts();
+        double minPrice = double.infinity;
+        double maxPrice = 0.0;
+
+        for (final product in products) {
+          if (product.priceValue != null && product.priceValue! > 0) {
+            if (product.priceValue! < minPrice) minPrice = product.priceValue!;
+            if (product.priceValue! > maxPrice) maxPrice = product.priceValue!;
+          }
+        }
+
+        if (minPrice == double.infinity) {
+          return {'min': 0.0, 'max': 1000.0};
+        }
+
+        return {'min': minPrice, 'max': maxPrice};
+      } catch (e) {
+        return {'min': 0.0, 'max': 1000.0};
+      }
+    } else {
+      // Use local database for local mode
+      if (kIsWeb) {
+        return await WebDatabaseService.instance.getPriceRange();
+      } else {
+        return await DatabaseService.instance.getPriceRange();
+      }
+    }
+  }
+
+  Future<void> recordStockChange(String productId, bool isInStock) async {
+    // Stock changes are always recorded locally regardless of mode
+    if (kIsWeb) {
+      await WebDatabaseService.instance.recordStockChange(productId, isInStock);
+    } else {
+      await DatabaseService.instance.recordStockChange(productId, isInStock);
+    }
+  }
+
+  Future<List<CustomWebsite>> getCustomWebsites() async {
+    // Custom websites are always stored locally regardless of mode
+    if (kIsWeb) {
+      return await WebDatabaseService.instance.getCustomWebsites();
+    } else {
+      return await DatabaseService.instance.getCustomWebsites();
+    }
+  }
+
+  Future<List<CustomWebsite>> getEnabledCustomWebsites() async {
+    // Custom websites are always stored locally regardless of mode
+    if (kIsWeb) {
+      return await WebDatabaseService.instance.getEnabledCustomWebsites();
+    } else {
+      return await DatabaseService.instance.getEnabledCustomWebsites();
+    }
+  }
+
+  Future<void> insertScanActivity(ScanActivity activity) async {
+    // Scan activities are always stored locally regardless of mode
+    if (kIsWeb) {
+      await WebDatabaseService.instance.insertScanActivity(activity);
+    } else {
+      await DatabaseService.instance.insertScanActivity(activity);
+    }
+  }
+
+  Future<List<ScanActivity>> getScanActivities({
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    // Scan activities are always stored locally regardless of mode
+    if (kIsWeb) {
+      return await WebDatabaseService.instance.getScanActivities(
+        limit: limit,
+        offset: offset,
+      );
+    } else {
+      return await DatabaseService.instance.getScanActivities(
+        limit: limit,
+        offset: offset,
+      );
+    }
+  }
+
+  Future<void> insertOrUpdateProduct(MatchaProduct product) async {
+    if (await _isServerMode()) {
+      // For server mode, we don't directly insert products to Firestore
+      // The cloud service handles product updates
+      if (kDebugMode) {
+        print('Server mode: Product updates handled by cloud service');
+      }
+    } else {
+      // Use local database for local mode
+      if (kIsWeb) {
+        await WebDatabaseService.instance.insertOrUpdateProduct(product);
+      } else {
+        await DatabaseService.instance.insertOrUpdateProduct(product);
+      }
+    }
+  }
 }

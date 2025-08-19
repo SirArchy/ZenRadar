@@ -5,7 +5,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'services/notification_service.dart';
 import 'services/background_service.dart';
-import 'services/web_background_service.dart';
 import 'services/database_service.dart';
 import 'services/theme_service.dart';
 import 'services/battery_optimization_service.dart';
@@ -43,19 +42,29 @@ void main() async {
     final batteryService = BatteryOptimizationService();
     await batteryService.checkAndHandleBatteryOptimization();
 
+    // Initialize background service (will check app mode internally)
     await initializeService();
 
-    // Request permissions (mobile only)
-    await requestPermissions();
-  } else {
-    // Initialize web background service simulation
-    await WebBackgroundService.instance.init();
-    await WebBackgroundService.instance.startService();
+    // Request permissions (mobile only) - but exclude notification permission
+    // as it will be requested during onboarding
+    await requestInitialPermissions();
   }
 
   runApp(const ZenRadarApp());
 }
 
+Future<void> requestInitialPermissions() async {
+  if (kIsWeb) return; // Skip permissions on web
+
+  // Request background app refresh permission (iOS)
+  await Permission.appTrackingTransparency.request();
+
+  // Check and handle battery optimization
+  final batteryService = BatteryOptimizationService();
+  await batteryService.checkAndHandleBatteryOptimization();
+}
+
+// Legacy function for requesting all permissions (including notifications)
 Future<void> requestPermissions() async {
   if (kIsWeb) return; // Skip permissions on web
 
@@ -66,12 +75,7 @@ Future<void> requestPermissions() async {
     }
   });
 
-  // Request background app refresh permission (iOS)
-  await Permission.appTrackingTransparency.request();
-
-  // Check and handle battery optimization
-  final batteryService = BatteryOptimizationService();
-  await batteryService.checkAndHandleBatteryOptimization();
+  await requestInitialPermissions();
 }
 
 class ZenRadarApp extends StatelessWidget {
