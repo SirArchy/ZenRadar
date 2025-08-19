@@ -12,6 +12,7 @@
 .swiftpm/
 lib/secrets.dart
 migrate_working_dir/
+android/app/google-services.json
 
 # IntelliJ related
 *.iml
