@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import '../models/matcha_product.dart';
 import '../services/settings_service.dart';
 import '../services/database_service.dart';
@@ -182,11 +184,13 @@ class RecommendationService {
     int completeness = 0;
 
     if (product.name.isNotEmpty) completeness++;
-    if (product.description != null && product.description!.isNotEmpty)
+    if (product.description != null && product.description!.isNotEmpty) {
       completeness++;
+    }
     if (product.priceValue != null && product.priceValue! > 0) completeness++;
-    if (product.imageUrl != null && product.imageUrl!.isNotEmpty)
+    if (product.imageUrl != null && product.imageUrl!.isNotEmpty) {
       completeness++;
+    }
     if (product.url.isNotEmpty) completeness++;
 
     return completeness;

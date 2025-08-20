@@ -20,7 +20,7 @@ class DatabaseService {
   static DatabaseService get instance => _instance;
 
   Database? _database;
-  static const int _currentVersion = 7; // Increment for schema changes
+  static const int _currentVersion = 8; // Increment for schema changes
 
   Future<Database> get database async {
     if (kIsWeb) {
@@ -55,6 +55,7 @@ class DatabaseService {
         name TEXT NOT NULL,
         normalizedName TEXT NOT NULL,
         site TEXT NOT NULL,
+        siteName TEXT,
         url TEXT NOT NULL,
         isInStock INTEGER NOT NULL,
         isDiscontinued INTEGER DEFAULT 0,
@@ -300,6 +301,11 @@ class DatabaseService {
           'CREATE INDEX idx_price_history_date ON price_history(date)',
         );
       }
+    }
+
+    if (oldVersion < 8) {
+      // Add siteName column for version 8
+      await db.execute('ALTER TABLE matcha_products ADD COLUMN siteName TEXT');
     }
   }
 
@@ -1354,6 +1360,42 @@ class _PlatformDatabaseService {
       } else {
         await DatabaseService.instance.insertOrUpdateProduct(product);
       }
+    }
+  }
+
+  Future<void> recordStockStatus(String productId, bool isInStock) async {
+    // Stock status recording is always done locally regardless of mode
+    if (kIsWeb) {
+      await WebDatabaseService.instance.recordStockStatus(productId, isInStock);
+    } else {
+      await DatabaseService.instance.recordStockStatus(productId, isInStock);
+    }
+  }
+
+  Future<void> savePriceForProduct(MatchaProduct product) async {
+    // Price history is always saved locally regardless of mode
+    if (kIsWeb) {
+      await WebDatabaseService.instance.savePriceForProduct(product);
+    } else {
+      await DatabaseService.instance.savePriceForProduct(product);
+    }
+  }
+
+  Future<void> updateWebsiteTestStatus(String id, String status) async {
+    // Website test status is always stored locally regardless of mode
+    if (kIsWeb) {
+      await WebDatabaseService.instance.updateWebsiteTestStatus(id, status);
+    } else {
+      await DatabaseService.instance.updateWebsiteTestStatus(id, status);
+    }
+  }
+
+  Future<int> getScanActivitiesCount() async {
+    // Scan activities count is always from local storage regardless of mode
+    if (kIsWeb) {
+      return await WebDatabaseService.instance.getScanActivitiesCount();
+    } else {
+      return await DatabaseService.instance.getScanActivitiesCount();
     }
   }
 }

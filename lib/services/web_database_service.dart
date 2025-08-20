@@ -230,6 +230,11 @@ class WebDatabaseService {
     });
   }
 
+  Future<void> recordStockStatus(String productId, bool isInStock) async {
+    // This is the same as recordStockChange for web implementation
+    await recordStockChange(productId, isInStock);
+  }
+
   Future<List<Map<String, dynamic>>> getStockHistory(String productId) async {
     return _stockHistory
         .where((history) => history['productId'] == productId)
@@ -354,5 +359,14 @@ class WebDatabaseService {
 
   Future<void> clearAllScanActivities() async {
     _scanActivities.clear();
+  }
+
+  Future<void> savePriceForProduct(MatchaProduct product) async {
+    // For web implementation, this is a no-op since we don't have
+    // a separate price history table. Price history would be implemented
+    // with IndexedDB in a full production version.
+    if (kDebugMode) {
+      print('Web: savePriceForProduct called for ${product.id}');
+    }
   }
 }

@@ -45,12 +45,23 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   ];
 
   final dynamic _db = DatabaseService.platformService;
+  bool _hasInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _loadUserSettings();
-    _loadPriceHistory();
+    // Don't call async methods here that might access inherited widgets
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Initialize data loading here where inherited widgets are available
+    if (!_hasInitialized) {
+      _hasInitialized = true;
+      _loadUserSettings();
+      _loadPriceHistory();
+    }
   }
 
   Future<void> _loadUserSettings() async {

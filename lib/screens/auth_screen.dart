@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../widgets/matcha_icon.dart';
@@ -197,6 +199,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             autocorrect: false,
+            textInputAction: TextInputAction.next,
             decoration: InputDecoration(
               labelText: 'Email',
               prefixIcon: const Icon(Icons.email_outlined),
@@ -223,6 +226,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
           TextFormField(
             controller: _passwordController,
             obscureText: _obscurePassword,
+            textInputAction: TextInputAction.done,
             decoration: InputDecoration(
               labelText: 'Password',
               prefixIcon: const Icon(Icons.lock_outlined),
@@ -306,6 +310,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
           TextFormField(
             controller: _displayNameController,
             textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.next,
             decoration: InputDecoration(
               labelText: 'Display Name (Optional)',
               prefixIcon: const Icon(Icons.person_outlined),
@@ -321,6 +326,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
             autocorrect: false,
             decoration: InputDecoration(
               labelText: 'Email',
@@ -348,6 +354,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
           TextFormField(
             controller: _passwordController,
             obscureText: _obscurePassword,
+            textInputAction: TextInputAction.done,
             decoration: InputDecoration(
               labelText: 'Password',
               prefixIcon: const Icon(Icons.lock_outlined),

@@ -3,6 +3,7 @@ class MatchaProduct {
   final String name;
   final String normalizedName; // For better search/grouping
   final String site;
+  final String? siteName; // Human-readable site name
   final String url;
   final bool isInStock;
   final bool isDiscontinued; // New field for discontinued products
@@ -23,6 +24,7 @@ class MatchaProduct {
     required this.name,
     required this.normalizedName,
     required this.site,
+    this.siteName,
     required this.url,
     required this.isInStock,
     this.isDiscontinued = false,
@@ -46,6 +48,7 @@ class MatchaProduct {
       normalizedName:
           json['normalizedName'] ?? MatchaProduct.normalizeName(json['name']),
       site: json['site'],
+      siteName: json['siteName'],
       url: json['url'],
       isInStock: json['isInStock'] == 1,
       isDiscontinued: json['isDiscontinued'] == 1,
@@ -80,6 +83,7 @@ class MatchaProduct {
           data['normalizedName'] ??
           MatchaProduct.normalizeName(data['name'] ?? ''),
       site: data['site'] ?? '',
+      siteName: data['siteName'],
       url: data['url'] ?? '',
       isInStock: data['isInStock'] ?? false,
       isDiscontinued: data['isDiscontinued'] ?? false,
@@ -112,6 +116,7 @@ class MatchaProduct {
       'name': name,
       'normalizedName': normalizedName,
       'site': site,
+      'siteName': siteName,
       'url': url,
       'isInStock': isInStock ? 1 : 0,
       'isDiscontinued': isDiscontinued ? 1 : 0,

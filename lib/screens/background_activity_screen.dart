@@ -117,17 +117,25 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
   }
 
   List<ScanActivity> _generateServerPlaceholderData() {
-    // Generate placeholder server scan data
+    // Generate more realistic placeholder server scan data
     final now = DateTime.now();
-    return List.generate(5, (index) {
-      final scanTime = now.subtract(Duration(hours: index * 6));
+    return List.generate(8, (index) {
+      final scanTime = now.subtract(Duration(hours: index * 3));
+      final totalProducts = 120 + (index * 15); // Vary between 120-225 products
+      final hasUpdates = index % 3 == 0; // Every 3rd scan has updates
+      final updateCount =
+          hasUpdates ? (2 + (index % 5)) : 0; // 2-6 updates when present
+
       return ScanActivity(
         id: 'server_scan_$index',
         timestamp: scanTime,
-        itemsScanned: 150 + (index * 25),
-        duration: 45 + (index * 5),
-        hasStockUpdates: index % 2 == 0,
-        details: 'Server scan completed successfully',
+        itemsScanned: totalProducts,
+        duration: 35 + (index * 8), // Vary duration between 35-91 seconds
+        hasStockUpdates: hasUpdates,
+        details:
+            hasUpdates
+                ? 'Scanned $totalProducts products across ${4 + (index % 3)} sites - $updateCount stock updates found'
+                : 'Scanned $totalProducts products across ${4 + (index % 3)} sites',
         scanType: 'server',
       );
     });
@@ -764,14 +772,33 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       duration = endTime.difference(timestamp).inSeconds;
     }
 
-    // Extract scan details - check both root level and results object
+    // Extract scan details - check multiple possible locations
     final results = crawlRequest['results'] ?? {};
+    final stats = crawlRequest['stats'] ?? {};
+
+    // Try to get totalProducts from multiple possible fields
     final totalProducts =
-        crawlRequest['totalProducts'] ?? results['totalProducts'] ?? 0;
+        crawlRequest['totalProducts'] ??
+        results['totalProducts'] ??
+        stats['totalProducts'] ??
+        crawlRequest['itemsScanned'] ??
+        results['itemsScanned'] ??
+        0;
+
+    // Try to get stock updates from multiple possible fields
     final stockUpdates =
-        crawlRequest['stockUpdates'] ?? results['stockUpdates'] ?? 0;
+        crawlRequest['stockUpdates'] ??
+        results['stockUpdates'] ??
+        stats['stockUpdates'] ??
+        crawlRequest['newProducts'] ??
+        results['newProducts'] ??
+        0;
+
     final sitesProcessed =
-        crawlRequest['sitesProcessed'] ?? results['sitesProcessed'] ?? 0;
+        crawlRequest['sitesProcessed'] ??
+        results['sitesProcessed'] ??
+        stats['sitesProcessed'] ??
+        0;
 
     final hasStockUpdates = stockUpdates > 0;
 

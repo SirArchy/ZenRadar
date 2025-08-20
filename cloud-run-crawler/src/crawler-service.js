@@ -768,15 +768,60 @@ class CrawlerService {
           });
         }
 
+        // Check for price change or track price regularly
+        const shouldTrackPrice = product.priceValue != null && (
+          existingData.priceValue !== product.priceValue || 
+          this.shouldAddPriceHistoryEntry(existingData)
+        );
+
+        if (shouldTrackPrice) {
+          if (existingData.priceValue !== product.priceValue) {
+            wasUpdated = true;
+            
+            // Log price change
+            this.logger.info('Price changed', {
+              productId: product.id,
+              name: product.name,
+              site: product.site,
+              previousPrice: existingData.priceValue,
+              newPrice: product.priceValue
+            });
+          }
+
+          // Add to price history (for both price changes and regular tracking)
+          await this.db.collection('price_history').add({
+            productId: product.id,
+            productName: product.name,
+            site: product.site,
+            price: product.priceValue,
+            currency: product.currency,
+            isInStock: product.isInStock,
+            date: new Date(),
+            crawlSource: 'cloud-run'
+          });
+        }
+
         // Update existing product
-        await productRef.update({
+        const updateData = {
           ...product,
           lastChecked: new Date(),
           lastUpdated: wasUpdated ? new Date() : existingData.lastUpdated
-        });
+        };
+
+        // Update lastPriceHistoryUpdate if we added a price history entry
+        if (shouldTrackPrice) {
+          updateData.lastPriceHistoryUpdate = new Date();
+        }
+
+        await productRef.update(updateData);
       } else {
         // New product
-        await productRef.set(product);
+        const newProductData = {
+          ...product,
+          lastPriceHistoryUpdate: product.priceValue != null ? new Date() : null
+        };
+
+        await productRef.set(newProductData);
         wasUpdated = true;
         
         this.logger.info('New product added', {
@@ -784,6 +829,31 @@ class CrawlerService {
           name: product.name,
           site: product.site
         });
+
+        // Add initial stock history entry for new product
+        await this.db.collection('stock_history').add({
+          productId: product.id,
+          productName: product.name,
+          site: product.site,
+          isInStock: product.isInStock,
+          previousStatus: null,
+          timestamp: new Date(),
+          crawlSource: 'cloud-run'
+        });
+
+        // Add initial price history entry for new product (if price is available)
+        if (product.priceValue != null) {
+          await this.db.collection('price_history').add({
+            productId: product.id,
+            productName: product.name,
+            site: product.site,
+            price: product.priceValue,
+            currency: product.currency,
+            isInStock: product.isInStock,
+            date: new Date(),
+            crawlSource: 'cloud-run'
+          });
+        }
       }
 
       return wasUpdated;
@@ -795,6 +865,23 @@ class CrawlerService {
       });
       return false;
     }
+  }
+
+  /**
+   * Determine if we should add a price history entry for regular tracking
+   * (even when price hasn't changed)
+   */
+  shouldAddPriceHistoryEntry(existingData) {
+    if (!existingData.lastPriceHistoryUpdate) {
+      return true; // First time tracking
+    }
+
+    const lastUpdate = new Date(existingData.lastPriceHistoryUpdate);
+    const now = new Date();
+    const hoursSinceLastUpdate = (now - lastUpdate) / (1000 * 60 * 60);
+
+    // Add price history entry every 24 hours for regular tracking
+    return hoursSinceLastUpdate >= 24;
   }
 
   /**

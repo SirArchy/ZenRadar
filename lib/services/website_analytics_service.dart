@@ -20,9 +20,16 @@ class WebsiteAnalyticsService {
   // Supported websites
   static const List<String> supportedWebsites = [
     'tokichi',
+    'marukyu',
     'ippodo',
-    'marukyu-koyamaen',
     'horrimeicha',
+    'yoshien',
+    'matcha-karu',
+    'sho-cha',
+    'sazentea',
+    'enjoyemeri',
+    'poppatea',
+    'horiishichimeien',
   ];
 
   /// Get analytics data for all websites
@@ -176,13 +183,27 @@ class WebsiteAnalyticsService {
   String _getDisplayName(String siteName) {
     switch (siteName.toLowerCase()) {
       case 'tokichi':
-        return 'Tokichi';
+        return 'Nakamura Tokichi';
       case 'ippodo':
         return 'Ippodo Tea';
-      case 'marukyu-koyamaen':
-        return 'Marukyu Koyamaen';
+      case 'marukyu':
+        return 'Marukyu-Koyamaen';
       case 'horrimeicha':
         return 'Horrimeicha';
+      case 'yoshien':
+        return 'Yoshi En';
+      case 'matcha-karu':
+        return 'Matcha Kāru';
+      case 'sho-cha':
+        return 'Sho-Cha';
+      case 'sazentea':
+        return 'Sazen Tea';
+      case 'enjoyemeri':
+        return 'Enjoy Emeri';
+      case 'poppatea':
+        return 'Poppa Tea';
+      case 'horiishichimeien':
+        return 'Hori Shichimeien';
       default:
         return siteName.toUpperCase();
     }

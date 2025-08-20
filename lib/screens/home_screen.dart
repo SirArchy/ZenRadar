@@ -122,6 +122,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // Search state
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   String _searchQuery = '';
 
   // Available filter options
@@ -135,6 +136,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+
+    // Set up focus listener for smart search history
+    _searchFocusNode.addListener(() {
+      if (!_searchFocusNode.hasFocus) {
+        _onSearchFocusLost();
+      }
+    });
+
     _loadSettings();
     _loadFavorites();
     _loadFilterOptions();
@@ -201,6 +210,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -582,12 +592,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
     _saveFilterToPrefs(_filter);
 
-    // Save to search history if it's a meaningful search (at least 2 characters)
-    if (query.trim().length >= 2) {
-      SearchHistoryService.addSearchTerm(query.trim()).then((_) {
-        _loadRecentSearches(); // Refresh recent searches
-      });
-    }
+    // Don't save to search history on every character change
+    // We'll save it when user selects a product or loses focus
 
     _loadProducts(); // Reset products when search changes
   }
@@ -595,6 +601,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _clearSearch() {
     _searchController.clear();
     _onSearchChanged('');
+  }
+
+  /// Save search term to history if it's meaningful
+  Future<void> _saveSearchTermIfMeaningful() async {
+    final query = _searchQuery.trim();
+    if (query.length >= 2) {
+      await SearchHistoryService.addSearchTerm(query);
+      _loadRecentSearches(); // Refresh recent searches
+    }
+  }
+
+  /// Called when user submits search (e.g., presses enter)
+  void _onSearchSubmitted(String query) {
+    _saveSearchTermIfMeaningful();
+    // Could add additional logic here if needed
+  }
+
+  /// Called when search field loses focus
+  void _onSearchFocusLost() {
+    setState(() {
+      _showSearchSuggestions = false;
+    });
+    _saveSearchTermIfMeaningful();
   }
 
   void _showErrorSnackBar(String message) {
@@ -781,7 +810,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   children: [
                     TextField(
                       controller: _searchController,
+                      focusNode: _searchFocusNode,
                       onChanged: _onSearchChanged,
+                      onSubmitted: _onSearchSubmitted,
                       onTap: () {
                         setState(() {
                           _showSearchSuggestions = true;
@@ -877,12 +908,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
-      constraints: const BoxConstraints(maxHeight: 300),
+      constraints: const BoxConstraints(maxHeight: 400),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Recent searches section
+            // Recent searches section - moved to top
             if (_recentSearches.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -926,7 +957,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               if (_recommendedProducts.isNotEmpty) const Divider(height: 1),
             ],
 
-            // You might like section
+            // You might like section - horizontal layout
             if (_recommendedProducts.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -954,40 +985,106 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   child: Center(child: CircularProgressIndicator()),
                 )
               else
-                ...(_recommendedProducts
-                    .take(3)
-                    .map(
-                      (product) => ListTile(
-                        dense: true,
-                        leading: CircleAvatar(
-                          radius: 16,
-                          backgroundImage:
-                              product.imageUrl != null
-                                  ? NetworkImage(product.imageUrl!)
-                                  : null,
-                          child:
-                              product.imageUrl == null
-                                  ? const Icon(Icons.local_cafe, size: 16)
-                                  : null,
-                        ),
-                        title: Text(
-                          product.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Text(
-                          '${product.site}${product.price != null ? ' • ${product.price}' : ''}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: Icon(
-                          product.isInStock ? Icons.check_circle : Icons.cancel,
-                          color: product.isInStock ? Colors.green : Colors.red,
-                          size: 16,
-                        ),
-                        onTap: () => _selectProduct(product),
-                      ),
-                    )),
+                Container(
+                  height: 80,
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  child: Row(
+                    children:
+                        _recommendedProducts
+                            .take(3)
+                            .map(
+                              (product) => Expanded(
+                                child: GestureDetector(
+                                  onTap: () => _selectProduct(product),
+                                  child: Container(
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 4.0,
+                                    ),
+                                    padding: const EdgeInsets.all(8.0),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.surfaceContainerHighest,
+                                      borderRadius: BorderRadius.circular(8.0),
+                                      border: Border.all(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.outline.withAlpha(50),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        // Site name
+                                        Text(
+                                          product.site,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.primary,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        // Product name (truncated to 10 chars)
+                                        Text(
+                                          product.name.length > 10
+                                              ? '${product.name.substring(0, 10)}...'
+                                              : product.name,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        // Price and stock status
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                product.price ?? 'N/A',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  color:
+                                                      Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurfaceVariant,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            Icon(
+                                              product.isInStock
+                                                  ? Icons.check_circle
+                                                  : Icons.cancel,
+                                              color:
+                                                  product.isInStock
+                                                      ? Colors.green
+                                                      : Colors.red,
+                                              size: 12,
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                  ),
+                ),
             ],
 
             // Close button
@@ -1019,6 +1116,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _selectProduct(MatchaProduct product) {
+    // Save search term to history when user selects a product
+    _saveSearchTermIfMeaningful();
+
     setState(() {
       _showSearchSuggestions = false;
     });

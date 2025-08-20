@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../models/matcha_product.dart';
 import '../models/stock_history.dart';
+import '../models/price_history.dart';
 
 /// Firestore database service for server mode
 /// Handles direct integration with Cloud Firestore for real-time data
@@ -629,6 +630,143 @@ class FirestoreService {
     // This is a no-op for client-side
     if (kDebugMode) {
       print('insertScanActivity: Not applicable in server mode');
+    }
+  }
+
+  /// Get price analytics for a product
+  Future<PriceAnalytics> getPriceAnalyticsForProduct(String productId) async {
+    try {
+      final priceHistory = await getPriceHistoryForProduct(productId);
+      return PriceAnalytics.fromHistory(priceHistory);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting price analytics from Firestore: $e');
+      }
+      return PriceAnalytics.fromHistory([]);
+    }
+  }
+
+  /// Get price history for a product
+  Future<List<PriceHistory>> getPriceHistoryForProduct(String productId) async {
+    try {
+      final snapshot =
+          await firestore
+              .collection('price_history')
+              .where('productId', isEqualTo: productId)
+              .orderBy('date', descending: false)
+              .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return PriceHistory(
+          id: doc.id,
+          productId: data['productId'] ?? '',
+          date: (data['date'] as Timestamp).toDate(),
+          price: (data['price'] as num?)?.toDouble() ?? 0.0,
+          currency: data['currency'] ?? 'EUR',
+          isInStock: data['isInStock'] ?? false,
+        );
+      }).toList();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting price history from Firestore: $e');
+      }
+      return [];
+    }
+  }
+
+  /// Get stock analytics for a product
+  Future<StockAnalytics> getStockAnalyticsForProduct(
+    String productId, {
+    int? limitDays,
+  }) async {
+    try {
+      final stockHistory = await getStockHistoryForProduct(
+        productId,
+        limitDays: limitDays,
+      );
+      return StockAnalytics.fromHistory(stockHistory);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting stock analytics from Firestore: $e');
+      }
+      return StockAnalytics.fromHistory([]);
+    }
+  }
+
+  /// Get stock history for a product
+  Future<List<StockHistory>> getStockHistoryForProduct(
+    String productId, {
+    int? limitDays,
+  }) async {
+    try {
+      Query<Map<String, dynamic>> query = firestore
+          .collection('stock_history')
+          .where('productId', isEqualTo: productId)
+          .orderBy('timestamp', descending: false);
+
+      // Apply date filter if specified
+      if (limitDays != null) {
+        final cutoffDate = DateTime.now().subtract(Duration(days: limitDays));
+        query = query.where(
+          'timestamp',
+          isGreaterThan: Timestamp.fromDate(cutoffDate),
+        );
+      }
+
+      final snapshot =
+          await query.limit(1000).get(); // Limit to prevent huge queries
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return StockHistory(
+          productId: data['productId'] ?? '',
+          isInStock: data['isInStock'] ?? false,
+          timestamp: (data['timestamp'] as Timestamp).toDate(),
+        );
+      }).toList();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting stock history from Firestore: $e');
+      }
+      return [];
+    }
+  }
+
+  /// Get stock history for a specific day
+  Future<List<StockHistory>> getStockHistoryForDay(
+    String productId,
+    DateTime day,
+  ) async {
+    try {
+      final dayStart = DateTime(day.year, day.month, day.day);
+      final dayEnd = dayStart.add(const Duration(days: 1));
+
+      final snapshot =
+          await firestore
+              .collection('stock_history')
+              .where('productId', isEqualTo: productId)
+              .where(
+                'timestamp',
+                isGreaterThanOrEqualTo: Timestamp.fromDate(dayStart),
+              )
+              .where('timestamp', isLessThan: Timestamp.fromDate(dayEnd))
+              .orderBy('timestamp', descending: false)
+              .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return StockHistory(
+          productId: data['productId'] ?? '',
+          isInStock: data['isInStock'] ?? false,
+          timestamp: (data['timestamp'] as Timestamp).toDate(),
+        );
+      }).toList();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting stock history for day from Firestore: $e');
+      }
+      return [];
     }
   }
 }

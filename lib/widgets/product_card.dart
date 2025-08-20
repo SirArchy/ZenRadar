@@ -184,7 +184,7 @@ class _ProductCardState extends State<ProductCard> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        widget.product.site,
+                        widget.product.siteName ?? widget.product.site,
                         style: TextStyle(
                           color: Theme.of(
                             context,

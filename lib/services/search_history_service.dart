@@ -1,206 +1,66 @@
+// ignore_for_file: avoid_print
+
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'settings_service.dart';
 
 class SearchHistoryService {
   static const String _searchHistoryKey = 'search_history';
   static const int _maxHistoryItems = 10;
 
-  // For server mode
-  static const String _userSearchHistoryCollection = 'user_search_history';
+  /// Add a search term to the local search history
+  static Future<void> addSearchTerm(String term) async {
+    if (term.trim().isEmpty) return;
 
-  static final SettingsService _settingsService = SettingsService();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      List<String> searchHistory = prefs.getStringList(_searchHistoryKey) ?? [];
 
-  /// Add a search term to history
-  static Future<void> addSearchTerm(String searchTerm) async {
-    if (searchTerm.trim().isEmpty) return;
+      // Remove if already exists to avoid duplicates
+      searchHistory.remove(term.trim());
 
-    final trimmedTerm = searchTerm.trim();
+      // Add to the beginning
+      searchHistory.insert(0, term.trim());
 
-    final isServerMode = await _settingsService.getServerMode();
-    if (isServerMode) {
-      await _addSearchTermToFirestore(trimmedTerm);
-    } else {
-      await _addSearchTermToLocal(trimmedTerm);
+      // Keep only the most recent items
+      if (searchHistory.length > _maxHistoryItems) {
+        searchHistory = searchHistory.sublist(0, _maxHistoryItems);
+      }
+
+      await prefs.setStringList(_searchHistoryKey, searchHistory);
+    } catch (e) {
+      print('Error adding search term to local storage: $e');
     }
   }
 
-  /// Get search history
+  /// Get search history from local storage
   static Future<List<String>> getSearchHistory() async {
-    final isServerMode = await _settingsService.getServerMode();
-    if (isServerMode) {
-      return await _getSearchHistoryFromFirestore();
-    } else {
-      return await _getSearchHistoryFromLocal();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getStringList(_searchHistoryKey) ?? [];
+    } catch (e) {
+      print('Error getting search history from local storage: $e');
+      return [];
     }
   }
 
-  /// Clear search history
+  /// Remove a specific search term from history
+  static Future<void> removeSearchTerm(String term) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      List<String> searchHistory = prefs.getStringList(_searchHistoryKey) ?? [];
+      searchHistory.remove(term);
+      await prefs.setStringList(_searchHistoryKey, searchHistory);
+    } catch (e) {
+      print('Error removing search term from local storage: $e');
+    }
+  }
+
+  /// Clear all search history
   static Future<void> clearSearchHistory() async {
-    final isServerMode = await _settingsService.getServerMode();
-    if (isServerMode) {
-      await _clearSearchHistoryFromFirestore();
-    } else {
-      await _clearSearchHistoryFromLocal();
-    }
-  }
-
-  /// Remove a specific search term
-  static Future<void> removeSearchTerm(String searchTerm) async {
-    final isServerMode = await _settingsService.getServerMode();
-    if (isServerMode) {
-      await _removeSearchTermFromFirestore(searchTerm);
-    } else {
-      await _removeSearchTermFromLocal(searchTerm);
-    }
-  }
-
-  // Local storage methods
-  static Future<void> _addSearchTermToLocal(String searchTerm) async {
-    final prefs = await SharedPreferences.getInstance();
-    List<String> history = prefs.getStringList(_searchHistoryKey) ?? [];
-
-    // Remove if already exists
-    history.remove(searchTerm);
-
-    // Add to beginning
-    history.insert(0, searchTerm);
-
-    // Keep only max items
-    if (history.length > _maxHistoryItems) {
-      history = history.take(_maxHistoryItems).toList();
-    }
-
-    await prefs.setStringList(_searchHistoryKey, history);
-  }
-
-  static Future<List<String>> _getSearchHistoryFromLocal() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getStringList(_searchHistoryKey) ?? [];
-  }
-
-  static Future<void> _clearSearchHistoryFromLocal() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_searchHistoryKey);
-  }
-
-  static Future<void> _removeSearchTermFromLocal(String searchTerm) async {
-    final prefs = await SharedPreferences.getInstance();
-    List<String> history = prefs.getStringList(_searchHistoryKey) ?? [];
-    history.remove(searchTerm);
-    await prefs.setStringList(_searchHistoryKey, history);
-  }
-
-  // Firestore methods
-  static Future<void> _addSearchTermToFirestore(String searchTerm) async {
     try {
-      final firestore = FirebaseFirestore.instance;
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      final docRef = firestore
-          .collection(_userSearchHistoryCollection)
-          .doc(user.uid);
-
-      // Get current history
-      final doc = await docRef.get();
-      List<String> history = [];
-
-      if (doc.exists) {
-        final data = doc.data();
-        if (data != null && data.containsKey('searches')) {
-          history = List<String>.from(data['searches'] ?? []);
-        }
-      }
-
-      // Remove if already exists
-      history.remove(searchTerm);
-
-      // Add to beginning
-      history.insert(0, searchTerm);
-
-      // Keep only max items
-      if (history.length > _maxHistoryItems) {
-        history = history.take(_maxHistoryItems).toList();
-      }
-
-      // Save back to Firestore
-      await docRef.set({
-        'searches': history,
-        'lastUpdated': FieldValue.serverTimestamp(),
-      });
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_searchHistoryKey);
     } catch (e) {
-      print('Error adding search term to Firestore: $e');
-    }
-  }
-
-  static Future<List<String>> _getSearchHistoryFromFirestore() async {
-    try {
-      final firestore = FirebaseFirestore.instance;
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return [];
-
-      final doc =
-          await firestore
-              .collection(_userSearchHistoryCollection)
-              .doc(user.uid)
-              .get();
-
-      if (doc.exists) {
-        final data = doc.data();
-        if (data != null && data.containsKey('searches')) {
-          return List<String>.from(data['searches'] ?? []);
-        }
-      }
-
-      return [];
-    } catch (e) {
-      print('Error getting search history from Firestore: $e');
-      return [];
-    }
-  }
-
-  static Future<void> _clearSearchHistoryFromFirestore() async {
-    try {
-      final firestore = FirebaseFirestore.instance;
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      await firestore
-          .collection(_userSearchHistoryCollection)
-          .doc(user.uid)
-          .delete();
-    } catch (e) {
-      print('Error clearing search history from Firestore: $e');
-    }
-  }
-
-  static Future<void> _removeSearchTermFromFirestore(String searchTerm) async {
-    try {
-      final firestore = FirebaseFirestore.instance;
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      final docRef = firestore
-          .collection(_userSearchHistoryCollection)
-          .doc(user.uid);
-
-      final doc = await docRef.get();
-      if (doc.exists) {
-        final data = doc.data();
-        if (data != null && data.containsKey('searches')) {
-          List<String> history = List<String>.from(data['searches'] ?? []);
-          history.remove(searchTerm);
-
-          await docRef.update({
-            'searches': history,
-            'lastUpdated': FieldValue.serverTimestamp(),
-          });
-        }
-      }
-    } catch (e) {
-      print('Error removing search term from Firestore: $e');
+      print('Error clearing search history from local storage: $e');
     }
   }
 }

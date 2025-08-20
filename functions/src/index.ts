@@ -168,6 +168,68 @@ export const triggerManualCrawl = onRequest(
 );
 
 /**
+ * Scheduled function to clean up old history data (runs weekly)
+ */
+export const cleanupOldHistory = onSchedule(
+  {
+    schedule: "0 2 * * 0", // Every Sunday at 2 AM
+    timeZone: "Europe/Berlin",
+    retryCount: 1,
+  },
+  async () => {
+    logger.info("Starting cleanup of old history data");
+
+    try {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - 90); // Keep 90 days of history
+
+      // Clean up old price history
+      const priceHistoryQuery = db.collection("price_history")
+        .where("date", "<", cutoffDate)
+        .limit(1000); // Process in batches
+
+      const priceHistorySnapshot = await priceHistoryQuery.get();
+      const priceHistoryBatch = db.batch();
+
+      priceHistorySnapshot.docs.forEach((doc) => {
+        priceHistoryBatch.delete(doc.ref);
+      });
+
+      if (!priceHistorySnapshot.empty) {
+        await priceHistoryBatch.commit();
+        logger.info(`Deleted ${priceHistorySnapshot.size} 
+        old price history entries`);
+      }
+
+      // Clean up old stock history
+      const stockHistoryQuery = db.collection("stock_history")
+        .where("timestamp", "<", cutoffDate)
+        .limit(1000); // Process in batches
+
+      const stockHistorySnapshot = await stockHistoryQuery.get();
+      const stockHistoryBatch = db.batch();
+
+      stockHistorySnapshot.docs.forEach((doc) => {
+        stockHistoryBatch.delete(doc.ref);
+      });
+
+      if (!stockHistorySnapshot.empty) {
+        await stockHistoryBatch.commit();
+        logger.info(`Deleted ${stockHistorySnapshot.size} 
+        old stock history entries`);
+      }
+
+      logger.info("History cleanup completed successfully");
+    } catch (error) {
+      logger.error("Error during history cleanup", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+);
+
+/**
  * Function to trigger the Cloud Run crawler service
  * @param {Object} params - The parameters required
  * to trigger the Cloud Run crawler.

@@ -27,8 +27,21 @@ class _AppModeSelectionDialogState extends State<AppModeSelectionDialog> {
   @override
   void initState() {
     super.initState();
-    // Auto-select server mode (active mode) for all users by default
-    _selectedMode = 'server';
+    _loadCurrentMode();
+  }
+
+  Future<void> _loadCurrentMode() async {
+    try {
+      final settings = await SettingsService.instance.getSettings();
+      setState(() {
+        _selectedMode = settings.appMode;
+      });
+    } catch (e) {
+      // Fallback to server mode if loading fails
+      setState(() {
+        _selectedMode = kIsWeb ? 'server' : 'local';
+      });
+    }
   }
 
   @override

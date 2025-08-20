@@ -211,77 +211,86 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Container(
       color: colorScheme.surface,
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Spacer(flex: 2),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 600,
+            ), // Better responsive design
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 40),
 
-              // App Logo with animation placeholder
-              TweenAnimationBuilder<double>(
-                duration: const Duration(milliseconds: 1500),
-                tween: Tween(begin: 0.0, end: 1.0),
-                builder: (context, value, child) {
-                  return Transform.scale(
-                    scale: 0.8 + (0.2 * value),
-                    child: Opacity(
-                      opacity: value,
-                      child: const MatchaIcon(size: 120),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 48),
-
-              TweenAnimationBuilder<double>(
-                duration: const Duration(milliseconds: 2000),
-                tween: Tween(begin: 0.0, end: 1.0),
-                builder: (context, value, child) {
-                  return Opacity(
-                    opacity: value,
-                    child: Column(
-                      children: [
-                        const Text(
-                          'Welcome to ZenRadar',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            height: 1.2,
-                          ),
-                          textAlign: TextAlign.center,
+                  // App Logo with animation placeholder
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 1500),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      return Transform.scale(
+                        scale: 0.8 + (0.2 * value),
+                        child: Opacity(
+                          opacity: value,
+                          child: const MatchaIcon(size: 120),
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Your zen companion for matcha monitoring',
-                          style: TextStyle(
-                            fontSize: 18,
-                            height: 1.5,
-                            color: colorScheme.onSurface.withAlpha(200),
-                          ),
-                          textAlign: TextAlign.center,
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 48),
+
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 2000),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      return Opacity(
+                        opacity: value,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Text(
+                              'Welcome to ZenRadar',
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                height: 1.2,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Your zen companion for matcha monitoring',
+                              style: TextStyle(
+                                fontSize: 18,
+                                height: 1.5,
+                                color: colorScheme.onSurface.withAlpha(200),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
-                      ],
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 80),
+
+                  Text(
+                    'Let\'s get you started on your matcha journey',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.w500,
                     ),
-                  );
-                },
+                    textAlign: TextAlign.center,
+                  ),
+
+                  const SizedBox(height: 40),
+                ],
               ),
-
-              const Spacer(flex: 2),
-
-              Text(
-                'Let\'s get you started on your matcha journey',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const Spacer(),
-            ],
+            ),
           ),
         ),
       ),
@@ -292,12 +301,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Container(
       color: colorScheme.surface,
       child: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Spacer(flex: 2),
+              const SizedBox(height: 40),
 
               // Animated icon
               TweenAnimationBuilder<double>(
@@ -349,7 +358,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 'Favorites & wishlist management',
               ]),
 
-              const Spacer(flex: 3),
+              const SizedBox(height: 60),
             ],
           ),
         ),
@@ -403,11 +412,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Container(
       color: colorScheme.surface,
       child: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
-              const Spacer(),
+              const SizedBox(height: 20),
               const Text(
                 'Choose Your Experience',
                 style: TextStyle(
@@ -500,7 +509,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ],
 
-              const Spacer(),
+              const SizedBox(height: 40),
             ],
           ),
         ),
@@ -667,12 +676,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Container(
       color: colorScheme.surface,
       child: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Spacer(flex: 2),
+              const SizedBox(height: 40),
 
               _buildFeatureIcon(Icons.cloud_sync, colorScheme.primary),
 
@@ -753,7 +762,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ],
 
-              const Spacer(flex: 3),
+              const SizedBox(height: 60),
             ],
           ),
         ),
@@ -765,12 +774,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Container(
       color: colorScheme.surface,
       child: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Spacer(flex: 2),
+              const SizedBox(height: 40),
 
               _buildFeatureIcon(Icons.security, Colors.green),
 
@@ -851,7 +860,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ],
 
-              const Spacer(flex: 3),
+              const SizedBox(height: 60),
             ],
           ),
         ),
@@ -863,12 +872,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Container(
       color: colorScheme.surface,
       child: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Spacer(flex: 2),
+              const SizedBox(height: 40),
 
               const Text(
                 'Explore ZenRadar',
@@ -912,7 +921,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 colorScheme: colorScheme,
               ),
 
-              const Spacer(flex: 3),
+              const SizedBox(height: 60),
             ],
           ),
         ),
@@ -976,12 +985,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Container(
       color: colorScheme.surface,
       child: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Spacer(flex: 2),
+              const SizedBox(height: 40),
 
               // Celebration animation
               TweenAnimationBuilder<double>(
@@ -1046,7 +1055,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
 
-              const Spacer(flex: 3),
+              const SizedBox(height: 60),
             ],
           ),
         ),
