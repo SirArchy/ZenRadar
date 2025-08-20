@@ -49,12 +49,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _launchUserJolt() async {
-    final Uri userJoltUri = Uri.parse(
-      'https://app.userjot.com/cmej2w8560011nc0h8jn15t1d/d/requests?status=%5B"PENDING"%2C"REVIEW"%2C"PLANNED"%2C"PROGRESS"%5D&board=%5B%5D&tag=%5B%5D&order=newest&search=',
-    );
-    if (await canLaunchUrl(userJoltUri)) {
-      await launchUrl(userJoltUri, mode: LaunchMode.externalApplication);
+  Future<void> _launchFeedbacky() async {
+    final Uri feedbackUri = Uri.parse('https://app.feedbacky.net/ba/zenRadar/');
+    if (await canLaunchUrl(feedbackUri)) {
+      await launchUrl(feedbackUri, mode: LaunchMode.externalApplication);
     } else {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -963,7 +961,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       'Share your ideas and suggestions on our feedback board',
                     ),
                     trailing: const Icon(Icons.open_in_new),
-                    onTap: _launchUserJolt,
+                    onTap: _launchFeedbacky,
                   ),
                   const SizedBox(height: 8),
                   Container(

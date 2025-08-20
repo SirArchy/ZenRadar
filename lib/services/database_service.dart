@@ -706,6 +706,39 @@ class DatabaseService {
     return {'totalChecks': 0, 'inStockCount': 0, 'outOfStockCount': 0};
   }
 
+  Future<List<StockHistory>> getStockHistoryForSite(
+    String site,
+    DateTime fromDate,
+    DateTime toDate,
+  ) async {
+    final db = await database;
+
+    // Get all products for this site first
+    final products = await getProductsBySite(site);
+    final productIds = products.map((p) => p.id).toList();
+
+    if (productIds.isEmpty) {
+      return [];
+    }
+
+    // Create placeholders for the IN clause
+    final placeholders = productIds.map((_) => '?').join(',');
+
+    final maps = await db.query(
+      'stock_history',
+      where:
+          'productId IN ($placeholders) AND timestamp >= ? AND timestamp <= ?',
+      whereArgs: [
+        ...productIds,
+        fromDate.toIso8601String(),
+        toDate.toIso8601String(),
+      ],
+      orderBy: 'timestamp ASC',
+    );
+
+    return maps.map((map) => StockHistory.fromJson(map)).toList();
+  }
+
   Future<void> deleteStockHistoryForProduct(String productId) async {
     final db = await database;
     await db.delete(

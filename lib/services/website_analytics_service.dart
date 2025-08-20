@@ -6,6 +6,7 @@ import '../models/matcha_product.dart';
 import '../models/stock_history.dart';
 import '../services/settings_service.dart';
 import '../services/firestore_service.dart';
+import '../services/database_service.dart';
 
 class WebsiteAnalyticsService {
   static final WebsiteAnalyticsService _instance =
@@ -152,13 +153,52 @@ class WebsiteAnalyticsService {
     return websiteAnalytics;
   }
 
-  /// Get local analytics (local mode - placeholder)
+  /// Get local analytics (local mode)
   Future<List<WebsiteStockAnalytics>> _getLocalWebsiteAnalytics({
     required String timeRange,
   }) async {
-    // For local mode, we would read from local database
-    // For now, return empty list or mock data
-    return [];
+    List<WebsiteStockAnalytics> websiteAnalytics = [];
+
+    try {
+      // Use the DatabaseService singleton for local database access
+      final DatabaseService dbService = DatabaseService.instance;
+
+      for (String siteName in supportedWebsites) {
+        // Get products for this site
+        List<MatchaProduct> products = await dbService.getProductsBySite(
+          siteName,
+        );
+
+        // Get stock history for analysis
+        List<StockHistory> stockHistory = await dbService
+            .getStockHistoryForSite(
+              siteName,
+              _getCutoffDate(timeRange),
+              DateTime.now(),
+            );
+
+        // Create current product states map
+        Map<String, bool> currentProductStates = {};
+        for (MatchaProduct product in products) {
+          currentProductStates[product.id] = product.isInStock;
+        }
+
+        // Create analytics using the factory method
+        WebsiteStockAnalytics analytics =
+            WebsiteStockAnalytics.fromStockHistory(
+              siteKey: siteName,
+              siteName: _getDisplayName(siteName),
+              stockHistory: stockHistory,
+              currentProductStates: currentProductStates,
+            );
+
+        websiteAnalytics.add(analytics);
+      }
+    } catch (e) {
+      print('Error getting local website analytics: $e');
+    }
+
+    return websiteAnalytics;
   }
 
   /// Get cutoff date based on time range
@@ -230,9 +270,16 @@ class WebsiteAnalyticsService {
           trends[siteName] = _processStockTrendsData(history, timeRange);
         }
       } else {
-        // Local mode - return empty or mock data
+        // Local mode - get data from local database
+        final DatabaseService dbService = DatabaseService.instance;
         for (String siteName in supportedWebsites) {
-          trends[siteName] = [];
+          List<StockHistory> history = await dbService.getStockHistoryForSite(
+            siteName,
+            _getCutoffDate(timeRange),
+            DateTime.now(),
+          );
+
+          trends[siteName] = _processStockTrendsData(history, timeRange);
         }
       }
     } catch (e) {

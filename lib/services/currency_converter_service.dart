@@ -15,7 +15,16 @@ class CurrencyConverterService {
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      return data['rates'] as Map<String, dynamic>;
+      final rates = data['rates'] as Map<String, dynamic>;
+
+      // Ensure all rates are properly typed as doubles
+      final normalizedRates = <String, dynamic>{};
+      for (final entry in rates.entries) {
+        final rate = entry.value;
+        normalizedRates[entry.key] = rate is int ? rate.toDouble() : rate;
+      }
+
+      return normalizedRates;
     } else {
       throw Exception('Failed to fetch exchange rates');
     }
@@ -31,7 +40,16 @@ class CurrencyConverterService {
       final cacheTime = DateTime.parse(cached['timestamp'] as String);
 
       if (now.difference(cacheTime) < _cacheDuration) {
-        return cached['rates'] as Map<String, dynamic>;
+        final rates = cached['rates'] as Map<String, dynamic>;
+
+        // Ensure cached rates are properly typed as doubles
+        final normalizedRates = <String, dynamic>{};
+        for (final entry in rates.entries) {
+          final rate = entry.value;
+          normalizedRates[entry.key] = rate is int ? rate.toDouble() : rate;
+        }
+
+        return normalizedRates;
       }
     }
 
@@ -50,7 +68,10 @@ class CurrencyConverterService {
     try {
       final rates = await getExchangeRates(fromCurrency);
       if (rates.containsKey(toCurrency)) {
-        return amount * (rates[toCurrency] as double);
+        final rate = rates[toCurrency];
+        // Handle both int and double types from the API
+        final rateAsDouble = rate is int ? rate.toDouble() : rate as double;
+        return amount * rateAsDouble;
       }
     } catch (e) {
       debugPrint('Currency conversion failed: $e');
