@@ -120,7 +120,42 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                   labelColor: colorScheme.onPrimary,
                   unselectedLabelColor: colorScheme.onSurfaceVariant,
                   dividerColor: Colors.transparent,
-                  tabs: const [Tab(text: 'Sign In'), Tab(text: 'Sign Up')],
+                  labelPadding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  tabs: [
+                    Tab(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: const Text(
+                          'Sign In',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Tab(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: const Text(
+                          'Sign Up',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 

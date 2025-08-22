@@ -156,6 +156,16 @@ class WebsiteStockChart extends StatelessWidget {
           ],
           lineTouchData: LineTouchData(
             touchTooltipData: LineTouchTooltipData(
+              tooltipRoundedRadius: 8,
+              getTooltipColor:
+                  (touchedSpot) =>
+                      Theme.of(context).colorScheme.surfaceContainerHighest,
+              tooltipBorder: BorderSide(
+                color: Theme.of(
+                  context,
+                ).colorScheme.outline.withValues(alpha: 0.5),
+                width: 1,
+              ),
               getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
                 return touchedBarSpots.map((barSpot) {
                   final date = DateTime.fromMillisecondsSinceEpoch(
@@ -166,8 +176,9 @@ class WebsiteStockChart extends StatelessWidget {
                   return LineTooltipItem(
                     '${_formatTimeForTooltip(date)}\n$updateCount stock update${updateCount > 1 ? 's' : ''}',
                     TextStyle(
-                      color: _getLineColor(context),
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.bold,
+                      fontSize: 12,
                     ),
                   );
                 }).toList();
@@ -217,14 +228,37 @@ class WebsiteStockChart extends StatelessWidget {
   }
 
   Color _getLineColor(BuildContext context) {
-    return Theme.of(context).primaryColor;
+    final brightness = Theme.of(context).brightness;
+    if (brightness == Brightness.dark) {
+      // Use a brighter, more visible color in dark mode
+      return Theme.of(context).colorScheme.primary.withValues(alpha: 0.9);
+    } else {
+      // Use the primary color for light mode
+      return Theme.of(context).colorScheme.primary;
+    }
   }
 
   Color _getDotColor(BuildContext context, int updateCount) {
-    if (updateCount >= 10) return Colors.red;
-    if (updateCount >= 5) return Colors.orange;
-    if (updateCount >= 2) return Colors.blue;
-    return Colors.green;
+    final brightness = Theme.of(context).brightness;
+
+    if (updateCount >= 10) {
+      return brightness == Brightness.dark
+          ? Colors.red.shade300
+          : Colors.red.shade600;
+    }
+    if (updateCount >= 5) {
+      return brightness == Brightness.dark
+          ? Colors.orange.shade300
+          : Colors.orange.shade600;
+    }
+    if (updateCount >= 2) {
+      return brightness == Brightness.dark
+          ? Colors.blue.shade300
+          : Colors.blue.shade600;
+    }
+    return brightness == Brightness.dark
+        ? Colors.green.shade300
+        : Colors.green.shade600;
   }
 
   double _getDotRadius(int updateCount) {
@@ -325,14 +359,27 @@ class WebsiteUpdatePatternWidget extends StatelessWidget {
                   updateCount > 0 ? (updateCount / maxUpdates) : 0.0;
 
               Color cellColor;
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+
               if (updateCount == 0) {
-                cellColor = Colors.grey.withAlpha(50);
+                cellColor = Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest.withAlpha(100);
               } else if (intensity >= 0.7) {
-                cellColor = Colors.red.withAlpha((255 * intensity).toInt());
+                // High activity - red for both themes
+                cellColor = (isDark ? Colors.red.shade300 : Colors.red.shade600)
+                    .withAlpha((200 * intensity).toInt().clamp(80, 200));
               } else if (intensity >= 0.4) {
-                cellColor = Colors.orange.withAlpha((255 * intensity).toInt());
+                // Medium activity - orange for both themes
+                cellColor = (isDark
+                        ? Colors.orange.shade300
+                        : Colors.orange.shade600)
+                    .withAlpha((200 * intensity).toInt().clamp(80, 200));
               } else {
-                cellColor = Colors.blue.withAlpha((255 * intensity).toInt());
+                // Low activity - use primary color for better theme integration
+                cellColor = Theme.of(context).colorScheme.primary.withAlpha(
+                  (180 * intensity).toInt().clamp(60, 180),
+                );
               }
 
               return Tooltip(
@@ -355,7 +402,12 @@ class WebsiteUpdatePatternWidget extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: updateCount > 0 ? Colors.white : Colors.grey,
+                        color:
+                            updateCount > 0
+                                ? (isDark ? Colors.white : Colors.white)
+                                : Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withAlpha(125),
                       ),
                     ),
                   ),

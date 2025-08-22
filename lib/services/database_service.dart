@@ -1414,6 +1414,71 @@ class _PlatformDatabaseService {
     }
   }
 
+  Future<List<PriceHistory>> getPriceHistoryForProduct(String productId) async {
+    // Price history is only available in local storage (not web)
+    if (kIsWeb) {
+      return []; // Web doesn't support price history yet
+    } else {
+      return await DatabaseService.instance.getPriceHistoryForProduct(
+        productId,
+      );
+    }
+  }
+
+  Future<PriceAnalytics> getPriceAnalyticsForProduct(String productId) async {
+    // Price analytics is only available in local storage (not web)
+    if (kIsWeb) {
+      final priceHistory = await getPriceHistoryForProduct(productId);
+      return PriceAnalytics.fromHistory(priceHistory);
+    } else {
+      return await DatabaseService.instance.getPriceAnalyticsForProduct(
+        productId,
+      );
+    }
+  }
+
+  Future<void> deletePriceHistoryForProduct(String productId) async {
+    // Price history deletion is only available in local storage (not web)
+    if (kIsWeb) {
+      // No-op for web since price history is not implemented
+      return;
+    } else {
+      await DatabaseService.instance.deletePriceHistoryForProduct(productId);
+    }
+  }
+
+  Future<StockAnalytics> getStockAnalyticsForProduct(
+    String productId, {
+    int? limitDays,
+  }) async {
+    // Stock analytics is always from local storage regardless of mode
+    if (kIsWeb) {
+      // For web, get stock history and create analytics - but web doesn't implement stock history yet
+      return StockAnalytics.fromHistory([]);
+    } else {
+      return await DatabaseService.instance.getStockAnalyticsForProduct(
+        productId,
+        limitDays: limitDays,
+      );
+    }
+  }
+
+  Future<List<StockHistory>> getStockHistoryForProduct(
+    String productId, {
+    int? limitDays,
+  }) async {
+    // Stock history is always from local storage regardless of mode
+    if (kIsWeb) {
+      // Web doesn't support stock history yet
+      return [];
+    } else {
+      return await DatabaseService.instance.getStockHistoryForProduct(
+        productId,
+        limitDays: limitDays,
+      );
+    }
+  }
+
   Future<void> updateWebsiteTestStatus(String id, String status) async {
     // Website test status is always stored locally regardless of mode
     if (kIsWeb) {

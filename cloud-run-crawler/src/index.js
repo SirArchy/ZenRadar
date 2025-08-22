@@ -141,6 +141,9 @@ app.post('/crawl', authenticateToken, async (req, res) => {
     await updateCrawlRequestStatus(requestId, 'completed', {
       completedAt: new Date(),
       duration,
+      totalProducts: results.totalProducts,
+      stockUpdates: results.stockUpdates,
+      sitesProcessed: results.sitesProcessed,
       results: {
         totalProducts: results.totalProducts,
         stockUpdates: results.stockUpdates,

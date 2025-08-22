@@ -172,7 +172,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           // App Mode Settings
           Card(
-            color: Colors.blue.withValues(alpha: 0.1),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -184,15 +183,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _settings.appMode == 'server'
                             ? Icons.cloud
                             : Icons.phone_android,
-                        color: Colors.blue,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                       const SizedBox(width: 8),
-                      const Text(
+                      Text(
                         'Operation Mode',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -203,14 +200,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     decoration: BoxDecoration(
                       color:
                           _settings.appMode == 'server'
-                              ? Colors.blue.shade100
-                              : Colors.green.shade100,
+                              ? Theme.of(context).colorScheme.primaryContainer
+                              : Theme.of(
+                                context,
+                              ).colorScheme.secondaryContainer,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color:
                             _settings.appMode == 'server'
-                                ? Colors.blue
-                                : Colors.green,
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.secondary,
                         width: 1,
                       ),
                     ),
@@ -222,8 +221,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               : Icons.smartphone,
                           color:
                               _settings.appMode == 'server'
-                                  ? Colors.blue
-                                  : Colors.green,
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.secondary,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -238,8 +237,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   fontWeight: FontWeight.w600,
                                   color:
                                       _settings.appMode == 'server'
-                                          ? Colors.blue.shade700
-                                          : Colors.green.shade700,
+                                          ? Theme.of(
+                                            context,
+                                          ).colorScheme.onPrimaryContainer
+                                          : Theme.of(
+                                            context,
+                                          ).colorScheme.onSecondaryContainer,
                                 ),
                               ),
                               Text(
@@ -250,8 +253,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   fontSize: 12,
                                   color:
                                       _settings.appMode == 'server'
-                                          ? Colors.blue.shade600
-                                          : Colors.green.shade600,
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .onPrimaryContainer
+                                              .withValues(alpha: 0.8)
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer
+                                              .withValues(alpha: 0.8),
                                 ),
                               ),
                             ],
@@ -308,7 +317,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Authentication (server mode only)
           if (_settings.appMode == 'server')
             Card(
-              color: Colors.blue.withValues(alpha: 0.1),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -316,14 +324,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.account_circle, color: Colors.blue),
+                        Icon(
+                          Icons.account_circle,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           'Account',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -339,7 +348,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Cloud Integration (server mode only)
           if (_settings.appMode == 'server')
             Card(
-              color: Colors.purple.withValues(alpha: 0.1),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -347,14 +355,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.cloud_sync, color: Colors.purple),
+                        Icon(
+                          Icons.cloud_sync,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           'Cloud Integration',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -464,33 +473,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(12.0),
                         decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primaryContainer.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.blue.shade200),
+                          border: Border.all(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.3),
+                          ),
                         ),
-                        child: const Column(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.cloud_sync, color: Colors.blue),
-                                SizedBox(width: 8),
+                                Icon(
+                                  Icons.cloud_sync,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                const SizedBox(width: 8),
                                 Text(
                                   'Cloud Monitoring Active',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.blue,
+                                    color:
+                                        Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimaryContainer,
                                   ),
                                 ),
                               ],
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             Text(
                               '• Websites monitored every 30 minutes\n'
                               '• 24/7 cloud-based scanning\n'
                               '• Automatic data synchronization\n'
                               '• Zero impact on device battery',
-                              style: TextStyle(fontSize: 14),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onPrimaryContainer
+                                    .withValues(alpha: 0.9),
+                              ),
                             ),
                           ],
                         ),
@@ -676,30 +703,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(12.0),
                       decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.blue.shade200),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.3),
+                        ),
                       ),
-                      child: const Column(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.info, color: Colors.blue),
-                              SizedBox(width: 8),
+                              Icon(
+                                Icons.info,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              const SizedBox(width: 8),
                               Text(
                                 'Server-Monitored Websites',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.blue,
+                                  color:
+                                      Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimaryContainer,
                                 ),
                               ),
                             ],
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Text(
                             'All supported matcha websites are automatically monitored by our servers. Data is synchronized to your device regularly.',
-                            style: TextStyle(fontSize: 14),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer
+                                  .withValues(alpha: 0.9),
+                            ),
                           ),
                         ],
                       ),
@@ -1013,7 +1058,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'url': 'marukyu-koyamaen.co.jp',
       },
       {'key': 'ippodo', 'name': 'Ippodo Tea', 'url': 'global.ippodo-tea.co.jp'},
-      {'key': 'horrimeicha', 'name': 'Horrimeicha', 'url': 'horrimeicha.com'},
+      {
+        'key': 'horiishichimeien',
+        'name': 'Hori Ishichimeien',
+        'url': 'horiishichimeien.com',
+      },
       {'key': 'yoshien', 'name': 'Yoshi En', 'url': 'yoshien.co.jp'},
       {'key': 'matcha-karu', 'name': 'Matcha Kāru', 'url': 'matchakaru.com'},
       {'key': 'sho-cha', 'name': 'Sho-Cha', 'url': 'sho-cha.com'},
@@ -1683,7 +1732,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
 
       final requestId = await CloudCrawlerService.instance.triggerManualCrawl(
-        sites: ['tokichi', 'marukyu', 'ippodo', 'horrimeicha'], // Updated sites
+        sites: [
+          'tokichi',
+          'marukyu',
+          'ippodo',
+          'horiishichimeien',
+        ], // Updated sites
         userId: 'flutter-user-${DateTime.now().millisecondsSinceEpoch}',
       );
 

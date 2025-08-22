@@ -23,7 +23,7 @@ class WebsiteAnalyticsService {
     'tokichi',
     'marukyu',
     'ippodo',
-    'horrimeicha',
+    'horiishichimeien',
     'yoshien',
     'matcha-karu',
     'sho-cha',
@@ -228,8 +228,6 @@ class WebsiteAnalyticsService {
         return 'Ippodo Tea';
       case 'marukyu':
         return 'Marukyu-Koyamaen';
-      case 'horrimeicha':
-        return 'Horrimeicha';
       case 'yoshien':
         return 'Yoshi En';
       case 'matcha-karu':

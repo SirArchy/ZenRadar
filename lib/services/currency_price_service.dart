@@ -35,8 +35,8 @@ class CurrencyPriceService {
         return _extractMarukyuPrice(cleaned);
       case 'ippodo':
         return _extractIppodoPrice(cleaned);
-      case 'horrimeicha':
-        return _extractHorrimichaPrice(cleaned);
+      case 'horiishichimeien':
+        return _extractHoriIshichimeienPrice(cleaned);
       case 'sho-cha':
         return _extractShoChaPrice(cleaned);
       case 'matcha-karu':
@@ -220,37 +220,37 @@ class CurrencyPriceService {
     );
   }
 
-  /// Handle Horrimeicha price extraction
-  PriceInfo _extractHorrimichaPrice(String cleaned) {
-    // Try to extract Euro prices (common format: €XX.XX)
-    final euroMatch = RegExp(r'€(\d+[.,]\d+)').firstMatch(cleaned);
-    if (euroMatch != null) {
-      final priceText = euroMatch.group(1)!.replaceAll(',', '.');
+  /// Handle Hori Ishichimeien price extraction
+  PriceInfo _extractHoriIshichimeienPrice(String cleaned) {
+    // Try to extract Japanese Yen prices (common format: ¥XXX or JPY XXX)
+    final yenMatch = RegExp(r'¥(\d+[.,]?\d*)').firstMatch(cleaned);
+    if (yenMatch != null) {
+      final priceText = yenMatch.group(1)!.replaceAll(',', '');
       final priceValue = double.tryParse(priceText);
 
       if (priceValue != null) {
         return PriceInfo(
           originalPrice: cleaned,
-          normalizedEuroPrice: '€${priceValue.toStringAsFixed(2)}',
-          currency: 'EUR',
+          normalizedEuroPrice: '¥${priceValue.toInt()}',
+          currency: 'JPY',
           priceValue: priceValue,
         );
       }
     }
 
-    // Try to extract USD prices and convert to EUR
-    final usdMatch = RegExp(r'\$(\d+[.,]\d+)').firstMatch(cleaned);
-    if (usdMatch != null) {
-      final priceText = usdMatch.group(1)!.replaceAll(',', '.');
-      final usdValue = double.tryParse(priceText);
+    // Try to extract Euro prices and convert to JPY equivalent display
+    final euroMatch = RegExp(r'€(\d+[.,]\d+)').firstMatch(cleaned);
+    if (euroMatch != null) {
+      final priceText = euroMatch.group(1)!.replaceAll(',', '.');
+      final euroValue = double.tryParse(priceText);
 
-      if (usdValue != null) {
-        final euroValue = usdValue * _exchangeRates['USD']!;
+      if (euroValue != null) {
+        final yenValue = euroValue / _exchangeRates['JPY']!;
         return PriceInfo(
           originalPrice: cleaned,
-          normalizedEuroPrice: '€${euroValue.toStringAsFixed(2)}',
-          currency: 'EUR',
-          priceValue: euroValue,
+          normalizedEuroPrice: '¥${yenValue.toInt()}',
+          currency: 'JPY',
+          priceValue: yenValue,
         );
       }
     }

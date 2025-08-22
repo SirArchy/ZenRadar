@@ -694,7 +694,7 @@ Future<void> _performStockCheck() async {
         'tokichi': 'Nakamura Tokichi',
         'marukyu': 'Marukyu-Koyamaen',
         'ippodo': 'Ippodo Tea',
-        'horrimeicha': 'Horrimeicha',
+        'horiishichimeien': 'Hori Ishichimeien',
         'yoshien': 'Yoshi En',
         'matcha-karu': 'Matcha Kāru',
         'sho-cha': 'Sho-Cha',
@@ -942,7 +942,7 @@ Future<UserSettings> _getUserSettings() async {
     startTime: "08:00",
     endTime: "20:00",
     notificationsEnabled: true,
-    enabledSites: const ["tokichi", "marukyu", "ippodo", "horrimeicha"],
+    enabledSites: const ["tokichi", "marukyu", "ippodo", "horiishichimeien"],
   );
 }
 

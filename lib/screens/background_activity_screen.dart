@@ -725,20 +725,34 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         limit: 20,
       );
 
+      print(
+        '📊 Retrieved ${crawlRequests.length} crawl requests from Firestore',
+      );
+
       final activities = <ScanActivity>[];
 
       for (final crawlRequest in crawlRequests) {
-        final activity = _convertCrawlRequestToScanActivity(crawlRequest);
-        activities.add(activity);
+        try {
+          final activity = _convertCrawlRequestToScanActivity(crawlRequest);
+          activities.add(activity);
+          print('✅ Converted crawl request: ${activity.details}');
+        } catch (e) {
+          print('❌ Error converting crawl request: $e');
+          print('Crawl request data: $crawlRequest');
+        }
       }
 
-      print('✅ Loaded ${activities.length} server activities');
+      print('✅ Successfully loaded ${activities.length} server activities');
       return activities;
     } catch (e) {
       print('❌ Error loading server activities: $e');
+      print('Error type: ${e.runtimeType}');
+      if (e is Exception) {
+        print('Exception details: ${e.toString()}');
+      }
 
-      // Fallback to placeholder data if Firestore fails
-      return _generateServerPlaceholderData();
+      // Return empty list instead of placeholder data to better understand the issue
+      return [];
     }
   }
 
@@ -749,64 +763,68 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     final status = crawlRequest['status'] ?? 'unknown';
     final createdAt = crawlRequest['createdAt'];
     final completedAt = crawlRequest['completedAt'];
+    final processedAt = crawlRequest['processedAt'];
+    final startedAt = crawlRequest['startedAt'];
 
-    // Parse timestamps
+    // Parse timestamps - handle both DateTime and Timestamp objects
     DateTime timestamp = DateTime.now();
     if (createdAt != null) {
       if (createdAt is DateTime) {
         timestamp = createdAt;
       } else if (createdAt.runtimeType.toString().contains('Timestamp')) {
         timestamp = createdAt.toDate();
+      } else if (createdAt is String) {
+        timestamp = DateTime.tryParse(createdAt) ?? DateTime.now();
       }
     }
 
     // Calculate duration
     int duration = crawlRequest['duration'] ?? 0;
-    if (duration == 0 && completedAt != null && createdAt != null) {
-      DateTime endTime = DateTime.now();
-      if (completedAt is DateTime) {
-        endTime = completedAt;
-      } else if (completedAt.runtimeType.toString().contains('Timestamp')) {
-        endTime = completedAt.toDate();
+    if (duration == 0) {
+      DateTime? endTime;
+
+      // Try different completion time fields
+      final endTimeStamp = completedAt ?? processedAt ?? startedAt;
+      if (endTimeStamp != null) {
+        if (endTimeStamp is DateTime) {
+          endTime = endTimeStamp;
+        } else if (endTimeStamp.runtimeType.toString().contains('Timestamp')) {
+          endTime = endTimeStamp.toDate();
+        } else if (endTimeStamp is String) {
+          endTime = DateTime.tryParse(endTimeStamp);
+        }
       }
-      duration = endTime.difference(timestamp).inSeconds;
+
+      if (endTime != null && createdAt != null) {
+        duration = endTime.difference(timestamp).inMilliseconds;
+      }
     }
 
     // Extract scan details - check multiple possible locations
-    final results = crawlRequest['results'] ?? {};
-    final stats = crawlRequest['stats'] ?? {};
+    final results = crawlRequest['results'] as Map<String, dynamic>? ?? {};
 
-    // Try to get totalProducts from multiple possible fields
+    // Get values directly from crawl request or from results
     final totalProducts =
-        crawlRequest['totalProducts'] ??
-        results['totalProducts'] ??
-        stats['totalProducts'] ??
-        crawlRequest['itemsScanned'] ??
-        results['itemsScanned'] ??
-        0;
+        (crawlRequest['totalProducts'] ?? results['totalProducts'] ?? 0) as int;
 
-    // Try to get stock updates from multiple possible fields
     final stockUpdates =
-        crawlRequest['stockUpdates'] ??
-        results['stockUpdates'] ??
-        stats['stockUpdates'] ??
-        crawlRequest['newProducts'] ??
-        results['newProducts'] ??
-        0;
+        (crawlRequest['stockUpdates'] ?? results['stockUpdates'] ?? 0) as int;
 
     final sitesProcessed =
-        crawlRequest['sitesProcessed'] ??
-        results['sitesProcessed'] ??
-        stats['sitesProcessed'] ??
-        0;
+        (crawlRequest['sitesProcessed'] ?? results['sitesProcessed'] ?? 0)
+            as int;
 
     final hasStockUpdates = stockUpdates > 0;
+    final triggerType = crawlRequest['triggerType'] ?? 'server';
 
     String details;
     if (status == 'completed') {
-      details = 'Scanned $totalProducts products across $sitesProcessed sites';
+      details = 'Found $totalProducts products';
       if (hasStockUpdates) {
-        details += ' - $stockUpdates stock updates found';
+        details += ', $stockUpdates stock updates';
+      }
+      if (sitesProcessed > 0) {
+        details += ' from $sitesProcessed sites';
       }
     } else if (status == 'failed') {
       details = 'Scan failed - check server logs';
@@ -816,14 +834,16 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       details = 'Status: $status';
     }
 
+    final requestId = crawlRequest['id'] ?? 'unknown';
+
     return ScanActivity(
-      id: crawlRequest['id'] ?? 'unknown',
+      id: 'server_${requestId}_${timestamp.millisecondsSinceEpoch}',
       timestamp: timestamp,
+      scanType: triggerType == 'scheduled' ? 'server' : 'manual',
+      duration: (duration / 1000).round(), // Convert milliseconds to seconds
       itemsScanned: totalProducts,
-      duration: duration,
       hasStockUpdates: hasStockUpdates,
       details: details,
-      scanType: 'server',
     );
   }
 }

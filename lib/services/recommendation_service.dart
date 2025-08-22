@@ -117,7 +117,7 @@ class RecommendationService {
       case 'marukyu-koyamaen':
         score += 1.7; // Slightly prefer this premium brand
         break;
-      case 'horrimeicha':
+      case 'horiishichimeien':
         score += 1.2;
         break;
       default:

@@ -470,6 +470,8 @@ class CrawlerService {
 
       case 'horiishichimeien':
         // For Horiishichimeien, check for Japanese and English out-of-stock indicators
+        // Also check for sold-out badge which is a reliable indicator
+        if (productElement.find('.price__badge--sold-out, .sold-out-badge, .out-of-stock').length > 0) return false;
         if (elementText.includes('売り切れ') || elementText.includes('out of stock') || 
             elementText.includes('sold out') || elementText.includes('unavailable')) return false;
         // Check for add to cart button or similar indicators
@@ -712,8 +714,14 @@ class CrawlerService {
 
       case 'enjoyemeri':
       case 'horiishichimeien':
-        // Standard cleanup for these sites
+        // For Horiishichimeien, handle Japanese Yen prices and avoid duplication
+        // Remove extra whitespace and normalize
         cleaned = cleaned.replace(/\n/g, ' ').replace(/\s+/g, ' ');
+        // Extract only the first occurrence of Yen price to avoid duplication
+        const yenMatch = cleaned.match(/¥(\d+[.,]?\d*)/);
+        if (yenMatch) {
+          return yenMatch[0]; // Return the full match (¥XXX)
+        }
         break;
     }
 
@@ -891,6 +899,19 @@ class CrawlerService {
     const urlPart = url.split('/').pop() || '';
     const namePart = name.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 20);
     const sitePrefix = siteKey ? `${siteKey}_` : '';
+    
+    // For Poppatea, remove dynamic variant ID parts to ensure stable IDs
+    if (siteKey === 'poppatea') {
+      // Remove patterns like "_pos1_fida70680544_ssc_" or "_fid1eb13925e_"
+      const cleanUrlPart = urlPart
+        .replace(/_pos\d+_fid[a-f0-9]+_ssc_/g, '_')
+        .replace(/_fid[a-f0-9]+_/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '');
+      
+      return `${sitePrefix}${cleanUrlPart}_${namePart}`.replace(/[^a-z0-9_]/g, '');
+    }
+    
     return `${sitePrefix}${urlPart}_${namePart}`.replace(/[^a-z0-9_]/g, '');
   }
 

@@ -55,40 +55,56 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
     }
   }
 
+  void _showTimeRangePicker() {
+    showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select Time Range'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children:
+                _timeRanges.map((String timeRange) {
+                  return RadioListTile<String>(
+                    title: Text(_getTimeRangeLabel(timeRange)),
+                    value: timeRange,
+                    groupValue: _selectedTimeRange,
+                    onChanged: (String? value) {
+                      if (value != null) {
+                        Navigator.of(context).pop(value);
+                      }
+                    },
+                  );
+                }).toList(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    ).then((String? selectedTimeRange) {
+      if (selectedTimeRange != null) {
+        setState(() {
+          _selectedTimeRange = selectedTimeRange;
+        });
+        _loadAnalytics();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Website Stock Overview'),
         actions: [
-          PopupMenuButton<String>(
+          IconButton(
             icon: const Icon(Icons.schedule),
             tooltip: 'Time Range',
-            onSelected: (String timeRange) {
-              setState(() {
-                _selectedTimeRange = timeRange;
-              });
-              _loadAnalytics();
-            },
-            itemBuilder: (BuildContext context) {
-              return _timeRanges.map((String timeRange) {
-                return PopupMenuItem<String>(
-                  value: timeRange,
-                  child: Row(
-                    children: [
-                      Icon(
-                        _selectedTimeRange == timeRange
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_unchecked,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(_getTimeRangeLabel(timeRange)),
-                    ],
-                  ),
-                );
-              }).toList();
-            },
+            onPressed: _showTimeRangePicker,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -185,14 +201,28 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                     alignment: Alignment.centerRight,
                     child: Container(
                       constraints: const BoxConstraints(maxWidth: 200),
-                      child: Chip(
-                        label: Text(
-                          _getTimeRangeLabel(_selectedTimeRange),
-                          style: const TextStyle(fontSize: 12),
+                      child: InkWell(
+                        onTap: _showTimeRangePicker,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Chip(
+                          label: Text(
+                            _getTimeRangeLabel(_selectedTimeRange),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                          backgroundColor:
+                              Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
+                          side: BorderSide(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.outline.withAlpha(100),
+                            width: 1,
+                          ),
                         ),
-                        backgroundColor: Theme.of(
-                          context,
-                        ).primaryColor.withAlpha(50),
                       ),
                     ),
                   ),

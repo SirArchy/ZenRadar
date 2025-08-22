@@ -59,15 +59,6 @@ class CrawlerService {
           '.m-product-card__price', // Updated to use the correct price selector
       linkSelector: 'a[href*="/products/"]',
     ),
-    'horrimeicha': SiteConfig(
-      name: 'Horrimeicha',
-      baseUrl: 'https://horrimeicha.com',
-      stockSelector: '.out-of-stock',
-      productSelector: '.product-item',
-      nameSelector: '.product-title',
-      priceSelector: '.product-price',
-      linkSelector: '.product-link',
-    ),
     'yoshien': SiteConfig(
       name: 'Yoshi En',
       baseUrl: 'https://www.yoshien.com/matcha/matcha-tee/',
@@ -391,36 +382,48 @@ class CrawlerService {
                   ? href
                   : 'https://horiishichimeien.com$href';
 
-          // Check individual product page for stock status
+          // Check individual product page for stock status and get accurate price
           try {
             final productResponse = await client.get(Uri.parse(productUrl));
             if (productResponse.statusCode != 200) continue;
 
             final productDoc = parse(productResponse.body);
 
-            // Check for stock indicators (variant options mean stock is available)
+            // Check for sold out badge first (most reliable indicator)
+            final soldOutBadge = productDoc.querySelector(
+              '.price__badge--sold-out, .sold-out-badge, .out-of-stock',
+            );
+            if (soldOutBadge != null) {
+              continue; // Skip sold out products
+            }
+
+            // Check for variant options and add to cart button
             final variantOptions = productDoc.querySelectorAll(
               '.variant-picker select option',
             );
             final addToCartButton = productDoc.querySelector(
-              '.btn-product-form, [name="add"], .add-to-cart',
+              '.btn-product-form, [name="add"], .add-to-cart, .product-form__cart-submit',
             );
 
             // Product is in stock if it has variant options or an enabled add to cart button
             final isInStock =
                 variantOptions.isNotEmpty ||
                 (addToCartButton != null &&
-                    !addToCartButton.classes.contains('disabled'));
+                    !addToCartButton.classes.contains('disabled') &&
+                    addToCartButton.attributes['disabled'] == null);
 
             if (!isInStock) continue;
 
-            // Extract price from product page if not found on main page
-            String price = priceEl?.text.trim() ?? '';
-            if (price.isEmpty) {
-              final productPagePrice = productDoc.querySelector(
-                '.price, .product-price, .money',
-              );
-              price = productPagePrice?.text.trim() ?? '';
+            // Extract price from product page (prefer product page over listing page)
+            String price = '';
+            final productPagePrice = productDoc.querySelector(
+              '.price__current, .price, .product-price, .money',
+            );
+            if (productPagePrice != null) {
+              price = productPagePrice.text.trim();
+            } else if (priceEl != null) {
+              // Fallback to listing page price
+              price = priceEl.text.trim();
             }
 
             products.add(
@@ -439,7 +442,7 @@ class CrawlerService {
                 priceValue: double.tryParse(
                   price.replaceAll(RegExp(r'[^\d.,]'), '').replaceAll(',', '.'),
                 ),
-                currency: 'JPY', // Assuming Japanese Yen
+                currency: 'JPY', // Japanese Yen
                 imageUrl: null,
                 description: null,
                 category: null,
@@ -1122,11 +1125,17 @@ class CrawlerService {
         return outOfStockElement ==
             null; // In stock if NO .out-of-stock element found
 
-      case 'horrimeicha':
-        // For Horrimeicha, check if "Out of stock" text is present
-        final outOfStockText = productElement.text.toLowerCase();
-        return !outOfStockText.contains('out of stock') &&
-            !outOfStockText.contains('sold out');
+      case 'horiishichimeien':
+        // For Horiishichimeien, check for sold out badge and text indicators
+        final soldOutBadge = productElement.querySelector(
+          '.price__badge--sold-out, .sold-out-badge, .out-of-stock',
+        );
+        if (soldOutBadge != null) return false;
+
+        final elementText = productElement.text.toLowerCase();
+        return !elementText.contains('out of stock') &&
+            !elementText.contains('sold out') &&
+            !elementText.contains('売り切れ'); // Japanese for "sold out"
 
       case 'marukyu':
         // For Marukyu, check for stock classes (positive: instock, negative: outofstock)

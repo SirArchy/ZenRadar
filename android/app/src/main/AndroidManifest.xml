@@ -44,7 +44,7 @@
         
         <!-- Enhanced Background Service for monitoring matcha websites -->
         <service android:name="id.flutter.flutter_background_service.BackgroundService"
-            android:foregroundServiceType="dataSync|connectedDevice"
+            android:foregroundServiceType="dataSync"
             android:exported="false"
             android:enabled="true"
             android:stopWithTask="false"

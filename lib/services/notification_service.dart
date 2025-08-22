@@ -402,8 +402,8 @@ class NotificationService {
       case 'poppatea':
         displayName = 'Poppatea';
         break;
-      case 'horrimeicha':
-        displayName = 'Horrimeicha';
+      case 'horiishichimeien':
+        displayName = 'Hori Ishichimeien';
         break;
     }
 

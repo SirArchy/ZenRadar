@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/matcha_product.dart';
+import '../services/settings_service.dart';
+import '../services/product_price_converter.dart';
 
 class ProductFilters extends StatefulWidget {
   final ProductFilter filter;
@@ -29,6 +31,8 @@ class _ProductFiltersState extends State<ProductFilters> {
   late ProductFilter _currentFilter;
   late RangeValues _priceRangeValues;
   bool _isSiteFilterExpanded = false; // Add state for expandable site filter
+  String _preferredCurrency = 'EUR';
+  ProductPriceConverter? _priceConverter;
 
   @override
   void initState() {
@@ -40,6 +44,15 @@ class _ProductFiltersState extends State<ProductFilters> {
     );
     // Auto-expand if sites are already selected
     _isSiteFilterExpanded = _currentFilter.sites?.isNotEmpty ?? false;
+    _initializeCurrency();
+  }
+
+  Future<void> _initializeCurrency() async {
+    final settings = await SettingsService.instance.getSettings();
+    setState(() {
+      _preferredCurrency = settings.preferredCurrency;
+      _priceConverter = ProductPriceConverter();
+    });
   }
 
   void _updateFilter(ProductFilter newFilter) {
@@ -447,8 +460,8 @@ class _ProductFiltersState extends State<ProductFilters> {
           max: maxPrice,
           divisions: 20,
           labels: RangeLabels(
-            '\$${_priceRangeValues.start.round()}',
-            '\$${_priceRangeValues.end.round()}',
+            _formatPrice(_priceRangeValues.start),
+            _formatPrice(_priceRangeValues.end),
           ),
           onChanged: (values) {
             setState(() {
@@ -467,12 +480,156 @@ class _ProductFiltersState extends State<ProductFilters> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('\$${_priceRangeValues.start.round()}'),
-            Text('\$${_priceRangeValues.end.round()}'),
+            GestureDetector(
+              onTap: () => _showPriceInputDialog(true, _priceRangeValues.start),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.3),
+                  ),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  _formatPrice(_priceRangeValues.start),
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 12 : 14,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+            ),
+            GestureDetector(
+              onTap: () => _showPriceInputDialog(false, _priceRangeValues.end),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.3),
+                  ),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  _formatPrice(_priceRangeValues.end),
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 12 : 14,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ],
     );
+  }
+
+  String _formatPrice(double price) {
+    if (_priceConverter == null) {
+      return '€${price.toStringAsFixed(2)}'; // Default to EUR
+    }
+
+    final symbol = _priceConverter!.getCurrencySymbol(_preferredCurrency);
+
+    switch (_preferredCurrency) {
+      case 'JPY':
+        return '$symbol${price.round()}'; // Yen doesn't use decimals
+      case 'EUR':
+        return '$symbol${price.toStringAsFixed(2).replaceAll('.', ',')}';
+      default:
+        return '$symbol${price.toStringAsFixed(2)}';
+    }
+  }
+
+  Future<void> _showPriceInputDialog(bool isMin, double currentValue) async {
+    final controller = TextEditingController(
+      text:
+          isMin
+              ? _priceRangeValues.start.toStringAsFixed(2)
+              : _priceRangeValues.end.toStringAsFixed(2),
+    );
+
+    final result = await showDialog<double>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('Enter ${isMin ? 'Minimum' : 'Maximum'} Price'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: controller,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Price in $_preferredCurrency',
+                    prefixText:
+                        _priceConverter?.getCurrencySymbol(
+                          _preferredCurrency,
+                        ) ??
+                        '€',
+                    border: const OutlineInputBorder(),
+                  ),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Range: ${_formatPrice(widget.priceRange['min']!)} - ${_formatPrice(widget.priceRange['max']!)}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  final value = double.tryParse(controller.text);
+                  if (value != null) {
+                    Navigator.of(context).pop(value);
+                  }
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+    );
+
+    if (result != null) {
+      final minPrice = widget.priceRange['min']!;
+      final maxPrice = widget.priceRange['max']!;
+
+      // Clamp the value to valid range
+      final clampedValue = result.clamp(minPrice, maxPrice);
+
+      setState(() {
+        if (isMin) {
+          _priceRangeValues = RangeValues(
+            clampedValue.clamp(minPrice, _priceRangeValues.end),
+            _priceRangeValues.end,
+          );
+        } else {
+          _priceRangeValues = RangeValues(
+            _priceRangeValues.start,
+            clampedValue.clamp(_priceRangeValues.start, maxPrice),
+          );
+        }
+      });
+
+      _updateFilter(
+        _currentFilter.copyWith(
+          minPrice: _priceRangeValues.start,
+          maxPrice: _priceRangeValues.end,
+        ),
+      );
+    }
   }
 
   Widget _buildDiscontinuedToggle(bool isSmallScreen) {
