@@ -1415,10 +1415,28 @@ class _PlatformDatabaseService {
   }
 
   Future<List<PriceHistory>> getPriceHistoryForProduct(String productId) async {
-    // Price history is only available in local storage (not web)
-    if (kIsWeb) {
+    if (kDebugMode) {
+      print(
+        '🔍 _PlatformDatabaseService.getPriceHistoryForProduct($productId)',
+      );
+    }
+
+    if (await _isServerMode()) {
+      if (kDebugMode) {
+        print('📊 Using Firestore for price history');
+      }
+      return await FirestoreService.instance.getPriceHistoryForProduct(
+        productId,
+      );
+    } else if (kIsWeb) {
+      if (kDebugMode) {
+        print('🌐 Web mode - price history not supported');
+      }
       return []; // Web doesn't support price history yet
     } else {
+      if (kDebugMode) {
+        print('💾 Using local database for price history');
+      }
       return await DatabaseService.instance.getPriceHistoryForProduct(
         productId,
       );
@@ -1426,11 +1444,29 @@ class _PlatformDatabaseService {
   }
 
   Future<PriceAnalytics> getPriceAnalyticsForProduct(String productId) async {
-    // Price analytics is only available in local storage (not web)
-    if (kIsWeb) {
+    if (kDebugMode) {
+      print(
+        '🔍 _PlatformDatabaseService.getPriceAnalyticsForProduct($productId)',
+      );
+    }
+
+    if (await _isServerMode()) {
+      if (kDebugMode) {
+        print('📊 Using Firestore for price analytics');
+      }
+      return await FirestoreService.instance.getPriceAnalyticsForProduct(
+        productId,
+      );
+    } else if (kIsWeb) {
+      if (kDebugMode) {
+        print('🌐 Web mode - creating analytics from empty history');
+      }
       final priceHistory = await getPriceHistoryForProduct(productId);
       return PriceAnalytics.fromHistory(priceHistory);
     } else {
+      if (kDebugMode) {
+        print('💾 Using local database for price analytics');
+      }
       return await DatabaseService.instance.getPriceAnalyticsForProduct(
         productId,
       );
@@ -1451,11 +1487,30 @@ class _PlatformDatabaseService {
     String productId, {
     int? limitDays,
   }) async {
-    // Stock analytics is always from local storage regardless of mode
-    if (kIsWeb) {
+    if (kDebugMode) {
+      print(
+        '🔍 _PlatformDatabaseService.getStockAnalyticsForProduct($productId, limitDays: $limitDays)',
+      );
+    }
+
+    if (await _isServerMode()) {
+      if (kDebugMode) {
+        print('📊 Using Firestore for stock analytics');
+      }
+      return await FirestoreService.instance.getStockAnalyticsForProduct(
+        productId,
+        limitDays: limitDays,
+      );
+    } else if (kIsWeb) {
+      if (kDebugMode) {
+        print('🌐 Web mode - stock analytics not supported');
+      }
       // For web, get stock history and create analytics - but web doesn't implement stock history yet
       return StockAnalytics.fromHistory([]);
     } else {
+      if (kDebugMode) {
+        print('💾 Using local database for stock analytics');
+      }
       return await DatabaseService.instance.getStockAnalyticsForProduct(
         productId,
         limitDays: limitDays,
@@ -1467,11 +1522,30 @@ class _PlatformDatabaseService {
     String productId, {
     int? limitDays,
   }) async {
-    // Stock history is always from local storage regardless of mode
-    if (kIsWeb) {
+    if (kDebugMode) {
+      print(
+        '🔍 _PlatformDatabaseService.getStockHistoryForProduct($productId, limitDays: $limitDays)',
+      );
+    }
+
+    if (await _isServerMode()) {
+      if (kDebugMode) {
+        print('📊 Using Firestore for stock history');
+      }
+      return await FirestoreService.instance.getStockHistoryForProduct(
+        productId,
+        limitDays: limitDays,
+      );
+    } else if (kIsWeb) {
+      if (kDebugMode) {
+        print('🌐 Web mode - stock history not supported');
+      }
       // Web doesn't support stock history yet
       return [];
     } else {
+      if (kDebugMode) {
+        print('💾 Using local database for stock history');
+      }
       return await DatabaseService.instance.getStockHistoryForProduct(
         productId,
         limitDays: limitDays,

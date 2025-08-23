@@ -1178,10 +1178,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     Theme.of(context).brightness == Brightness.light
                         ? Colors.green.shade600
                         : Colors.green,
-                labelStyle:
-                    Theme.of(context).brightness == Brightness.light
-                        ? const TextStyle(color: Colors.black87)
-                        : null,
+                labelStyle: TextStyle(
+                  color:
+                      Theme.of(context).brightness == Brightness.light
+                          ? Colors.black87
+                          : Colors.white,
+                ),
               ),
               FilterChip(
                 label: const Text('In Stock'),
@@ -1210,10 +1212,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     Theme.of(context).brightness == Brightness.light
                         ? Colors.green.shade600
                         : Colors.green,
-                labelStyle:
-                    Theme.of(context).brightness == Brightness.light
-                        ? const TextStyle(color: Colors.black87)
-                        : null,
+                labelStyle: TextStyle(
+                  color:
+                      Theme.of(context).brightness == Brightness.light
+                          ? Colors.black87
+                          : Colors.white,
+                ),
               ),
               FilterChip(
                 label: const Text('Out of Stock'),
@@ -1242,10 +1246,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     Theme.of(context).brightness == Brightness.light
                         ? Colors.red.shade600
                         : Colors.red,
-                labelStyle:
-                    Theme.of(context).brightness == Brightness.light
-                        ? const TextStyle(color: Colors.black87)
-                        : null,
+                labelStyle: TextStyle(
+                  color:
+                      Theme.of(context).brightness == Brightness.light
+                          ? Colors.black87
+                          : Colors.white,
+                ),
               ),
               FilterChip(
                 label: Row(
@@ -1286,10 +1292,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     Theme.of(context).brightness == Brightness.light
                         ? Colors.red.shade600
                         : Colors.red,
-                labelStyle:
-                    Theme.of(context).brightness == Brightness.light
-                        ? const TextStyle(color: Colors.black87)
-                        : null,
+                labelStyle: TextStyle(
+                  color:
+                      Theme.of(context).brightness == Brightness.light
+                          ? Colors.black87
+                          : Colors.white,
+                ),
               ),
             ],
           ),

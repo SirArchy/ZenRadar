@@ -38,6 +38,40 @@ class FirestoreService {
     }
   }
 
+  /// Convert site display names to site keys for Firestore queries
+  List<String> _convertSiteNamesToKeys(List<String> siteNames) {
+    // Site mapping: display name -> site key
+    final siteNameToKey = <String, String>{
+      'Nakamura Tokichi': 'tokichi',
+      'Marukyu-Koyamaen': 'marukyu',
+      'Ippodo Tea': 'ippodo',
+      'Yoshi En': 'yoshien',
+      'Matcha Kāru': 'matcha-karu',
+      'Sho-Cha': 'sho-cha',
+      'Sazen Tea': 'sazentea',
+      'Emeri': 'enjoyemeri',
+      'Poppatea': 'poppatea',
+      'Horiishichimeien': 'horiishichimeien',
+    };
+
+    final siteKeys = <String>[];
+    for (final siteName in siteNames) {
+      final siteKey = siteNameToKey[siteName];
+      if (siteKey != null) {
+        siteKeys.add(siteKey);
+      } else {
+        // If not found in mapping, try to use the name as-is (in case it's already a key)
+        siteKeys.add(siteName.toLowerCase());
+      }
+    }
+
+    if (kDebugMode) {
+      print('🔄 Converted site names $siteNames to keys $siteKeys');
+    }
+
+    return siteKeys;
+  }
+
   /// Get paginated products with filtering and sorting
   Future<PaginatedProducts> getProductsPaginated({
     required int page,
@@ -51,12 +85,21 @@ class FirestoreService {
 
       // Apply filters
       if (filter != null) {
+        if (kDebugMode) {
+          print('🔍 Applying filter: ${filter.toString()}');
+        }
+
         if (filter.inStock != null) {
           query = query.where('isInStock', isEqualTo: filter.inStock);
         }
 
         if (filter.sites != null && filter.sites!.isNotEmpty) {
-          query = query.where('site', whereIn: filter.sites);
+          // Convert display names to site keys for Firestore query
+          final siteKeys = _convertSiteNamesToKeys(filter.sites!);
+          if (kDebugMode) {
+            print('🌐 Filtering by sites: ${filter.sites} -> $siteKeys');
+          }
+          query = query.where('site', whereIn: siteKeys);
         }
 
         if (filter.category != null && filter.category!.isNotEmpty) {
@@ -168,7 +211,9 @@ class FirestoreService {
         }
 
         if (filter.sites != null && filter.sites!.isNotEmpty) {
-          query = query.where('site', whereIn: filter.sites);
+          // Convert display names to site keys for Firestore query
+          final siteKeys = _convertSiteNamesToKeys(filter.sites!);
+          query = query.where('site', whereIn: siteKeys);
         }
 
         if (filter.category != null && filter.category!.isNotEmpty) {
@@ -325,11 +370,51 @@ class FirestoreService {
     }
   }
 
+  /// Convert site keys to display names for UI
+  List<String> _convertSiteKeysToNames(List<String> siteKeys) {
+    // Site mapping: site key -> display name
+    final siteKeyToName = <String, String>{
+      'tokichi': 'Nakamura Tokichi',
+      'marukyu': 'Marukyu-Koyamaen',
+      'ippodo': 'Ippodo Tea',
+      'yoshien': 'Yoshi En',
+      'matcha-karu': 'Matcha Kāru',
+      'sho-cha': 'Sho-Cha',
+      'sazentea': 'Sazen Tea',
+      'enjoyemeri': 'Emeri',
+      'poppatea': 'Poppatea',
+      'horiishichimeien': 'Horiishichimeien',
+    };
+
+    final siteNames = <String>[];
+    for (final siteKey in siteKeys) {
+      final siteName = siteKeyToName[siteKey];
+      if (siteName != null) {
+        siteNames.add(siteName);
+      } else {
+        // If not found in mapping, use the key as-is (capitalized)
+        siteNames.add(
+          siteKey
+              .split('-')
+              .map(
+                (word) =>
+                    word.isEmpty
+                        ? word
+                        : word[0].toUpperCase() + word.substring(1),
+              )
+              .join(' '),
+        );
+      }
+    }
+
+    return siteNames;
+  }
+
   /// Get unique sites from products
   Future<List<String>> getUniqueSites() async {
     try {
       final snapshot = await firestore.collection('products').get();
-      final sites =
+      final siteKeys =
           snapshot.docs
               .map((doc) => doc.data()['site'] as String?)
               .where((site) => site != null)
@@ -337,8 +422,16 @@ class FirestoreService {
               .toSet()
               .toList();
 
-      sites.sort();
-      return sites;
+      siteKeys.sort();
+
+      // Convert site keys to display names
+      final siteNames = _convertSiteKeysToNames(siteKeys);
+
+      if (kDebugMode) {
+        print('🌐 Found sites: $siteKeys -> $siteNames');
+      }
+
+      return siteNames;
     } catch (e) {
       if (kDebugMode) {
         print('Error loading unique sites from Firestore: $e');
@@ -649,6 +742,19 @@ class FirestoreService {
   /// Get price history for a product
   Future<List<PriceHistory>> getPriceHistoryForProduct(String productId) async {
     try {
+      if (kDebugMode) {
+        print('🔍 Loading price history for product: $productId');
+
+        // Check authentication status
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          print('👤 Authenticated as: ${user.email ?? user.uid}');
+        } else {
+          print('❌ No authenticated user - this will fail!');
+          return [];
+        }
+      }
+
       final snapshot =
           await firestore
               .collection('price_history')
@@ -656,20 +762,59 @@ class FirestoreService {
               .orderBy('date', descending: false)
               .get();
 
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        return PriceHistory(
-          id: doc.id,
-          productId: data['productId'] ?? '',
-          date: (data['date'] as Timestamp).toDate(),
-          price: (data['price'] as num?)?.toDouble() ?? 0.0,
-          currency: data['currency'] ?? 'EUR',
-          isInStock: data['isInStock'] ?? false,
-        );
-      }).toList();
+      if (kDebugMode) {
+        print('📊 Found ${snapshot.docs.length} price history entries');
+      }
+
+      final priceHistory =
+          snapshot.docs.map((doc) {
+            final data = doc.data();
+
+            if (kDebugMode) {
+              print(
+                '💰 Price entry: ${data['date']} - ${data['price']} ${data['currency']}',
+              );
+            }
+
+            // Handle the price field which might be a large number that needs conversion
+            double priceValue = 0.0;
+            final rawPrice = data['price'];
+            if (rawPrice is num) {
+              priceValue = rawPrice.toDouble();
+              // Check if this looks like it needs to be converted based on currency
+              final currency = data['currency'] ?? 'EUR';
+
+              if (currency == 'EUR' && priceValue > 10000) {
+                // Large EUR values are likely in cents, convert to euros
+                priceValue = priceValue / 100.0;
+              } else if (currency == 'JPY' && priceValue > 100000) {
+                // Very large JPY values might be incorrectly stored
+                priceValue = priceValue / 100.0;
+              }
+
+              if (kDebugMode) {
+                print('💰 Price converted: $rawPrice -> $priceValue $currency');
+              }
+            }
+
+            return PriceHistory(
+              id: doc.id,
+              productId: data['productId'] ?? '',
+              date: (data['date'] as Timestamp).toDate(),
+              price: priceValue,
+              currency: data['currency'] ?? 'EUR',
+              isInStock: data['isInStock'] ?? false,
+            );
+          }).toList();
+
+      if (kDebugMode) {
+        print('✅ Processed ${priceHistory.length} price history entries');
+      }
+
+      return priceHistory;
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting price history from Firestore: $e');
+        print('❌ Error getting price history from Firestore: $e');
       }
       return [];
     }
@@ -700,6 +845,21 @@ class FirestoreService {
     int? limitDays,
   }) async {
     try {
+      if (kDebugMode) {
+        print(
+          '🔍 Loading stock history for product: $productId (limitDays: $limitDays)',
+        );
+
+        // Check authentication status
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          print('👤 Authenticated as: ${user.email ?? user.uid}');
+        } else {
+          print('❌ No authenticated user for stock history - this will fail!');
+          return [];
+        }
+      }
+
       Query<Map<String, dynamic>> query = firestore
           .collection('stock_history')
           .where('productId', isEqualTo: productId)
@@ -717,17 +877,35 @@ class FirestoreService {
       final snapshot =
           await query.limit(1000).get(); // Limit to prevent huge queries
 
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        return StockHistory(
-          productId: data['productId'] ?? '',
-          isInStock: data['isInStock'] ?? false,
-          timestamp: (data['timestamp'] as Timestamp).toDate(),
-        );
-      }).toList();
+      if (kDebugMode) {
+        print('📊 Found ${snapshot.docs.length} stock history entries');
+      }
+
+      final stockHistory =
+          snapshot.docs.map((doc) {
+            final data = doc.data();
+
+            if (kDebugMode) {
+              print(
+                '📈 Stock entry: ${data['timestamp']} - inStock: ${data['isInStock']}',
+              );
+            }
+
+            return StockHistory(
+              productId: data['productId'] ?? '',
+              isInStock: data['isInStock'] ?? false,
+              timestamp: (data['timestamp'] as Timestamp).toDate(),
+            );
+          }).toList();
+
+      if (kDebugMode) {
+        print('✅ Processed ${stockHistory.length} stock history entries');
+      }
+
+      return stockHistory;
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting stock history from Firestore: $e');
+        print('❌ Error getting stock history from Firestore: $e');
       }
       return [];
     }

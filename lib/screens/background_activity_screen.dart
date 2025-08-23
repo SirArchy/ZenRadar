@@ -73,6 +73,9 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         // Load server scan activities from Firestore
         try {
           final serverActivities = await _loadServerActivitiesFromFirestore();
+          print(
+            '✅ Loaded ${serverActivities.length} server activities from Firestore',
+          );
           setState(() {
             _activities = serverActivities;
             _totalActivities = serverActivities.length;
@@ -80,15 +83,27 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
             _isLoading = false;
           });
         } catch (e) {
-          print('Error loading server activities: $e');
-          // Fallback to placeholder data if Firestore fails
-          final serverActivities = _generateServerPlaceholderData();
+          print('❌ Error loading server activities: $e');
           setState(() {
-            _activities = serverActivities;
-            _totalActivities = serverActivities.length;
+            _activities = [];
+            _totalActivities = 0;
             _hasMoreData = false;
             _isLoading = false;
           });
+
+          // Show error message to user
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to load server activities: $e'),
+                backgroundColor: Colors.red,
+                action: SnackBarAction(
+                  label: 'Retry',
+                  onPressed: _loadActivities,
+                ),
+              ),
+            );
+          }
         }
       } else {
         // Local mode: load from local database
@@ -114,31 +129,6 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         _isLoading = false;
       });
     }
-  }
-
-  List<ScanActivity> _generateServerPlaceholderData() {
-    // Generate more realistic placeholder server scan data
-    final now = DateTime.now();
-    return List.generate(8, (index) {
-      final scanTime = now.subtract(Duration(hours: index * 3));
-      final totalProducts = 120 + (index * 15); // Vary between 120-225 products
-      final hasUpdates = index % 3 == 0; // Every 3rd scan has updates
-      final updateCount =
-          hasUpdates ? (2 + (index % 5)) : 0; // 2-6 updates when present
-
-      return ScanActivity(
-        id: 'server_scan_$index',
-        timestamp: scanTime,
-        itemsScanned: totalProducts,
-        duration: 35 + (index * 8), // Vary duration between 35-91 seconds
-        hasStockUpdates: hasUpdates,
-        details:
-            hasUpdates
-                ? 'Scanned $totalProducts products across ${4 + (index % 3)} sites - $updateCount stock updates found'
-                : 'Scanned $totalProducts products across ${4 + (index % 3)} sites',
-        scanType: 'server',
-      );
-    });
   }
 
   Future<void> _loadMoreActivities() async {
@@ -324,21 +314,32 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
 
   Widget _buildActivityList() {
     if (_activities.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.history, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
-              'No scan activities recorded yet',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              _userSettings.appMode == 'server'
+                  ? 'No server scans found'
+                  : 'No scan activities recorded yet',
+              style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
-              'Background scans will appear here',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+              _userSettings.appMode == 'server'
+                  ? 'Server scan activities will appear here'
+                  : 'Background scans will appear here',
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
             ),
+            if (_userSettings.appMode == 'server') ...[
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadActivities,
+                child: const Text('Refresh'),
+              ),
+            ],
           ],
         ),
       );
@@ -503,7 +504,8 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
 
     return GestureDetector(
       onTap:
-          activity.hasStockUpdates
+          // Only allow tap in local mode and if there are stock updates
+          (_userSettings.appMode == 'local' && activity.hasStockUpdates)
               ? () async {
                 // Load stock updates for this scan and navigate to details screen
                 final updates = await DatabaseService.platformService
@@ -715,44 +717,60 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     );
   }
 
-  /// Load server scan activities from Firestore via REST API
+  /// Load server scan activities from Firestore via FirestoreService
   Future<List<ScanActivity>> _loadServerActivitiesFromFirestore() async {
     try {
       print('📡 Loading server activities from Firestore...');
 
-      // Use FirestoreService instead of REST API
+      // Use FirestoreService to get crawl requests
       final crawlRequests = await FirestoreService.instance.getCrawlRequests(
-        limit: 20,
+        limit: 50, // Increased limit to get more recent activities
       );
 
       print(
         '📊 Retrieved ${crawlRequests.length} crawl requests from Firestore',
       );
 
+      if (crawlRequests.isEmpty) {
+        print('ℹ️ No crawl requests found in Firestore');
+        return [];
+      }
+
       final activities = <ScanActivity>[];
 
       for (final crawlRequest in crawlRequests) {
         try {
+          print(
+            '🔄 Processing crawl request: ${crawlRequest['id']} (status: ${crawlRequest['status']})',
+          );
           final activity = _convertCrawlRequestToScanActivity(crawlRequest);
           activities.add(activity);
-          print('✅ Converted crawl request: ${activity.details}');
+          print(
+            '✅ Converted: ${activity.itemsScanned} products, ${activity.hasStockUpdates ? activity.details : 'no updates'}',
+          );
         } catch (e) {
-          print('❌ Error converting crawl request: $e');
-          print('Crawl request data: $crawlRequest');
+          print('❌ Error converting crawl request ${crawlRequest['id']}: $e');
+          print('Crawl request data keys: ${crawlRequest.keys.toList()}');
+          // Continue with other requests even if one fails
+          continue;
         }
       }
 
-      print('✅ Successfully loaded ${activities.length} server activities');
+      print(
+        '✅ Successfully converted ${activities.length}/${crawlRequests.length} server activities',
+      );
+
+      // Sort activities by timestamp (most recent first)
+      activities.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
       return activities;
     } catch (e) {
-      print('❌ Error loading server activities: $e');
+      print('❌ Error loading server activities from Firestore: $e');
       print('Error type: ${e.runtimeType}');
       if (e is Exception) {
         print('Exception details: ${e.toString()}');
       }
-
-      // Return empty list instead of placeholder data to better understand the issue
-      return [];
+      rethrow; // Re-throw to be handled by calling method
     }
   }
 
@@ -763,8 +781,8 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     final status = crawlRequest['status'] ?? 'unknown';
     final createdAt = crawlRequest['createdAt'];
     final completedAt = crawlRequest['completedAt'];
-    final processedAt = crawlRequest['processedAt'];
     final startedAt = crawlRequest['startedAt'];
+    final processedAt = crawlRequest['processedAt'];
 
     // Parse timestamps - handle both DateTime and Timestamp objects
     DateTime timestamp = DateTime.now();
@@ -778,13 +796,21 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       }
     }
 
-    // Calculate duration
-    int duration = crawlRequest['duration'] ?? 0;
-    if (duration == 0) {
-      DateTime? endTime;
+    // Extract scan details from the actual document structure
+    final totalProducts = (crawlRequest['totalProducts'] ?? 0) as int;
+    final stockUpdates = (crawlRequest['stockUpdates'] ?? 0) as int;
+    final sitesProcessed = (crawlRequest['sitesProcessed'] ?? 0) as int;
+    final triggerType = crawlRequest['triggerType'] ?? 'manual';
 
-      // Try different completion time fields
-      final endTimeStamp = completedAt ?? processedAt ?? startedAt;
+    // Calculate duration from duration field (in milliseconds) or from timestamps
+    int durationInSeconds = 0;
+    final durationMs = crawlRequest['duration'];
+    if (durationMs != null && durationMs is int && durationMs > 0) {
+      durationInSeconds = (durationMs / 1000).round();
+    } else {
+      // Fallback: calculate from timestamps
+      DateTime? endTime;
+      final endTimeStamp = completedAt ?? startedAt ?? processedAt;
       if (endTimeStamp != null) {
         if (endTimeStamp is DateTime) {
           endTime = endTimeStamp;
@@ -795,52 +821,65 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         }
       }
 
-      if (endTime != null && createdAt != null) {
-        duration = endTime.difference(timestamp).inMilliseconds;
+      if (endTime != null) {
+        durationInSeconds = endTime.difference(timestamp).inSeconds.abs();
       }
     }
-
-    // Extract scan details - check multiple possible locations
-    final results = crawlRequest['results'] as Map<String, dynamic>? ?? {};
-
-    // Get values directly from crawl request or from results
-    final totalProducts =
-        (crawlRequest['totalProducts'] ?? results['totalProducts'] ?? 0) as int;
-
-    final stockUpdates =
-        (crawlRequest['stockUpdates'] ?? results['stockUpdates'] ?? 0) as int;
-
-    final sitesProcessed =
-        (crawlRequest['sitesProcessed'] ?? results['sitesProcessed'] ?? 0)
-            as int;
 
     final hasStockUpdates = stockUpdates > 0;
-    final triggerType = crawlRequest['triggerType'] ?? 'server';
+    final requestId = crawlRequest['id'] ?? 'unknown';
 
+    // Build detailed status message based on actual data
     String details;
-    if (status == 'completed') {
-      details = 'Found $totalProducts products';
-      if (hasStockUpdates) {
-        details += ', $stockUpdates stock updates';
-      }
-      if (sitesProcessed > 0) {
-        details += ' from $sitesProcessed sites';
-      }
-    } else if (status == 'failed') {
-      details = 'Scan failed - check server logs';
-    } else if (status == 'running') {
-      details = 'Scan in progress...';
-    } else {
-      details = 'Status: $status';
+    switch (status) {
+      case 'completed':
+        details =
+            'Scanned $totalProducts products across $sitesProcessed sites';
+        if (hasStockUpdates) {
+          details += ' - $stockUpdates stock updates found';
+        }
+        break;
+      case 'running':
+        details = 'Scan in progress - $totalProducts products found so far';
+        break;
+      case 'failed':
+        final results = crawlRequest['results'] as Map<String, dynamic>? ?? {};
+        final errors = results['errors'] as List? ?? [];
+        details = 'Scan failed';
+        if (errors.isNotEmpty) {
+          details += ' - ${errors.length} error(s)';
+        }
+        break;
+      case 'pending':
+        details = 'Scan queued for processing';
+        break;
+      default:
+        details = 'Status: $status';
+        if (totalProducts > 0) {
+          details += ' - $totalProducts products';
+        }
+        break;
     }
 
-    final requestId = crawlRequest['id'] ?? 'unknown';
+    // Determine scan type based on trigger type
+    String scanType;
+    switch (triggerType) {
+      case 'scheduled':
+        scanType = 'server';
+        break;
+      case 'manual':
+        scanType = 'manual';
+        break;
+      default:
+        scanType = 'server';
+        break;
+    }
 
     return ScanActivity(
       id: 'server_${requestId}_${timestamp.millisecondsSinceEpoch}',
       timestamp: timestamp,
-      scanType: triggerType == 'scheduled' ? 'server' : 'manual',
-      duration: (duration / 1000).round(), // Convert milliseconds to seconds
+      scanType: scanType,
+      duration: durationInSeconds,
       itemsScanned: totalProducts,
       hasStockUpdates: hasStockUpdates,
       details: details,

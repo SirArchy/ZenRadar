@@ -96,12 +96,32 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     setState(() => _isLoading = true);
 
     try {
+      debugPrint(
+        '🔍 Loading price and stock history for product: ${widget.product.id}',
+      );
+      debugPrint(
+        '📋 Product details: ${widget.product.name} - ${widget.product.site}',
+      );
+
       final analytics = await _db.getPriceAnalyticsForProduct(
         widget.product.id,
       );
+      debugPrint(
+        '💰 Price analytics loaded: ${analytics.totalDataPoints} data points',
+      );
+      if (analytics.totalDataPoints > 0) {
+        debugPrint(
+          '💰 Price range: ${analytics.lowestPrice} - ${analytics.highestPrice} ${widget.product.currency}',
+        );
+      }
+
       final stockAnalytics = await _db.getStockAnalyticsForProduct(
         widget.product.id,
       );
+      debugPrint(
+        '📈 Stock analytics loaded: ${stockAnalytics.statusPoints.length} status points',
+      );
+
       setState(() {
         _priceAnalytics = analytics;
         _stockAnalytics = stockAnalytics;
@@ -111,6 +131,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       // Convert prices after loading analytics
       _convertAllPrices();
     } catch (e) {
+      debugPrint('❌ Error loading analytics for ${widget.product.id}: $e');
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(
