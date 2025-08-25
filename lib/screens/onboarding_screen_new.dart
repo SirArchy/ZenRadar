@@ -7,7 +7,6 @@ import 'package:permission_handler/permission_handler.dart';
 import '../services/settings_service.dart';
 import '../services/background_service.dart';
 import '../services/auth_service.dart';
-import '../widgets/matcha_icon.dart';
 import 'auth_screen.dart';
 import 'home_screen.dart';
 
@@ -224,7 +223,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 children: [
                   const SizedBox(height: 40),
 
-                  // App Logo with animation placeholder
+                  // App Logo with animation - using clouds GIF
                   TweenAnimationBuilder<double>(
                     duration: const Duration(milliseconds: 1500),
                     tween: Tween(begin: 0.0, end: 1.0),
@@ -233,7 +232,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         scale: 0.8 + (0.2 * value),
                         child: Opacity(
                           opacity: value,
-                          child: const MatchaIcon(size: 120),
+                          child: Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: colorScheme.primary.withAlpha(50),
+                                  blurRadius: 20,
+                                  spreadRadius: 5,
+                                ),
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: Image.asset(
+                                'lib/assets/animation.gif',
+                                width: 120,
+                                height: 120,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
                         ),
                       );
                     },
@@ -275,7 +296,51 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     },
                   ),
 
-                  const SizedBox(height: 80),
+                  const SizedBox(height: 60),
+
+                  // Swipe indicator with GIF
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 2500),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      return Opacity(
+                        opacity: value * 0.8,
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary.withAlpha(25),
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(30),
+                                child: Image.asset(
+                                  'lib/assets/swipe-left_10522218.gif',
+                                  width: 60,
+                                  height: 60,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Swipe to continue',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: colorScheme.onSurface.withAlpha(150),
+                                fontWeight: FontWeight.w500,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 20),
 
                   Text(
                     'Let\'s get you started on your matcha journey',
@@ -308,16 +373,39 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             children: [
               const SizedBox(height: 40),
 
-              // Animated icon
+              // Animated icon - using confetti GIF
               TweenAnimationBuilder<double>(
                 duration: const Duration(milliseconds: 1500),
                 tween: Tween(begin: 0.0, end: 1.0),
                 builder: (context, value, child) {
                   return Transform.scale(
                     scale: 0.8 + (0.2 * value),
-                    child: _buildFeatureIcon(
-                      Icons.notifications_active,
-                      colorScheme.primary,
+                    child: Opacity(
+                      opacity: value,
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withAlpha(25),
+                          borderRadius: BorderRadius.circular(60),
+                          boxShadow: [
+                            BoxShadow(
+                              color: colorScheme.primary.withAlpha(30),
+                              blurRadius: 15,
+                              spreadRadius: 3,
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(60),
+                          child: Image.asset(
+                            'lib/assets/bell_14642663.gif',
+                            width: 120,
+                            height: 120,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
                     ),
                   );
                 },
@@ -683,7 +771,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             children: [
               const SizedBox(height: 40),
 
-              _buildFeatureIcon(Icons.cloud_sync, colorScheme.primary),
+              // Cloud icon - using clouds GIF
+              Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withAlpha(25),
+                  borderRadius: BorderRadius.circular(70),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.primary.withAlpha(30),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(70),
+                  child: Image.asset(
+                    'lib/assets/cloud_17905309.gif',
+                    width: 140,
+                    height: 140,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
 
               const SizedBox(height: 48),
 
@@ -781,7 +893,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             children: [
               const SizedBox(height: 40),
 
-              _buildFeatureIcon(Icons.security, Colors.green),
+              // Security/Bell icon - using bell GIF
+              Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  color: Colors.green.withAlpha(25),
+                  borderRadius: BorderRadius.circular(70),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.green.withAlpha(30),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(70),
+                  child: Image.asset(
+                    'lib/assets/bell_14642663.gif',
+                    width: 140,
+                    height: 140,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
 
               const SizedBox(height: 48),
 
@@ -821,10 +957,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   child: Column(
                     children: [
-                      Icon(
-                        Icons.notifications_active,
-                        size: 48,
-                        color: colorScheme.primary,
+                      // Bell notification icon using GIF for local mode
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: Image.asset(
+                            'lib/assets/bell_14642663.gif',
+                            width: 48,
+                            height: 48,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -878,6 +1026,34 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(height: 40),
+
+              // Features icon - using confetti GIF
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withAlpha(25),
+                  borderRadius: BorderRadius.circular(60),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.primary.withAlpha(30),
+                      blurRadius: 15,
+                      spreadRadius: 3,
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(60),
+                  child: Image.asset(
+                    'lib/assets/analysis_16678143.gif',
+                    width: 120,
+                    height: 120,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 48),
 
               const Text(
                 'Explore ZenRadar',
@@ -992,18 +1168,38 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             children: [
               const SizedBox(height: 40),
 
-              // Celebration animation
+              // Celebration animation - using confetti GIF
               TweenAnimationBuilder<double>(
                 duration: const Duration(milliseconds: 2000),
                 tween: Tween(begin: 0.0, end: 1.0),
                 builder: (context, value, child) {
                   return Transform.scale(
                     scale: 0.5 + (0.5 * value),
-                    child: Transform.rotate(
-                      angle: value * 2 * 3.14159,
-                      child: _buildFeatureIcon(
-                        Icons.celebration,
-                        Colors.orange,
+                    child: Opacity(
+                      opacity: value,
+                      child: Container(
+                        width: 160,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withAlpha(25),
+                          borderRadius: BorderRadius.circular(80),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.orange.withAlpha(30),
+                              blurRadius: 25,
+                              spreadRadius: 8,
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(80),
+                          child: Image.asset(
+                            'lib/assets/confetti_18829742.gif',
+                            width: 160,
+                            height: 160,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       ),
                     ),
                   );
@@ -1060,17 +1256,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildFeatureIcon(IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: color.withAlpha(25),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(icon, size: 80, color: color),
     );
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/website_stock_analytics.dart';
 import '../services/website_analytics_service.dart';
 import '../widgets/website_stock_chart.dart';
+import '../widgets/skeleton_loading.dart';
 
 class WebsiteOverviewScreen extends StatefulWidget {
   const WebsiteOverviewScreen({super.key});
@@ -97,29 +98,25 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Website Stock Overview'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.schedule),
-            tooltip: 'Time Range',
-            onPressed: _showTimeRangePicker,
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadAnalytics,
-            tooltip: 'Refresh',
-          ),
-        ],
-      ),
-      body: _buildBody(),
-    );
+    return Scaffold(body: _buildBody());
+  }
+
+  // Public method to refresh analytics (can be called from parent)
+  void refreshAnalytics() {
+    _loadAnalytics();
   }
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return ListView.builder(
+        itemCount: 3,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return const SkeletonStatsHeader();
+          }
+          return const SkeletonWebsiteCard();
+        },
+      );
     }
 
     if (_error != null) {

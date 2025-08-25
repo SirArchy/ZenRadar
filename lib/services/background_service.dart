@@ -57,16 +57,11 @@ Future<void> initializeService() async {
       autoStart: true,
       onStart: onStart,
       autoStartOnBoot: true,
-      isForegroundMode: true, // Critical for preventing service termination
+      isForegroundMode: false, // Try without foreground mode first
       notificationChannelId: 'zenradar_foreground_service',
       initialNotificationTitle: 'ZenRadar Stock Monitor Active',
       initialNotificationContent: 'Continuously monitoring matcha availability',
       foregroundServiceNotificationId: 888,
-      // Enhanced foreground service types for better persistence
-      foregroundServiceTypes: [
-        AndroidForegroundType.dataSync,
-        AndroidForegroundType.connectedDevice, // For network operations
-      ],
     ),
   );
 

@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:zenradar/screens/onboarding_screen_new.dart';
 import '../services/settings_service.dart';
-import 'home_screen.dart';
+import 'main_screen.dart';
 
 class AppInitializer extends StatefulWidget {
   const AppInitializer({super.key});
@@ -82,6 +82,6 @@ class _AppInitializerState extends State<AppInitializer> {
       return const OnboardingScreen();
     }
 
-    return const HomeScreen();
+    return const MainScreen();
   }
 }

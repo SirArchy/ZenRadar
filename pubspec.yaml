@@ -36,7 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   
   # Background services and notifications
-  flutter_background_service: ^5.0.12
+  flutter_background_service: ^5.1.0
   flutter_local_notifications: ^18.0.1
   
   # HTTP requests and HTML parsing
@@ -97,6 +97,15 @@ flutter:
     - lib/assets/Product_Category_Hojicha.png
     - lib/assets/Product_Category_Matcha.png
     - lib/assets/Product_Category_TeaSet.png
+    - lib/assets/bell_14642663.gif
+    - lib/assets/clouds_17102874.gif
+    - lib/assets/cloud_17905309.gif
+    - lib/assets/analysis_16678143.gif
+    - lib/assets/evolution_17091777.gif
+    - lib/assets/confetti_18829742.gif
+    - lib/assets/swipe-left_10522218.gif
+    - lib/assets/swipe-right_10522239.gif
+    - lib/assets/animation.gif
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

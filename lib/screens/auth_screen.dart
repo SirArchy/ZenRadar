@@ -262,6 +262,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             controller: _passwordController,
             obscureText: _obscurePassword,
             textInputAction: TextInputAction.done,
+            onFieldSubmitted: (_) => _isLoading ? null : _signIn(),
             decoration: InputDecoration(
               labelText: 'Password',
               prefixIcon: const Icon(Icons.lock_outlined),

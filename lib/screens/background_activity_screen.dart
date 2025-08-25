@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: unused_element, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +8,7 @@ import '../models/matcha_product.dart';
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
 import '../services/firestore_service.dart';
+import '../widgets/skeleton_loading.dart';
 // ignore_for_file: avoid_print
 
 class BackgroundActivityScreen extends StatefulWidget {
@@ -27,6 +28,11 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
   bool _hasMoreData = true;
   bool _isLoadingMore = false;
   UserSettings _userSettings = UserSettings();
+
+  // Public method to refresh activities (can be called from parent)
+  void refreshActivities() {
+    _loadActivities();
+  }
 
   @override
   void initState() {
@@ -255,59 +261,20 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _userSettings.appMode == 'server' ? 'Server Scans' : 'Recent Scans',
-        ),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadActivities,
-            tooltip: 'Refresh',
-          ),
-          // Only show clear options in local mode
-          if (_userSettings.appMode == 'local')
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'clear_old') {
-                  _clearOldActivities();
-                } else if (value == 'clear_all') {
-                  _clearAllActivities();
-                }
-              },
-              itemBuilder:
-                  (context) => [
-                    const PopupMenuItem(
-                      value: 'clear_old',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete_sweep),
-                          SizedBox(width: 8),
-                          Text('Clear Old Activities'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'clear_all',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete_forever, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text(
-                            'Clear All Activities',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-            ),
-        ],
-      ),
       body:
           _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? Column(
+                children: [
+                  const SkeletonStatsHeader(),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: 5,
+                      itemBuilder:
+                          (context, index) => const SkeletonActivityItem(),
+                    ),
+                  ),
+                ],
+              )
               : _buildActivityList(),
     );
   }

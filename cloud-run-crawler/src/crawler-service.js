@@ -896,22 +896,23 @@ class CrawlerService {
    * Generate consistent product ID
    */
   generateProductId(url, name, siteKey) {
-    const urlPart = url.split('/').pop() || '';
+    let urlPart = url.split('/').pop() || '';
     const namePart = name.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 20);
     const sitePrefix = siteKey ? `${siteKey}_` : '';
     
-    // For Poppatea, remove dynamic variant ID parts to ensure stable IDs
+    // For Poppatea, remove URL parameters and dynamic variant ID parts to ensure stable IDs
     if (siteKey === 'poppatea') {
-      // Remove patterns like "_pos1_fida70680544_ssc_" or "_fid1eb13925e_"
-      const cleanUrlPart = urlPart
-        .replace(/_pos\d+_fid[a-f0-9]+_ssc_/g, '_')
-        .replace(/_fid[a-f0-9]+_/g, '_')
-        .replace(/_+/g, '_')
-        .replace(/^_|_$/g, '');
+      // First, remove URL parameters (everything after ?)
+      urlPart = urlPart.split('?')[0];
       
-      return `${sitePrefix}${cleanUrlPart}_${namePart}`.replace(/[^a-z0-9_]/g, '');
+      // Convert to lowercase and remove non-alphanumeric characters
+      urlPart = urlPart.toLowerCase().replace(/[^a-z0-9]/g, '');
+      
+      return `${sitePrefix}${urlPart}_${namePart}`.replace(/[^a-z0-9_]/g, '');
     }
     
+    // For other sites, clean the URL part normally
+    urlPart = urlPart.split('?')[0]; // Remove URL parameters for all sites
     return `${sitePrefix}${urlPart}_${namePart}`.replace(/[^a-z0-9_]/g, '');
   }
 
