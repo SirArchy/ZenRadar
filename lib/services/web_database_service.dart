@@ -177,6 +177,16 @@ class WebDatabaseService {
     return categories.toList();
   }
 
+  Future<List<String>> getAvailableSites() async {
+    Set<String> sites = {};
+    for (var product in _products.values) {
+      // Use siteName if available, otherwise fall back to site
+      String siteName = product.siteName ?? product.site;
+      sites.add(siteName);
+    }
+    return sites.toList();
+  }
+
   Future<Map<String, double>> getPriceRange() async {
     double min = double.infinity;
     double max = 0.0;

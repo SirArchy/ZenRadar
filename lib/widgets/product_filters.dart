@@ -134,6 +134,10 @@ class _ProductFiltersState extends State<ProductFilters> {
           _buildPriceRangeFilter(isSmallScreen),
           const SizedBox(height: 16),
 
+          // Favorites Toggle
+          _buildFavoritesToggle(isSmallScreen),
+          const SizedBox(height: 16),
+
           // Discontinued Products Toggle
           _buildDiscontinuedToggle(isSmallScreen),
 
@@ -632,6 +636,25 @@ class _ProductFiltersState extends State<ProductFilters> {
     }
   }
 
+  Widget _buildFavoritesToggle(bool isSmallScreen) {
+    return CheckboxListTile(
+      title: Text(
+        'Favorites only',
+        style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+      ),
+      subtitle: Text(
+        'Show only products marked as favorites',
+        style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
+      ),
+      value: _currentFilter.favoritesOnly,
+      dense: isSmallScreen,
+      contentPadding: EdgeInsets.zero,
+      onChanged: (value) {
+        _updateFilter(_currentFilter.copyWith(favoritesOnly: value ?? false));
+      },
+    );
+  }
+
   Widget _buildDiscontinuedToggle(bool isSmallScreen) {
     return CheckboxListTile(
       title: Text(
@@ -659,6 +682,7 @@ class _ProductFiltersState extends State<ProductFilters> {
       inStock: _currentFilter.inStock, // Preserve stock filter from home screen
       showDiscontinued:
           _currentFilter.showDiscontinued, // Preserve this as well
+      favoritesOnly: false, // Clear favorites filter
     );
     setState(() {
       _currentFilter = clearedFilter;

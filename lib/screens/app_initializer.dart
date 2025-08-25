@@ -1,8 +1,11 @@
-import 'package:flutter/foundation.dart';
+// ignore_for_file: avoid_print
+
 import 'package:flutter/material.dart';
 import 'package:zenradar/screens/onboarding_screen_new.dart';
 import '../services/settings_service.dart';
+import '../services/auth_service.dart';
 import 'main_screen.dart';
+import 'auth_screen.dart';
 
 class AppInitializer extends StatefulWidget {
   const AppInitializer({super.key});
@@ -13,7 +16,8 @@ class AppInitializer extends StatefulWidget {
 
 class _AppInitializerState extends State<AppInitializer> {
   bool _isLoading = true;
-  bool _needsModeSelection = false;
+  bool _needsOnboarding = false;
+  bool _needsAuth = false;
 
   @override
   void initState() {
@@ -25,37 +29,33 @@ class _AppInitializerState extends State<AppInitializer> {
     try {
       final settings = await SettingsService.instance.getSettings();
 
-      // For web users, automatically use server mode and skip mode selection
-      if (kIsWeb) {
-        if (settings.appMode.isEmpty || settings.appMode != 'server') {
-          // Show onboarding for first-time web users
-          setState(() {
-            _needsModeSelection = true;
-            _isLoading = false;
-          });
-          return;
-        }
+      // Check if this is a first-time user (simplified logic)
+      // In server mode, we just check if settings exist and are properly configured
+      if (settings.enabledSites.isEmpty) {
         setState(() {
+          _needsOnboarding = true;
           _isLoading = false;
         });
         return;
       }
 
-      // For mobile users, check if this is a fresh install or if appMode is not set
-      if (settings.appMode.isEmpty) {
+      // Check authentication status
+      final authService = AuthService.instance;
+      if (!authService.isSignedIn) {
         setState(() {
-          _needsModeSelection = true;
+          _needsAuth = true;
           _isLoading = false;
         });
-      } else {
-        setState(() {
-          _isLoading = false;
-        });
+        return;
       }
-    } catch (e) {
-      // If settings can't be loaded, always show onboarding
+
       setState(() {
-        _needsModeSelection = true;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error checking setup: $e');
+      setState(() {
+        _needsOnboarding = true;
         _isLoading = false;
       });
     }
@@ -78,8 +78,23 @@ class _AppInitializerState extends State<AppInitializer> {
       );
     }
 
-    if (_needsModeSelection) {
+    if (_needsOnboarding) {
       return const OnboardingScreen();
+    }
+
+    if (_needsAuth) {
+      return AuthScreen(
+        onAuthSuccess: () {
+          setState(() {
+            _needsAuth = false;
+          });
+        },
+        onSkip: () {
+          setState(() {
+            _needsAuth = false;
+          });
+        },
+      );
     }
 
     return const MainScreen();

@@ -2,11 +2,9 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:onboarding/onboarding.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../services/settings_service.dart';
 import '../services/background_service.dart';
-import '../services/auth_service.dart';
 import 'auth_screen.dart';
 import 'home_screen.dart';
 
@@ -18,1137 +16,141 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  String? _selectedMode;
   bool _notificationPermissionAsked = false;
-  List<Widget>? _pages;
+  int _currentPage = 0;
+  final PageController _pageController = PageController();
 
   @override
   void initState() {
     super.initState();
-    // Auto-select server mode for web users
-    if (kIsWeb) {
-      _selectedMode = 'server';
-    }
+    // App now runs exclusively in server mode
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Build pages here where Theme.of(context) is available
-    _pages ??= _buildOnboardingPages();
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    // Ensure pages are built with current theme
-    _pages = _buildOnboardingPages(colorScheme);
-
     return Scaffold(
-      body: Onboarding(
-        swipeableBody: _pages!,
-        startIndex: 0,
-        onPageChanges: (
-          netDragDistance,
-          pagesLength,
-          currentIndex,
-          slideDirection,
-        ) {
-          setState(() {
-            // Update pages if mode selection changes
-            if (currentIndex == 3 && _selectedMode != null) {
-              _pages = _buildOnboardingPages(Theme.of(context).colorScheme);
-            }
-          });
-        },
-        buildFooter: (
-          context,
-          netDragDistance,
-          pagesLength,
-          currentIndex,
-          setIndex,
-          slideDirection,
-        ) {
-          final isLastPage = currentIndex == pagesLength - 1;
-          final isFirstPage = currentIndex == 0;
-
-          return DecoratedBox(
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              border: Border(
-                top: BorderSide(
-                  color: colorScheme.outline.withAlpha(50),
-                  width: 1,
-                ),
-              ),
-            ),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24.0,
-                  vertical: 16.0,
-                ),
-                child: Row(
-                  children: [
-                    // Back/Skip button
-                    if (isFirstPage)
-                      TextButton(
-                        onPressed: _skipOnboarding,
-                        child: Text(
-                          'Skip',
-                          style: TextStyle(
-                            color: colorScheme.onSurface.withAlpha(150),
-                            fontSize: 16,
-                          ),
-                        ),
-                      )
-                    else if (!isLastPage)
-                      TextButton(
-                        onPressed: () => setIndex(currentIndex - 1),
-                        child: Text(
-                          'Back',
-                          style: TextStyle(
-                            color: colorScheme.onSurface.withAlpha(150),
-                            fontSize: 16,
-                          ),
-                        ),
-                      )
-                    else
-                      const SizedBox(width: 60),
-
-                    const Spacer(),
-
-                    // Page indicator using the built-in Indicator
-                    SizedBox(
-                      width: 80,
-                      height: 20,
-                      child: Indicator<CirclePainter>(
-                        painter: CirclePainter(
-                          currentPageIndex: currentIndex,
-                          pagesLength: pagesLength,
-                          netDragPercent: netDragDistance,
-                          activePainter: Paint()..color = colorScheme.primary,
-                          inactivePainter:
-                              Paint()
-                                ..color = colorScheme.outline.withAlpha(75),
-                          slideDirection: slideDirection,
-                          radius: 4,
-                        ),
-                      ),
-                    ),
-
-                    const Spacer(),
-
-                    // Next/Continue button
-                    ElevatedButton(
-                      onPressed:
-                          isLastPage
-                              ? _completeOnboarding
-                              : () => _nextPage(
-                                setIndex,
-                                currentIndex,
-                                pagesLength,
-                              ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: colorScheme.primary,
-                        foregroundColor: colorScheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                      ),
-                      child: Text(
-                        _getButtonText(currentIndex, pagesLength),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  List<Widget> _buildOnboardingPages([ColorScheme? colorScheme]) {
-    colorScheme ??= Theme.of(context).colorScheme;
-
-    List<Widget> pages = [
-      // 1. Introduction Screen
-      _buildIntroductionPage(colorScheme),
-
-      // 2. App Description
-      _buildAppDescriptionPage(colorScheme),
-
-      // 3. Mode Selection Page
-      _buildModeSelectionPage(colorScheme),
-
-      // 4. Mode-specific explanations and permissions
-      if (_selectedMode != null) ..._getModeSpecificPages(colorScheme),
-
-      // 5. Features Overview
-      _buildFeaturesOverviewPage(colorScheme),
-
-      // 6. Final congratulations page
-      _buildFinalPage(colorScheme),
-    ];
-
-    return pages;
-  }
-
-  Widget _buildIntroductionPage(ColorScheme colorScheme) {
-    return Container(
-      color: colorScheme.surface,
-      child: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: 600,
-            ), // Better responsive design
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 40),
-
-                  // App Logo with animation - using clouds GIF
-                  TweenAnimationBuilder<double>(
-                    duration: const Duration(milliseconds: 1500),
-                    tween: Tween(begin: 0.0, end: 1.0),
-                    builder: (context, value, child) {
-                      return Transform.scale(
-                        scale: 0.8 + (0.2 * value),
-                        child: Opacity(
-                          opacity: value,
-                          child: Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: colorScheme.primary.withAlpha(50),
-                                  blurRadius: 20,
-                                  spreadRadius: 5,
-                                ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(20),
-                              child: Image.asset(
-                                'lib/assets/animation.gif',
-                                width: 120,
-                                height: 120,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 48),
-
-                  TweenAnimationBuilder<double>(
-                    duration: const Duration(milliseconds: 2000),
-                    tween: Tween(begin: 0.0, end: 1.0),
-                    builder: (context, value, child) {
-                      return Opacity(
-                        opacity: value,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const Text(
-                              'Welcome to ZenRadar',
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                height: 1.2,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Your zen companion for matcha monitoring',
-                              style: TextStyle(
-                                fontSize: 18,
-                                height: 1.5,
-                                color: colorScheme.onSurface.withAlpha(200),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 60),
-
-                  // Swipe indicator with GIF
-                  TweenAnimationBuilder<double>(
-                    duration: const Duration(milliseconds: 2500),
-                    tween: Tween(begin: 0.0, end: 1.0),
-                    builder: (context, value, child) {
-                      return Opacity(
-                        opacity: value * 0.8,
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: colorScheme.primary.withAlpha(25),
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(30),
-                                child: Image.asset(
-                                  'lib/assets/swipe-left_10522218.gif',
-                                  width: 60,
-                                  height: 60,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Swipe to continue',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: colorScheme.onSurface.withAlpha(150),
-                                fontWeight: FontWeight.w500,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  Text(
-                    'Let\'s get you started on your matcha journey',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-
-                  const SizedBox(height: 40),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAppDescriptionPage(ColorScheme colorScheme) {
-    return Container(
-      color: colorScheme.surface,
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 40),
-
-              // Animated icon - using confetti GIF
-              TweenAnimationBuilder<double>(
-                duration: const Duration(milliseconds: 1500),
-                tween: Tween(begin: 0.0, end: 1.0),
-                builder: (context, value, child) {
-                  return Transform.scale(
-                    scale: 0.8 + (0.2 * value),
-                    child: Opacity(
-                      opacity: value,
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: colorScheme.primary.withAlpha(25),
-                          borderRadius: BorderRadius.circular(60),
-                          boxShadow: [
-                            BoxShadow(
-                              color: colorScheme.primary.withAlpha(30),
-                              blurRadius: 15,
-                              spreadRadius: 3,
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(60),
-                          child: Image.asset(
-                            'lib/assets/bell_14642663.gif',
-                            width: 120,
-                            height: 120,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 48),
-
-              const Text(
-                'Never Miss a Restock Again',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  height: 1.2,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 24),
-
-              Text(
-                'ZenRadar monitors premium matcha websites and instantly notifies you when your favorite products come back in stock.',
-                style: TextStyle(
-                  fontSize: 18,
-                  height: 1.5,
-                  color: colorScheme.onSurface.withAlpha(200),
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 32),
-
-              // Benefits list
-              _buildBenefitsList(colorScheme, [
-                'Real-time stock monitoring',
-                'Price tracking & history',
-                'Instant push notifications',
-                'Multiple tea shop support',
-                'Favorites & wishlist management',
-              ]),
-
-              const SizedBox(height: 60),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBenefitsList(ColorScheme colorScheme, List<String> benefits) {
-    return Column(
-      children:
-          benefits.asMap().entries.map((entry) {
-            return TweenAnimationBuilder<double>(
-              duration: Duration(milliseconds: 800 + (entry.key * 200)),
-              tween: Tween(begin: 0.0, end: 1.0),
-              builder: (context, value, child) {
-                return Transform.translate(
-                  offset: Offset(50 * (1 - value), 0),
-                  child: Opacity(
-                    opacity: value,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            size: 20,
-                            color: Colors.green,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              entry.value,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: colorScheme.onSurface,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            );
-          }).toList(),
-    );
-  }
-
-  Widget _buildModeSelectionPage(ColorScheme colorScheme) {
-    return Container(
-      color: colorScheme.surface,
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              const Text(
-                'Choose Your Experience',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  height: 1.2,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Select how you want ZenRadar to monitor matcha stock for you',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: colorScheme.onSurface.withAlpha(200),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 48),
-
-              // Local Mode Card (only on mobile)
-              if (!kIsWeb) ...[
-                _buildModeCard(
-                  mode: 'local',
-                  icon: Icons.smartphone,
-                  title: 'Local Mode',
-                  subtitle: 'Privacy-first, device-based monitoring',
-                  features: [
-                    '✅ Complete privacy & offline support',
-                    '✅ Full control over all settings',
-                    '✅ No data sent to external servers',
-                    '✅ Works without internet (cached data)',
-                  ],
-                  tradeoffs: [
-                    '⚠️ Uses device battery for monitoring',
-                    '⚠️ Limited by device resources',
-                    '⚠️ May be affected by device sleep modes',
-                  ],
-                  colorScheme: colorScheme,
-                ),
-                const SizedBox(height: 24),
-              ],
-
-              // Server Mode Card
-              _buildModeCard(
-                mode: 'server',
-                icon: Icons.cloud,
-                title: 'Cloud Mode',
-                subtitle: 'Reliable, always-on monitoring',
-                features: [
-                  '✅ Zero battery usage on your device',
-                  '✅ Always-on, 24/7 reliable monitoring',
-                  '✅ Fast updates & shared improvements',
-                  '✅ Never misses restocks due to device sleep',
-                ],
-                tradeoffs: [
-                  '⚠️ Requires internet connection',
-                  '⚠️ Data stored in secure cloud',
-                  '⚠️ Dependent on server availability',
-                ],
-                colorScheme: colorScheme,
-              ),
-
-              if (kIsWeb) ...[
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer.withAlpha(75),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: colorScheme.primary.withAlpha(75),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info, color: colorScheme.primary),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Web version automatically uses Cloud Mode for optimal performance.',
-                          style: TextStyle(
-                            color: colorScheme.onSurface,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 40),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModeCard({
-    required String mode,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required List<String> features,
-    required List<String> tradeoffs,
-    required ColorScheme colorScheme,
-  }) {
-    final isSelected = _selectedMode == mode;
-    final canSelect = !kIsWeb || mode == 'server';
-
-    return GestureDetector(
-      onTap:
-          canSelect
-              ? () {
-                setState(() {
-                  _selectedMode = mode;
-                  // Rebuild pages when mode changes
-                  _pages = _buildOnboardingPages();
-                });
-              }
-              : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color:
-              isSelected
-                  ? colorScheme.primaryContainer.withAlpha(75)
-                  : colorScheme.surface,
-          border: Border.all(
-            color:
-                isSelected
-                    ? colorScheme.primary
-                    : colorScheme.outline.withAlpha(75),
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow:
-              isSelected
-                  ? [
-                    BoxShadow(
-                      color: colorScheme.primary.withAlpha(25),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                  : null,
-        ),
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color:
-                        isSelected
-                            ? colorScheme.primary
-                            : colorScheme.outline.withAlpha(25),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    icon,
-                    color:
-                        isSelected
-                            ? colorScheme.onPrimary
-                            : colorScheme.onSurface,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color:
-                              isSelected
-                                  ? colorScheme.primary
-                                  : colorScheme.onSurface,
-                        ),
-                      ),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: colorScheme.onSurface.withAlpha(175),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (canSelect)
-                  Radio<String>(
-                    value: mode,
-                    groupValue: _selectedMode,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedMode = value;
-                        _pages = _buildOnboardingPages();
-                      });
-                    },
-                    activeColor: colorScheme.primary,
-                  ),
-              ],
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                onPageChanged: (page) => setState(() => _currentPage = page),
+                children: [
+                  _buildWelcomePage(),
+                  _buildServerModeExplanationPage(),
+                  _buildNotificationPage(),
+                ],
+              ),
             ),
-            if (isSelected) ...[
-              const SizedBox(height: 16),
-              ...features.map(
-                (feature) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text(
-                    feature,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              ...tradeoffs.map(
-                (tradeoff) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text(
-                    tradeoff,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: colorScheme.onSurface.withAlpha(150),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            _buildBottomBar(),
           ],
         ),
       ),
     );
   }
 
-  List<Widget> _getModeSpecificPages(ColorScheme colorScheme) {
-    if (_selectedMode == 'server') {
-      return [_buildServerModeExplanationPage(colorScheme)];
-    } else {
-      return [_buildLocalModeExplanationPage(colorScheme)];
-    }
-  }
-
-  Widget _buildServerModeExplanationPage(ColorScheme colorScheme) {
-    return Container(
-      color: colorScheme.surface,
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 40),
-
-              // Cloud icon - using clouds GIF
-              Container(
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withAlpha(25),
-                  borderRadius: BorderRadius.circular(70),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colorScheme.primary.withAlpha(30),
-                      blurRadius: 20,
-                      spreadRadius: 5,
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(70),
-                  child: Image.asset(
-                    'lib/assets/cloud_17905309.gif',
-                    width: 140,
-                    height: 140,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 48),
-
-              const Text(
-                'Cloud-Powered Monitoring',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  height: 1.2,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 24),
-
-              Text(
-                'Our dedicated servers monitor matcha websites 24/7, so your device doesn\'t have to. Get instant notifications the moment products restock.',
-                style: TextStyle(
-                  fontSize: 18,
-                  height: 1.5,
-                  color: colorScheme.onSurface.withAlpha(200),
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 32),
-
-              if (!kIsWeb && !_notificationPermissionAsked) ...[
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer.withAlpha(50),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: colorScheme.primary.withAlpha(100),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.notifications_active,
-                        size: 48,
-                        color: colorScheme.primary,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Enable Notifications',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Allow ZenRadar to send you instant notifications when your favorite matcha products come back in stock.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: colorScheme.onSurface.withAlpha(200),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: _requestNotificationPermission,
-                        icon: const Icon(Icons.notifications),
-                        label: const Text('Allow Notifications'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: colorScheme.primary,
-                          foregroundColor: colorScheme.onPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 60),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLocalModeExplanationPage(ColorScheme colorScheme) {
-    return Container(
-      color: colorScheme.surface,
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 40),
-
-              // Security/Bell icon - using bell GIF
-              Container(
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(
-                  color: Colors.green.withAlpha(25),
-                  borderRadius: BorderRadius.circular(70),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.green.withAlpha(30),
-                      blurRadius: 20,
-                      spreadRadius: 5,
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(70),
-                  child: Image.asset(
-                    'lib/assets/bell_14642663.gif',
-                    width: 140,
-                    height: 140,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 48),
-
-              const Text(
-                'Private & Secure',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  height: 1.2,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 24),
-
-              Text(
-                'All monitoring happens directly on your device. Your data never leaves your phone, ensuring complete privacy and full control over your matcha tracking.',
-                style: TextStyle(
-                  fontSize: 18,
-                  height: 1.5,
-                  color: colorScheme.onSurface.withAlpha(200),
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 32),
-
-              if (!kIsWeb && !_notificationPermissionAsked) ...[
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer.withAlpha(50),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: colorScheme.primary.withAlpha(100),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      // Bell notification icon using GIF for local mode
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(24),
-                          child: Image.asset(
-                            'lib/assets/bell_14642663.gif',
-                            width: 48,
-                            height: 48,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Enable Local Notifications',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Allow ZenRadar to send you local notifications. These are created directly on your device and require no internet connection.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: colorScheme.onSurface.withAlpha(200),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: _requestNotificationPermission,
-                        icon: const Icon(Icons.notifications),
-                        label: const Text('Allow Notifications'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: colorScheme.primary,
-                          foregroundColor: colorScheme.onPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 60),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFeaturesOverviewPage(ColorScheme colorScheme) {
-    return Container(
-      color: colorScheme.surface,
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 40),
-
-              // Features icon - using confetti GIF
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withAlpha(25),
-                  borderRadius: BorderRadius.circular(60),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colorScheme.primary.withAlpha(30),
-                      blurRadius: 15,
-                      spreadRadius: 3,
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(60),
-                  child: Image.asset(
-                    'lib/assets/analysis_16678143.gif',
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 48),
-
-              const Text(
-                'Explore ZenRadar',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  height: 1.2,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 16),
-
-              Text(
-                'Here\'s what you can do with ZenRadar',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: colorScheme.onSurface.withAlpha(200),
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 48),
-
-              // Feature cards
-              _buildFeatureCard(
-                icon: Icons.dashboard,
-                title: 'Website Overview',
-                description:
-                    'Monitor multiple tea shops at once. See which websites have new stock and track availability across all your favorite stores.',
-                colorScheme: colorScheme,
-              ),
-
-              const SizedBox(height: 24),
-
-              _buildFeatureCard(
-                icon: Icons.update,
-                title: 'Stock Updates',
-                description:
-                    'Get detailed notifications about stock changes. View history, track price changes, and never miss a restock again.',
-                colorScheme: colorScheme,
-              ),
-
-              const SizedBox(height: 60),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFeatureCard({
-    required IconData icon,
-    required String title,
-    required String description,
-    required ColorScheme colorScheme,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outline.withAlpha(50)),
-      ),
-      child: Row(
+  Widget _buildWelcomePage() {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, size: 24, color: colorScheme.primary),
+          Icon(
+            Icons.radar,
+            size: 100,
+            color: Theme.of(context).colorScheme.primary,
           ),
-          const SizedBox(width: 16),
-          Expanded(
+          const SizedBox(height: 32),
+          Text(
+            'Welcome to ZenRadar',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Your premium matcha stock monitoring companion',
+            style: Theme.of(context).textTheme.bodyLarge,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 40),
+          _buildFeature(
+            Icons.cloud_sync,
+            'Cloud Monitoring',
+            'Reliable 24/7 stock tracking',
+          ),
+          const SizedBox(height: 16),
+          _buildFeature(
+            Icons.notifications_active,
+            'Instant Alerts',
+            'Get notified when items are back in stock',
+          ),
+          const SizedBox(height: 16),
+          _buildFeature(
+            Icons.battery_saver,
+            'Zero Battery Usage',
+            'Cloud processing means no device drain',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildServerModeExplanationPage() {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.cloud,
+            size: 100,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(height: 32),
+          Text(
+            'Cloud-Powered Monitoring',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'ZenRadar uses advanced cloud services to monitor matcha stock across multiple websites.',
+            style: Theme.of(context).textTheme.bodyLarge,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 40),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Theme.of(
+                context,
+              ).colorScheme.primaryContainer.withAlpha(75),
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                  ),
+                  'Why Cloud Monitoring?',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: colorScheme.onSurface.withAlpha(175),
-                  ),
-                ),
+                const SizedBox(height: 16),
+                _buildBenefit('Always online, even when your device sleeps'),
+                _buildBenefit('No battery drain on your device'),
+                _buildBenefit('Faster updates and better reliability'),
+                _buildBenefit('Shared improvements benefit everyone'),
               ],
             ),
           ),
@@ -1157,291 +159,214 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  Widget _buildFinalPage(ColorScheme colorScheme) {
-    return Container(
-      color: colorScheme.surface,
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 40),
-
-              // Celebration animation - using confetti GIF
-              TweenAnimationBuilder<double>(
-                duration: const Duration(milliseconds: 2000),
-                tween: Tween(begin: 0.0, end: 1.0),
-                builder: (context, value, child) {
-                  return Transform.scale(
-                    scale: 0.5 + (0.5 * value),
-                    child: Opacity(
-                      opacity: value,
-                      child: Container(
-                        width: 160,
-                        height: 160,
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withAlpha(25),
-                          borderRadius: BorderRadius.circular(80),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.orange.withAlpha(30),
-                              blurRadius: 25,
-                              spreadRadius: 8,
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(80),
-                          child: Image.asset(
-                            'lib/assets/confetti_18829742.gif',
-                            width: 160,
-                            height: 160,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 48),
-
-              const Text(
-                'You\'re All Set!',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  height: 1.2,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 24),
-
-              Text(
-                _selectedMode == 'server'
-                    ? 'Cloud monitoring is now active. Enjoy reliable, battery-friendly matcha tracking!'
-                    : 'Local monitoring is configured. Your device will handle all tracking privately.',
-                style: TextStyle(
-                  fontSize: 18,
-                  height: 1.5,
-                  color: colorScheme.onSurface.withAlpha(200),
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 32),
-
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer.withAlpha(50),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  '🍵 Enjoy your zen matcha journey with ZenRadar! May your cup always be full and your favorite matcha always in stock.',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: colorScheme.primary,
-                    fontStyle: FontStyle.italic,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-
-              const SizedBox(height: 60),
-            ],
+  Widget _buildNotificationPage() {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.notifications_active,
+            size: 100,
+            color: Theme.of(context).colorScheme.primary,
           ),
-        ),
+          const SizedBox(height: 32),
+          Text(
+            'Stay Informed',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Get instant notifications when your favorite matcha products come back in stock.',
+            style: Theme.of(context).textTheme.bodyLarge,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 40),
+          if (!kIsWeb) ...[
+            ElevatedButton.icon(
+              onPressed: _requestNotificationPermission,
+              icon: const Icon(Icons.notifications),
+              label: const Text('Enable Notifications'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          Text(
+            kIsWeb
+                ? 'Web notifications will be enabled automatically.'
+                : _notificationPermissionAsked
+                ? 'Notification permission requested!'
+                : 'We recommend enabling notifications for the best experience.',
+            style: Theme.of(context).textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
 
-  String _getButtonText(int currentIndex, int pagesLength) {
-    if (currentIndex == 0) {
-      return 'Start Journey';
-    } else if (currentIndex == 2) {
-      // Mode selection page
-      return _selectedMode != null ? 'Continue' : 'Choose Mode';
-    } else if (currentIndex == pagesLength - 1) {
-      return 'Enter ZenRadar';
-    } else {
-      return 'Next';
-    }
+  Widget _buildFeature(IconData icon, String title, String description) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Theme.of(
+              context,
+            ).colorScheme.primaryContainer.withAlpha(100),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            icon,
+            color: Theme.of(context).colorScheme.primary,
+            size: 24,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              Text(description, style: Theme.of(context).textTheme.bodyMedium),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
-  void _nextPage(Function(int) setIndex, int currentIndex, int pagesLength) {
-    if (currentIndex == 2 && _selectedMode == null) {
-      // On mode selection page but no mode selected
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please select a mode to continue'),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      );
-      return;
-    }
+  Widget _buildBenefit(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(
+            Icons.check_circle,
+            color: Theme.of(context).colorScheme.primary,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
+          ),
+        ],
+      ),
+    );
+  }
 
-    if (currentIndex < pagesLength - 1) {
-      setIndex(currentIndex + 1);
-    }
+  Widget _buildBottomBar() {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          TextButton(onPressed: _skipOnboarding, child: const Text('Skip')),
+          Row(
+            children: List.generate(3, (index) {
+              return Container(
+                width: 8,
+                height: 8,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color:
+                      _currentPage == index
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.outline,
+                ),
+              );
+            }),
+          ),
+          ElevatedButton(
+            onPressed: _currentPage == 2 ? _completeOnboarding : _nextPage,
+            child: Text(_currentPage == 2 ? 'Get Started' : 'Next'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _requestNotificationPermission() async {
-    if (kIsWeb) return;
-
-    try {
-      final result = await Permission.notification.request();
-      setState(() {
-        _notificationPermissionAsked = true;
-      });
-
-      if (result.isGranted) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text(
-                '✅ Notifications enabled! You\'ll receive stock alerts.',
-              ),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text(
-                '⚠️ Notifications disabled. You can enable them later in settings.',
-              ),
-              backgroundColor: Colors.orange,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          );
-        }
-      }
-    } catch (e) {
+    if (!kIsWeb) {
+      await Permission.notification.request();
       setState(() {
         _notificationPermissionAsked = true;
       });
     }
   }
 
-  Future<void> _skipOnboarding() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Skip Onboarding?'),
-            content: const Text(
-              'Are you sure you want to skip the setup? You can always access these settings later.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Skip'),
-              ),
-            ],
-          ),
+  void _nextPage() {
+    _pageController.nextPage(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
     );
+  }
 
-    if (confirmed == true) {
-      // Set default mode and complete onboarding
-      _selectedMode = kIsWeb ? 'server' : 'local';
-      await _completeOnboarding();
-    }
+  void _skipOnboarding() {
+    _completeOnboarding();
   }
 
   Future<void> _completeOnboarding() async {
-    _selectedMode ??= kIsWeb ? 'server' : 'local';
-
     try {
-      // If server mode is selected, show authentication screen first
-      if (_selectedMode == 'server') {
-        if (mounted) {
-          final authResult = await Navigator.of(context).push<bool>(
-            MaterialPageRoute(
-              builder:
-                  (context) => AuthScreen(
-                    isOnboarding: true,
-                    onAuthSuccess: () {
-                      Navigator.of(context).pop(true);
-                    },
-                    onSkip: () {
-                      // User chose to skip authentication, switch to local mode
-                      setState(() {
-                        _selectedMode = 'local';
-                      });
-                      Navigator.of(context).pop(false);
-                    },
-                  ),
+      // Show authentication screen for server mode
+      if (mounted) {
+        final authResult = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder:
+                (context) => AuthScreen(
+                  isOnboarding: true,
+                  onAuthSuccess: () {
+                    Navigator.of(context).pop(true);
+                  },
+                  onSkip: () {
+                    Navigator.of(context).pop(false);
+                  },
+                ),
+          ),
+        );
+
+        // Continue regardless of auth result
+        if (authResult == false && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'You can sign in later in settings to sync your data',
+              ),
+              backgroundColor: Colors.orange,
             ),
           );
-
-          // If authentication was cancelled or failed, don't complete onboarding
-          if (authResult != true) {
-            return;
-          }
-
-          // Verify user is authenticated before proceeding
-          if (!AuthService.instance.isSignedIn) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Authentication required for server mode'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-            return;
-          }
         }
       }
 
-      // Save the selected mode to settings
+      // Save default settings (server mode is implicit)
       final settings = await SettingsService.instance.getSettings();
-      final updatedSettings = settings.copyWith(appMode: _selectedMode);
-      await SettingsService.instance.saveSettings(updatedSettings);
+      await SettingsService.instance.saveSettings(settings);
 
-      // For local mode on mobile, ensure notification permissions and background service
-      if (!kIsWeb && _selectedMode == 'local') {
-        // Request notification permission if not already asked
-        if (!_notificationPermissionAsked) {
-          await _requestNotificationPermission();
-        }
+      // Request notification permission if not already asked
+      if (!kIsWeb && !_notificationPermissionAsked) {
+        await _requestNotificationPermission();
+      }
 
-        // Initialize background service for local mode
-        try {
-          await initializeService();
-          print('✅ Background service initialized for local mode');
-        } catch (e) {
-          print('❌ Failed to initialize background service: $e');
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Warning: Background monitoring may not work properly',
-                ),
-                backgroundColor: Colors.orange,
-              ),
-            );
-          }
-        }
+      // Initialize service (no-op for server mode)
+      try {
+        await initializeService();
+        print('✅ Server mode initialized');
+      } catch (e) {
+        print('❌ Failed to initialize service: $e');
       }
 
       if (mounted) {
@@ -1451,10 +376,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         );
       }
     } catch (e) {
+      print('Error completing onboarding: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to save settings: $e'),
+            content: Text('Setup error: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );

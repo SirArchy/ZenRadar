@@ -477,7 +477,7 @@ class CrawlerService {
     List<String> selectedSiteKeys,
   ) async {
     _logger.logInfo(
-      '� Starting crawl of selected sites: ${selectedSiteKeys.join(', ')}',
+      'Starting crawl of selected sites: ${selectedSiteKeys.join(', ')}',
     );
     List<MatchaProduct> allProducts = [];
 

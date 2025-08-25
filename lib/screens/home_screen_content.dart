@@ -13,7 +13,17 @@ import '../widgets/skeleton_loading.dart';
 import 'product_detail_page.dart';
 
 class HomeScreenContent extends StatefulWidget {
-  const HomeScreenContent({super.key});
+  final VoidCallback? onRefreshRequested;
+
+  const HomeScreenContent({super.key, this.onRefreshRequested});
+
+  // Static instance to access from outside
+  static _HomeScreenContentState? _currentInstance;
+
+  // Static method to refresh from outside
+  static void refreshIfActive() {
+    _currentInstance?.refreshProducts();
+  }
 
   @override
   State<HomeScreenContent> createState() => _HomeScreenContentState();
@@ -129,6 +139,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   void initState() {
     super.initState();
 
+    // Register this instance
+    HomeScreenContent._currentInstance = this;
+
     // Set up focus listener for smart search history
     _searchFocusNode.addListener(() {
       if (_searchFocusNode.hasFocus) {
@@ -206,6 +219,11 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
   @override
   void dispose() {
+    // Unregister this instance
+    if (HomeScreenContent._currentInstance == this) {
+      HomeScreenContent._currentInstance = null;
+    }
+
     _searchController.dispose();
     _searchFocusNode.dispose();
     _scrollController.dispose();
@@ -248,7 +266,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
   Future<void> _loadFilterOptions() async {
     try {
-      final sites = await DatabaseService.platformService.getAvailableSites();
+      final sites = await DatabaseService.platformService.getUniqueSites();
       final categories =
           await DatabaseService.platformService.getAvailableCategories();
       final priceRange = await DatabaseService.platformService.getPriceRange();
@@ -455,6 +473,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                   label: const Text('All'),
                   selected:
                       _filter.inStock == null &&
+                      !_filter.favoritesOnly &&
                       (_filter.sites == null || _filter.sites!.isEmpty) &&
                       _filter.category == null &&
                       _filter.minPrice == null &&
@@ -482,6 +501,40 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                       Theme.of(context).brightness == Brightness.light
                           ? Colors.green.shade600
                           : Colors.green,
+                  labelStyle: TextStyle(
+                    color:
+                        Theme.of(context).brightness == Brightness.light
+                            ? Colors.black87
+                            : Colors.white,
+                  ),
+                ),
+                FilterChip(
+                  label: const Text('Favorites'),
+                  selected: _filter.favoritesOnly,
+                  onSelected: (_) async {
+                    setState(() {
+                      if (_filter.favoritesOnly) {
+                        // If already selected, reset to All
+                        _filter = ProductFilter();
+                        _searchQuery = '';
+                        _searchController.clear();
+                      } else {
+                        _filter = _filter.copyWith(favoritesOnly: true);
+                      }
+                      _currentPage = 1;
+                      _hasMoreProducts = true;
+                    });
+                    await _saveFilterToPrefs(_filter);
+                    _loadProducts();
+                  },
+                  selectedColor:
+                      Theme.of(context).brightness == Brightness.light
+                          ? Colors.pink.shade50
+                          : Colors.pink.withAlpha((0.2 * 255).toInt()),
+                  checkmarkColor:
+                      Theme.of(context).brightness == Brightness.light
+                          ? Colors.pink.shade600
+                          : Colors.pink,
                   labelStyle: TextStyle(
                     color:
                         Theme.of(context).brightness == Brightness.light

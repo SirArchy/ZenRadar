@@ -9,6 +9,7 @@ import 'services/database_service.dart';
 import 'services/firestore_service.dart';
 import 'services/theme_service.dart';
 import 'services/battery_optimization_service.dart';
+import 'services/favorite_notification_service.dart';
 import 'screens/app_initializer.dart';
 
 void main() async {
@@ -46,8 +47,11 @@ void main() async {
     final batteryService = BatteryOptimizationService();
     await batteryService.checkAndHandleBatteryOptimization();
 
-    // Initialize background service (will check app mode internally)
-    await initializeService();
+    // Initialize background service (server mode only)
+    await BackgroundServiceController.initializeService();
+
+    // Initialize favorite product notification monitoring
+    await FavoriteNotificationService.instance.initializeService();
 
     // Request permissions (mobile only) - but exclude notification permission
     // as it will be requested during onboarding

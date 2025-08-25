@@ -3,12 +3,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/matcha_product.dart';
 import '../models/scan_activity.dart';
 import '../models/price_history.dart';
 import '../models/stock_history.dart';
-import 'settings_service.dart';
 import 'web_database_service.dart';
 import 'firestore_service.dart';
 
@@ -523,6 +521,16 @@ class DatabaseService {
       where: 'category IS NOT NULL',
     );
     return result.map((row) => row['category'] as String).toList();
+  }
+
+  Future<List<String>> getAvailableSites() async {
+    final db = await database;
+    final List<Map<String, dynamic>> result = await db.query(
+      'matcha_products',
+      columns: ['DISTINCT COALESCE(siteName, site) as siteName'],
+      where: 'site IS NOT NULL',
+    );
+    return result.map((row) => row['siteName'] as String).toList();
   }
 
   Future<Map<String, double>> getPriceRange() async {
@@ -1096,15 +1104,8 @@ class DatabaseService {
 /// Platform-aware database service that automatically chooses between local and server modes
 class _PlatformDatabaseService {
   Future<bool> _isServerMode() async {
-    try {
-      final settings = await SettingsService.instance.getSettings();
-      return settings.appMode == 'server';
-    } catch (e) {
-      // Fallback to shared preferences if settings service fails
-      final prefs = await SharedPreferences.getInstance();
-      final appMode = prefs.getString('appMode') ?? 'local';
-      return appMode == 'server';
-    }
+    // App now runs exclusively in server mode
+    return true;
   }
 
   Future<PaginatedProducts> getProductsPaginated({

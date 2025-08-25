@@ -52,6 +52,24 @@ class StockStatusPoint {
     required this.isInStock,
     this.stockDuration = 0,
   });
+
+  /// Convert to JSON for caching
+  Map<String, dynamic> toJson() {
+    return {
+      'timestamp': timestamp.toIso8601String(),
+      'isInStock': isInStock,
+      'stockDuration': stockDuration,
+    };
+  }
+
+  /// Create from JSON for caching
+  factory StockStatusPoint.fromJson(Map<String, dynamic> json) {
+    return StockStatusPoint(
+      timestamp: DateTime.parse(json['timestamp'] as String),
+      isInStock: json['isInStock'] as bool,
+      stockDuration: json['stockDuration'] as int,
+    );
+  }
 }
 
 class StockAnalytics {

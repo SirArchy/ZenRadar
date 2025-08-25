@@ -5,9 +5,6 @@ import 'home_screen_content.dart';
 import 'website_overview_screen.dart';
 import 'background_activity_screen.dart';
 import 'settings_screen.dart';
-import '../services/settings_service.dart';
-import '../services/database_service.dart';
-import '../widgets/site_selection_dialog.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -19,7 +16,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   late TabController _tabController;
   int _currentIndex = 0;
-  String _appMode = 'local'; // Default to local mode
+  // App now runs exclusively in server mode - no mode tracking needed
 
   @override
   void initState() {
@@ -30,18 +27,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         _currentIndex = _tabController.index;
       });
     });
-    _loadSettings();
-  }
-
-  Future<void> _loadSettings() async {
-    try {
-      final settings = await SettingsService.instance.getSettings();
-      setState(() {
-        _appMode = settings.appMode;
-      });
-    } catch (e) {
-      print('Error loading settings: $e');
-    }
+    // No need to load app mode settings since server mode is always active
   }
 
   @override
@@ -122,55 +108,19 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
-      floatingActionButton: _buildFloatingActionButton(),
+      floatingActionButton:
+          _currentIndex == 0
+              ? FloatingActionButton(
+                onPressed: () {
+                  // Trigger refresh on the HomeScreenContent widget
+                  HomeScreenContent.refreshIfActive();
+                },
+                tooltip: 'Refresh products',
+                child: const Icon(Icons.refresh),
+              )
+              : null,
+      // No FAB needed in server mode - all monitoring is handled by cloud services
     );
-  }
-
-  Widget? _buildFloatingActionButton() {
-    // Only show FAB in local mode for home tab
-    if (_appMode != 'local' || _currentIndex != 0) {
-      return null;
-    }
-
-    return FloatingActionButton(
-      onPressed: _showManualScanDialog,
-      tooltip: 'Start Manual Scan',
-      child: const Icon(Icons.refresh),
-    );
-  }
-
-  void _showManualScanDialog() async {
-    try {
-      // Load available sites for the dialog
-      final sites = await DatabaseService.platformService.getAvailableSites();
-
-      final selectedSites = await showSiteSelectionDialog(
-        context: context,
-        availableSites: sites,
-      );
-
-      if (selectedSites != null && selectedSites.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Starting manual scan for ${selectedSites.length} sites...',
-            ),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-
-        // TODO: Trigger actual manual scan functionality
-        // This would typically call a service method to start the scan
-      }
-    } catch (e) {
-      print('Error showing site selection dialog: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error loading sites for scan'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
   }
 
   String _getAppBarTitle() {

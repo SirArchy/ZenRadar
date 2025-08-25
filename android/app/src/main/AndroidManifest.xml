@@ -42,11 +42,11 @@
             </intent-filter>
         </activity>
         
-        <!-- Background Service for monitoring matcha websites - minimal config -->
-        <service android:name="id.flutter.flutter_background_service.BackgroundService"
+        <!-- Background Service temporarily disabled to fix Android crashes -->
+        <!-- <service android:name="id.flutter.flutter_background_service.BackgroundService"
             android:exported="false"
             android:enabled="true"
-            tools:replace="android:exported" />
+            tools:replace="android:exported" /> -->
         
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

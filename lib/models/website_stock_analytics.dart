@@ -187,6 +187,63 @@ class WebsiteStockAnalytics {
     if (updatesPerDay >= 0.5) return 'Occasional updates';
     return 'Rare updates';
   }
+
+  /// Convert to JSON for caching
+  Map<String, dynamic> toJson() {
+    return {
+      'siteKey': siteKey,
+      'siteName': siteName,
+      'stockUpdates': stockUpdates.map((update) => update.toJson()).toList(),
+      'totalProducts': totalProducts,
+      'productsInStock': productsInStock,
+      'productsOutOfStock': productsOutOfStock,
+      'stockPercentage': stockPercentage,
+      'lastStockChange': lastStockChange?.toIso8601String(),
+      'recentUpdates': recentUpdates.map((update) => update.toJson()).toList(),
+      'hourlyUpdatePattern': Map<String, int>.from(
+        hourlyUpdatePattern.map((k, v) => MapEntry(k.toString(), v)),
+      ),
+      'dailyUpdatePattern': Map<String, int>.from(dailyUpdatePattern),
+    };
+  }
+
+  /// Create from JSON for caching
+  factory WebsiteStockAnalytics.fromJson(Map<String, dynamic> json) {
+    return WebsiteStockAnalytics(
+      siteKey: json['siteKey'] as String,
+      siteName: json['siteName'] as String,
+      stockUpdates:
+          (json['stockUpdates'] as List<dynamic>)
+              .map(
+                (item) =>
+                    StockStatusPoint.fromJson(item as Map<String, dynamic>),
+              )
+              .toList(),
+      totalProducts: json['totalProducts'] as int,
+      productsInStock: json['productsInStock'] as int,
+      productsOutOfStock: json['productsOutOfStock'] as int,
+      stockPercentage: (json['stockPercentage'] as num).toDouble(),
+      lastStockChange:
+          json['lastStockChange'] != null
+              ? DateTime.parse(json['lastStockChange'] as String)
+              : null,
+      recentUpdates:
+          (json['recentUpdates'] as List<dynamic>)
+              .map(
+                (item) =>
+                    StockUpdateEvent.fromJson(item as Map<String, dynamic>),
+              )
+              .toList(),
+      hourlyUpdatePattern: Map<int, int>.from(
+        (json['hourlyUpdatePattern'] as Map<String, dynamic>).map(
+          (key, value) => MapEntry(int.parse(key), value as int),
+        ),
+      ),
+      dailyUpdatePattern: Map<String, int>.from(
+        json['dailyUpdatePattern'] as Map<String, dynamic>,
+      ),
+    );
+  }
 }
 
 /// Represents a stock update event at a specific time
@@ -216,5 +273,25 @@ class StockUpdateEvent {
     } else {
       return '$totalUpdates products updated';
     }
+  }
+
+  /// Convert to JSON for caching
+  Map<String, dynamic> toJson() {
+    return {
+      'timestamp': timestamp.toIso8601String(),
+      'productsRestocked': productsRestocked,
+      'productsOutOfStock': productsOutOfStock,
+      'totalUpdates': totalUpdates,
+    };
+  }
+
+  /// Create from JSON for caching
+  factory StockUpdateEvent.fromJson(Map<String, dynamic> json) {
+    return StockUpdateEvent(
+      timestamp: DateTime.parse(json['timestamp'] as String),
+      productsRestocked: json['productsRestocked'] as int,
+      productsOutOfStock: json['productsOutOfStock'] as int,
+      totalUpdates: json['totalUpdates'] as int,
+    );
   }
 }

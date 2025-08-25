@@ -214,6 +214,57 @@ class NotificationService {
     );
   }
 
+  /// Generic notification method for various types of notifications
+  Future<void> showNotification({
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
+    String? channelId,
+  }) async {
+    if (kIsWeb) {
+      // For web, we can use the browser notification API
+      // This would need to be implemented in WebNotificationService
+      return;
+    }
+
+    final actualChannelId = channelId ?? 'stock_alerts';
+
+    AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+          actualChannelId, // Use the channel ID parameter
+          'Stock Alerts',
+          channelDescription: 'General notifications for ZenRadar',
+          importance: Importance.high,
+          priority: Priority.high,
+          showWhen: true,
+          icon: '@drawable/notification_icon',
+          color: const Color(0xFF4CAF50),
+          playSound: true,
+          enableVibration: true,
+        );
+
+    const DarwinNotificationDetails iOSPlatformChannelSpecifics =
+        DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        );
+
+    NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: iOSPlatformChannelSpecifics,
+    );
+
+    await _flutterLocalNotificationsPlugin.show(
+      id,
+      title,
+      body,
+      platformChannelSpecifics,
+      payload: payload,
+    );
+  }
+
   Future<void> showSummaryNotification({
     required List<String> productNames,
     required String siteName,

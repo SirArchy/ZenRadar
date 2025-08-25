@@ -120,14 +120,13 @@ class SettingsService {
   }
 
   Future<bool> getServerMode() async {
-    final settings = await getSettings();
-    return settings.appMode == "server";
+    // Always return true since the app now runs exclusively in server mode
+    return true;
   }
 
   Future<void> setServerMode(bool enabled) async {
-    await updateSettings(
-      (settings) => settings.copyWith(appMode: enabled ? "server" : "local"),
-    );
+    // No-op since the app always runs in server mode
+    // This method is kept for backward compatibility
   }
 
   /// Check if current time is within active hours

@@ -2,12 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:zenradar/screens/stock_updates_screen.dart';
 import '../models/scan_activity.dart';
-import '../models/matcha_product.dart';
 import '../services/database_service.dart';
-import '../services/settings_service.dart';
 import '../services/firestore_service.dart';
+import '../services/cache_service.dart';
 import '../widgets/skeleton_loading.dart';
 // ignore_for_file: avoid_print
 
@@ -24,10 +22,8 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
   bool _isLoading = true;
   int _totalActivities = 0;
   final ScrollController _scrollController = ScrollController();
-  static const int _pageSize = 20;
   bool _hasMoreData = true;
-  bool _isLoadingMore = false;
-  UserSettings _userSettings = UserSettings();
+  final bool _isLoadingMore = false;
 
   // Public method to refresh activities (can be called from parent)
   void refreshActivities() {
@@ -43,10 +39,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
 
   Future<void> _loadSettings() async {
     try {
-      final settings = await SettingsService.instance.getSettings();
-      setState(() {
-        _userSettings = settings;
-      });
+      setState(() {});
       await _loadActivities();
     } catch (e) {
       print('Error loading settings: $e');
@@ -75,59 +68,40 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     });
 
     try {
-      if (_userSettings.appMode == 'server') {
-        // Load server scan activities from Firestore
-        try {
-          final serverActivities = await _loadServerActivitiesFromFirestore();
-          print(
-            '✅ Loaded ${serverActivities.length} server activities from Firestore',
-          );
-          setState(() {
-            _activities = serverActivities;
-            _totalActivities = serverActivities.length;
-            _hasMoreData = false; // No pagination for server mode yet
-            _isLoading = false;
-          });
-        } catch (e) {
-          print('❌ Error loading server activities: $e');
-          setState(() {
-            _activities = [];
-            _totalActivities = 0;
-            _hasMoreData = false;
-            _isLoading = false;
-          });
-
-          // Show error message to user
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Failed to load server activities: $e'),
-                backgroundColor: Colors.red,
-                action: SnackBarAction(
-                  label: 'Retry',
-                  onPressed: _loadActivities,
-                ),
-              ),
-            );
-          }
-        }
-      } else {
-        // Local mode: load from local database
-        final activities = await DatabaseService.platformService
-            .getScanActivities(limit: _pageSize, offset: 0);
-        final totalCount =
-            await DatabaseService.platformService.getScanActivitiesCount();
-
+      // Load server scan activities from Firestore (server mode only)
+      try {
+        final serverActivities = await _loadServerActivitiesFromFirestore();
         print(
-          '📊 Loaded ${activities.length} scan activities, total: $totalCount',
+          'Loaded ${serverActivities.length} server activities from Firestore',
         );
-
         setState(() {
-          _activities = activities;
-          _totalActivities = totalCount;
-          _hasMoreData = activities.length == _pageSize;
+          _activities = serverActivities;
+          _totalActivities = serverActivities.length;
+          _hasMoreData = false; // No pagination for server mode yet
           _isLoading = false;
         });
+      } catch (e) {
+        print('Error loading server activities: $e');
+        setState(() {
+          _activities = [];
+          _totalActivities = 0;
+          _hasMoreData = false;
+          _isLoading = false;
+        });
+
+        // Show error message to user
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to load server activities: $e'),
+              backgroundColor: Colors.red,
+              action: SnackBarAction(
+                label: 'Retry',
+                onPressed: () => _forceRefreshActivities(),
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
       print('Error loading scan activities: $e');
@@ -137,29 +111,50 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     }
   }
 
-  Future<void> _loadMoreActivities() async {
-    if (_isLoadingMore || _userSettings.appMode == 'server') {
-      return; // No pagination for server mode placeholder
-    }
-
+  Future<void> _forceRefreshActivities() async {
     setState(() {
-      _isLoadingMore = true;
+      _isLoading = true;
     });
 
     try {
-      final moreActivities = await DatabaseService.platformService
-          .getScanActivities(limit: _pageSize, offset: _activities.length);
+      // Clear cache and force refresh from server
+      await CacheService.clearCache('server_activities');
 
+      final serverActivities = await _loadServerActivitiesFromFirestore(
+        forceRefresh: true,
+      );
+      print(
+        'Force refreshed ${serverActivities.length} server activities from Firestore',
+      );
       setState(() {
-        _activities.addAll(moreActivities);
-        _hasMoreData = moreActivities.length == _pageSize;
-        _isLoadingMore = false;
+        _activities = serverActivities;
+        _totalActivities = serverActivities.length;
+        _hasMoreData = false;
+        _isLoading = false;
       });
     } catch (e) {
-      print('Error loading more activities: $e');
+      print('Error force refreshing server activities: $e');
       setState(() {
-        _isLoadingMore = false;
+        _activities = [];
+        _totalActivities = 0;
+        _hasMoreData = false;
+        _isLoading = false;
       });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to refresh server activities: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadMoreActivities() async {
+    if (_isLoadingMore || true) {
+      return; // No pagination for server mode placeholder
     }
   }
 
@@ -261,6 +256,12 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _forceRefreshActivities,
+        tooltip: 'Refresh activities',
+        child: const Icon(Icons.refresh),
+      ),
       body:
           _isLoading
               ? Column(
@@ -288,19 +289,15 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
             Icon(Icons.history, size: 64, color: Colors.grey),
             const SizedBox(height: 16),
             Text(
-              _userSettings.appMode == 'server'
-                  ? 'No server scans found'
-                  : 'No scan activities recorded yet',
+              'No server scans found',
               style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
             const SizedBox(height: 8),
             Text(
-              _userSettings.appMode == 'server'
-                  ? 'Server scan activities will appear here'
-                  : 'Background scans will appear here',
+              'Server scan activities will appear here',
               style: const TextStyle(fontSize: 14, color: Colors.grey),
             ),
-            if (_userSettings.appMode == 'server') ...[
+            if (true) ...[
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _loadActivities,
@@ -320,7 +317,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         // Activities list
         Expanded(
           child: RefreshIndicator(
-            onRefresh: _loadActivities,
+            onRefresh: _forceRefreshActivities,
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
@@ -358,44 +355,21 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color:
-                  _userSettings.appMode == 'server'
-                      ? Colors.blue.shade100
-                      : Colors.green.shade100,
+              color: Colors.blue.shade100,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color:
-                    _userSettings.appMode == 'server'
-                        ? Colors.blue
-                        : Colors.green,
-                width: 1,
-              ),
+              border: Border.all(color: Colors.blue, width: 1),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  _userSettings.appMode == 'server'
-                      ? Icons.cloud
-                      : Icons.smartphone,
-                  size: 16,
-                  color:
-                      _userSettings.appMode == 'server'
-                          ? Colors.blue
-                          : Colors.green,
-                ),
+                Icon(Icons.cloud, size: 16, color: Colors.blue),
                 const SizedBox(width: 6),
                 Text(
-                  _userSettings.appMode == 'server'
-                      ? 'Server Mode'
-                      : 'Local Mode',
+                  'Server Mode',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color:
-                        _userSettings.appMode == 'server'
-                            ? Colors.blue.shade700
-                            : Colors.green.shade700,
+                    color: Colors.blue.shade700,
                   ),
                 ),
               ],
@@ -470,29 +444,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     final timeFormat = isToday ? DateFormat('HH:mm') : dateFormat;
 
     return GestureDetector(
-      onTap:
-          // Only allow tap in local mode and if there are stock updates
-          (_userSettings.appMode == 'local' && activity.hasStockUpdates)
-              ? () async {
-                // Load stock updates for this scan and navigate to details screen
-                final updates = await DatabaseService.platformService
-                    .getStockUpdatesForScan(activity.id);
-                if (updates != null && updates.isNotEmpty) {
-                  if (context.mounted) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => StockUpdatesScreen(
-                              updates: updates,
-                              scanActivity: activity,
-                            ),
-                      ),
-                    );
-                  }
-                }
-              }
-              : null,
+      onTap: null, // Stock updates not available in server mode
       child: Card(
         margin: const EdgeInsets.only(bottom: 8),
         child: Padding(
@@ -685,21 +637,38 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
   }
 
   /// Load server scan activities from Firestore via FirestoreService
-  Future<List<ScanActivity>> _loadServerActivitiesFromFirestore() async {
+  Future<List<ScanActivity>> _loadServerActivitiesFromFirestore({
+    bool forceRefresh = false,
+  }) async {
+    const cacheKey = 'server_activities';
+
+    // Try to get from cache first unless force refresh is requested
+    if (!forceRefresh) {
+      final cachedActivities = await CacheService.getCache<List<dynamic>>(
+        cacheKey,
+      );
+      if (cachedActivities != null) {
+        print(
+          'Using cached server activities (${cachedActivities.length} items)',
+        );
+        return cachedActivities
+            .map((item) => ScanActivity.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+    }
+
     try {
-      print('📡 Loading server activities from Firestore...');
+      print('Loading server activities from Firestore...');
 
       // Use FirestoreService to get crawl requests
       final crawlRequests = await FirestoreService.instance.getCrawlRequests(
         limit: 50, // Increased limit to get more recent activities
       );
 
-      print(
-        '📊 Retrieved ${crawlRequests.length} crawl requests from Firestore',
-      );
+      print('Retrieved ${crawlRequests.length} crawl requests from Firestore');
 
       if (crawlRequests.isEmpty) {
-        print('ℹ️ No crawl requests found in Firestore');
+        print('No crawl requests found in Firestore');
         return [];
       }
 
@@ -708,15 +677,15 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       for (final crawlRequest in crawlRequests) {
         try {
           print(
-            '🔄 Processing crawl request: ${crawlRequest['id']} (status: ${crawlRequest['status']})',
+            'Processing crawl request: ${crawlRequest['id']} (status: ${crawlRequest['status']})',
           );
           final activity = _convertCrawlRequestToScanActivity(crawlRequest);
           activities.add(activity);
           print(
-            '✅ Converted: ${activity.itemsScanned} products, ${activity.hasStockUpdates ? activity.details : 'no updates'}',
+            'Converted: ${activity.itemsScanned} products, ${activity.hasStockUpdates ? activity.details : 'no updates'}',
           );
         } catch (e) {
-          print('❌ Error converting crawl request ${crawlRequest['id']}: $e');
+          print('Error converting crawl request ${crawlRequest['id']}: $e');
           print('Crawl request data keys: ${crawlRequest.keys.toList()}');
           // Continue with other requests even if one fails
           continue;
@@ -724,15 +693,24 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       }
 
       print(
-        '✅ Successfully converted ${activities.length}/${crawlRequests.length} server activities',
+        'Successfully converted ${activities.length}/${crawlRequests.length} server activities',
       );
 
       // Sort activities by timestamp (most recent first)
       activities.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
+      // Cache the results for 10 minutes
+      await CacheService.setCache(
+        cacheKey,
+        activities.map((activity) => activity.toJson()).toList(),
+        duration: const Duration(minutes: 10),
+      );
+
+      print('Cached ${activities.length} server activities');
+
       return activities;
     } catch (e) {
-      print('❌ Error loading server activities from Firestore: $e');
+      print('Error loading server activities from Firestore: $e');
       print('Error type: ${e.runtimeType}');
       if (e is Exception) {
         print('Exception details: ${e.toString()}');

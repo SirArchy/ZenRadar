@@ -7,6 +7,7 @@ import '../models/stock_history.dart';
 import '../services/settings_service.dart';
 import '../services/firestore_service.dart';
 import '../services/database_service.dart';
+import '../services/cache_service.dart';
 
 class WebsiteAnalyticsService {
   static final WebsiteAnalyticsService _instance =
@@ -36,23 +37,60 @@ class WebsiteAnalyticsService {
   /// Get analytics data for all websites
   Future<List<WebsiteStockAnalytics>> getAllWebsiteAnalytics({
     required String timeRange,
+    bool forceRefresh = false,
   }) async {
-    return await getWebsiteAnalytics(timeRange: timeRange);
+    return await getWebsiteAnalytics(
+      timeRange: timeRange,
+      forceRefresh: forceRefresh,
+    );
   }
 
   /// Get analytics data for all websites (internal method)
   Future<List<WebsiteStockAnalytics>> getWebsiteAnalytics({
     required String timeRange,
+    bool forceRefresh = false,
   }) async {
+    final cacheKey = 'website_analytics_$timeRange';
+
+    // Try to get from cache first unless force refresh is requested
+    if (!forceRefresh) {
+      final cachedAnalytics = await CacheService.getCache<List<dynamic>>(
+        cacheKey,
+      );
+      if (cachedAnalytics != null) {
+        print('Using cached website analytics for $timeRange');
+        return cachedAnalytics
+            .map(
+              (item) =>
+                  WebsiteStockAnalytics.fromJson(item as Map<String, dynamic>),
+            )
+            .toList();
+      }
+    }
+
     try {
+      List<WebsiteStockAnalytics> analytics;
+
       // Check if server mode is enabled
       bool isServerMode = await _settingsService.getServerMode();
 
       if (isServerMode) {
-        return await _getFirestoreWebsiteAnalytics(timeRange: timeRange);
+        analytics = await _getFirestoreWebsiteAnalytics(timeRange: timeRange);
       } else {
-        return await _getLocalWebsiteAnalytics(timeRange: timeRange);
+        analytics = await _getLocalWebsiteAnalytics(timeRange: timeRange);
       }
+
+      // Cache the results for 15 minutes
+      await CacheService.setCache(
+        cacheKey,
+        analytics.map((item) => item.toJson()).toList(),
+        duration: const Duration(minutes: 15),
+      );
+
+      print(
+        'Cached website analytics for $timeRange (${analytics.length} sites)',
+      );
+      return analytics;
     } catch (e) {
       print('Error getting website analytics: $e');
       return [];
@@ -62,49 +100,124 @@ class WebsiteAnalyticsService {
   /// Get analytics summary across all websites (public method)
   Future<Map<String, dynamic>> getOverallSummary({
     required String timeRange,
+    bool forceRefresh = false,
   }) async {
-    return await getAnalyticsSummary(timeRange: timeRange);
+    return await getAnalyticsSummary(
+      timeRange: timeRange,
+      forceRefresh: forceRefresh,
+    );
   }
 
   /// Get analytics summary across all websites (internal method)
   Future<Map<String, dynamic>> getAnalyticsSummary({
     required String timeRange,
+    bool forceRefresh = false,
   }) async {
+    final cacheKey = 'analytics_summary_$timeRange';
+
+    // Try to get from cache first unless force refresh is requested
+    if (!forceRefresh) {
+      final cachedSummary = await CacheService.getCache<Map<String, dynamic>>(
+        cacheKey,
+      );
+      if (cachedSummary != null) {
+        print('Using cached analytics summary for $timeRange');
+        // Convert string dates back to DateTime objects
+        final result = Map<String, dynamic>.from(cachedSummary);
+        if (result['mostRecentUpdate'] != null) {
+          result['mostRecentUpdate'] = DateTime.parse(
+            result['mostRecentUpdate'] as String,
+          );
+        }
+        if (result['lastUpdated'] != null) {
+          result['lastUpdated'] = DateTime.parse(
+            result['lastUpdated'] as String,
+          );
+        }
+        return result;
+      }
+    }
+
     try {
-      final analytics = await getWebsiteAnalytics(timeRange: timeRange);
+      final analytics = await getWebsiteAnalytics(
+        timeRange: timeRange,
+        forceRefresh: forceRefresh,
+      );
 
       int totalProducts = 0;
       int totalInStock = 0;
       int totalOutOfStock = 0;
-      double totalStockPercentage = 0.0;
+      int totalUpdates = 0;
+      int activeWebsites = 0;
+      DateTime? mostRecentUpdate;
+      String? mostActiveWebsite;
+      int maxUpdates = 0;
 
       for (final website in analytics) {
         totalProducts += website.totalProducts;
         totalInStock += website.productsInStock;
         totalOutOfStock += website.productsOutOfStock;
+        totalUpdates += website.recentUpdates.length;
+
+        if (website.totalProducts > 0) {
+          activeWebsites++;
+        }
+
+        // Find most recent update
+        if (website.lastStockChange != null) {
+          if (mostRecentUpdate == null ||
+              website.lastStockChange!.isAfter(mostRecentUpdate)) {
+            mostRecentUpdate = website.lastStockChange;
+          }
+        }
+
+        // Find most active website
+        if (website.recentUpdates.length > maxUpdates) {
+          maxUpdates = website.recentUpdates.length;
+          mostActiveWebsite = website.siteName;
+        }
       }
 
-      if (analytics.isNotEmpty && totalProducts > 0) {
-        totalStockPercentage = (totalInStock / totalProducts) * 100;
+      double overallStockPercentage = 0.0;
+      if (totalProducts > 0) {
+        overallStockPercentage = (totalInStock / totalProducts) * 100;
       }
 
-      return {
+      final summary = {
         'totalWebsites': analytics.length,
+        'activeWebsites': activeWebsites,
         'totalProducts': totalProducts,
         'totalInStock': totalInStock,
         'totalOutOfStock': totalOutOfStock,
-        'averageStockPercentage': totalStockPercentage,
+        'overallStockPercentage': overallStockPercentage,
+        'totalUpdates': totalUpdates,
+        'mostRecentUpdate': mostRecentUpdate?.toIso8601String(),
+        'mostActiveWebsite': mostActiveWebsite,
         'lastUpdated': DateTime.now().toIso8601String(),
       };
+
+      // Cache the results for 15 minutes
+      await CacheService.setCache(
+        cacheKey,
+        summary,
+        duration: const Duration(minutes: 15),
+      );
+
+      print('Cached analytics summary for $timeRange');
+      return summary;
     } catch (e) {
       print('Error getting analytics summary: $e');
       return {
         'totalWebsites': 0,
+        'activeWebsites': 0,
         'totalProducts': 0,
         'totalInStock': 0,
         'totalOutOfStock': 0,
-        'averageStockPercentage': 0.0,
-        'lastUpdated': DateTime.now().toIso8601String(),
+        'overallStockPercentage': 0.0,
+        'totalUpdates': 0,
+        'mostRecentUpdate': null,
+        'mostActiveWebsite': null,
+        'lastUpdated': DateTime.now(),
       };
     }
   }

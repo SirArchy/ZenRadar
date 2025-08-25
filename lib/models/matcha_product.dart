@@ -324,6 +324,10 @@ class UserSettings {
   final String startTime; // "08:00"
   final String endTime; // "20:00"
   final bool notificationsEnabled;
+  final bool
+  favoriteProductNotifications; // Notifications for favorite products only
+  final bool notifyStockChanges; // Notify when any stock changes occur
+  final bool notifyPriceChanges; // Notify when prices change for favorites
   final List<String> enabledSites;
   final int itemsPerPage; // Pagination
   final int maxStorageMB; // Storage limit in MB
@@ -332,14 +336,16 @@ class UserSettings {
   final String preferredCurrency; // "EUR", "USD", "JPY", etc.
   final bool
   backgroundScanFavoritesOnly; // New setting for background scan mode
-  final String
-  appMode; // "local" or "server" - determines data source and crawler mode
+  // Note: App now runs exclusively in server mode - no local mode support
 
   UserSettings({
     this.checkFrequencyMinutes = 360, // Default 6 hours = 360 minutes
     this.startTime = "08:00",
     this.endTime = "20:00",
     this.notificationsEnabled = true,
+    this.favoriteProductNotifications = true,
+    this.notifyStockChanges = true,
+    this.notifyPriceChanges = false, // Default off to avoid spam
     this.enabledSites = const [
       "tokichi",
       "marukyu",
@@ -358,7 +364,6 @@ class UserSettings {
     this.sortAscending = true,
     this.preferredCurrency = "EUR",
     this.backgroundScanFavoritesOnly = false, // Default: scan all products
-    this.appMode = "local", // Default: local mode for existing users
   });
 
   factory UserSettings.fromJson(Map<String, dynamic> json) {
@@ -371,6 +376,10 @@ class UserSettings {
       startTime: json['startTime'] ?? "08:00",
       endTime: json['endTime'] ?? "20:00",
       notificationsEnabled: json['notificationsEnabled'] ?? true,
+      favoriteProductNotifications:
+          json['favoriteProductNotifications'] ?? true,
+      notifyStockChanges: json['notifyStockChanges'] ?? true,
+      notifyPriceChanges: json['notifyPriceChanges'] ?? false,
       enabledSites: List<String>.from(
         json['enabledSites'] ??
             [
@@ -392,7 +401,7 @@ class UserSettings {
       sortAscending: json['sortAscending'] ?? true,
       preferredCurrency: json['preferredCurrency'] ?? "EUR",
       backgroundScanFavoritesOnly: json['backgroundScanFavoritesOnly'] ?? false,
-      appMode: json['appMode'] ?? "local", // Default to local for migration
+      // Note: appMode is no longer supported - app runs exclusively in server mode
     );
   }
 
@@ -402,6 +411,9 @@ class UserSettings {
       'startTime': startTime,
       'endTime': endTime,
       'notificationsEnabled': notificationsEnabled,
+      'favoriteProductNotifications': favoriteProductNotifications,
+      'notifyStockChanges': notifyStockChanges,
+      'notifyPriceChanges': notifyPriceChanges,
       'enabledSites': enabledSites,
       'itemsPerPage': itemsPerPage,
       'maxStorageMB': maxStorageMB,
@@ -409,7 +421,7 @@ class UserSettings {
       'sortAscending': sortAscending,
       'preferredCurrency': preferredCurrency,
       'backgroundScanFavoritesOnly': backgroundScanFavoritesOnly,
-      'appMode': appMode,
+      // Note: appMode is no longer saved - app runs exclusively in server mode
     };
   }
 
@@ -418,6 +430,9 @@ class UserSettings {
     String? startTime,
     String? endTime,
     bool? notificationsEnabled,
+    bool? favoriteProductNotifications,
+    bool? notifyStockChanges,
+    bool? notifyPriceChanges,
     List<String>? enabledSites,
     int? itemsPerPage,
     int? maxStorageMB,
@@ -425,7 +440,6 @@ class UserSettings {
     bool? sortAscending,
     String? preferredCurrency,
     bool? backgroundScanFavoritesOnly,
-    String? appMode,
   }) {
     return UserSettings(
       checkFrequencyMinutes:
@@ -433,6 +447,10 @@ class UserSettings {
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+      favoriteProductNotifications:
+          favoriteProductNotifications ?? this.favoriteProductNotifications,
+      notifyStockChanges: notifyStockChanges ?? this.notifyStockChanges,
+      notifyPriceChanges: notifyPriceChanges ?? this.notifyPriceChanges,
       enabledSites: enabledSites ?? this.enabledSites,
       itemsPerPage: itemsPerPage ?? this.itemsPerPage,
       maxStorageMB: maxStorageMB ?? this.maxStorageMB,
@@ -441,7 +459,6 @@ class UserSettings {
       preferredCurrency: preferredCurrency ?? this.preferredCurrency,
       backgroundScanFavoritesOnly:
           backgroundScanFavoritesOnly ?? this.backgroundScanFavoritesOnly,
-      appMode: appMode ?? this.appMode,
     );
   }
 }
@@ -509,6 +526,8 @@ class PaginatedProducts {
     required this.totalItems,
     required this.itemsPerPage,
   });
+
+  bool get hasMorePages => currentPage < totalPages;
 }
 
 class StorageInfo {

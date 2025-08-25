@@ -36,7 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   
   # Background services and notifications
-  flutter_background_service: ^5.1.0
+  # flutter_background_service: ^5.1.0  # Temporarily disabled due to Android foreground service issues
   flutter_local_notifications: ^18.0.1
   
   # HTTP requests and HTML parsing

@@ -4,17 +4,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/matcha_product.dart';
-import '../models/scan_activity.dart';
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
 import '../services/crawler_service.dart';
-import '../services/crawler_logger.dart';
 import '../services/search_history_service.dart';
 import '../services/recommendation_service.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_filters.dart';
 import '../widgets/matcha_icon.dart';
-import '../widgets/site_selection_dialog.dart';
 import 'settings_screen.dart';
 import 'background_activity_screen.dart';
 import 'product_detail_page.dart';
@@ -34,7 +31,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isLoading = false;
   bool _isLoadingMore = false;
   bool _hasMoreProducts = true;
-  bool _isFullCheckRunning = false;
   bool _showFilters = false;
 
   // Search enhancement state
@@ -355,227 +351,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _performComprehensiveScan() async {
-    final scanStartTime = DateTime.now();
-    final stopwatch = Stopwatch()..start();
-
-    setState(() {
-      _isFullCheckRunning = true;
-    });
-
-    try {
-      final crawler = CrawlerService.instance;
-      List<MatchaProduct> products;
-      List<String> scannedSiteKeys = [];
-
-      // Check if this is the first scan by looking at existing products
-      final db = DatabaseService.platformService;
-      final existingProducts = await db.getAllProducts();
-      final isFirstScan = existingProducts.isEmpty;
-
-      if (isFirstScan) {
-        // For first scan, use all enabled sites from settings
-        _showScanProgressDialog();
-        products = await crawler.crawlAllSites();
-        scannedSiteKeys = _userSettings.enabledSites;
-      } else {
-        // For subsequent scans, show site selection dialog
-        final availableSites = crawler.getSiteNamesMap();
-
-        // Convert enabled site keys to display names for pre-selection
-        final enabledSiteKeys = _userSettings.enabledSites;
-        final preSelectedSiteNames =
-            enabledSiteKeys
-                .where((key) => availableSites.containsKey(key))
-                .map((key) => availableSites[key]!)
-                .toList();
-
-        final selectedSiteKeys = await showSiteSelectionDialog(
-          context: context,
-          availableSites: availableSites.values.toList(),
-          preSelectedSites: preSelectedSiteNames,
-        );
-
-        if (selectedSiteKeys == null || selectedSiteKeys.isEmpty) {
-          // User cancelled or didn't select any sites
-          return;
-        }
-
-        // Convert display names back to site keys
-        final siteKeysToScan = <String>[];
-        for (final selectedName in selectedSiteKeys) {
-          final siteKey =
-              availableSites.entries
-                  .firstWhere((entry) => entry.value == selectedName)
-                  .key;
-          siteKeysToScan.add(siteKey);
-        }
-        scannedSiteKeys = siteKeysToScan;
-
-        // Show progress dialog and perform selected scan
-        _showScanProgressDialog();
-        products = await crawler.crawlSelectedSites(siteKeysToScan);
-      }
-
-      // Dismiss loading dialog
-      Navigator.of(context).pop();
-
-      // Log scan activity
-      stopwatch.stop();
-      final scanActivity = ScanActivity(
-        id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
-        timestamp: scanStartTime,
-        itemsScanned: products.length,
-        duration: stopwatch.elapsed.inSeconds,
-        hasStockUpdates: products.any(
-          (p) => p.isInStock,
-        ), // Check if any products are in stock
-        details: 'Manual scan of ${scannedSiteKeys.join(", ")}',
-        scanType: 'manual',
-      );
-
-      try {
-        await DatabaseService.platformService.insertScanActivity(scanActivity);
-      } catch (e) {
-        print('Failed to log scan activity: $e');
-      }
-
-      // Show success message with more details about enabled sites
-      final scannedSiteCount = products.map((p) => p.site).toSet().length;
-
-      _showSuccessSnackBar(
-        'Scan completed! Found ${products.length} products from $scannedSiteCount sites.',
-      );
-
-      // Reload products and options
-      await _loadProducts();
-      await _loadFilterOptions();
-    } catch (e) {
-      // Dismiss loading dialog if still open
-      if (Navigator.canPop(context)) {
-        Navigator.of(context).pop();
-      }
-
-      // Log failed scan activity
-      stopwatch.stop();
-      final scanActivity = ScanActivity(
-        id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
-        timestamp: scanStartTime,
-        itemsScanned: 0,
-        duration: stopwatch.elapsed.inSeconds,
-        hasStockUpdates: false,
-        details: 'Manual scan failed: $e',
-        scanType: 'manual',
-      );
-
-      try {
-        await DatabaseService.platformService.insertScanActivity(scanActivity);
-      } catch (logError) {
-        print('Failed to log scan activity: $logError');
-      }
-
-      _showErrorSnackBar('Failed to perform scan: $e');
-    } finally {
-      setState(() {
-        _isFullCheckRunning = false;
-      });
-    }
-  }
-
-  void _showScanProgressDialog() {
-    // Count enabled sites for better user feedback
-    final enabledBuiltInSites = _userSettings.enabledSites.length;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (context) => StreamBuilder<CrawlerActivity>(
-            stream: CrawlerLogger.instance.activityStream,
-            builder: (context, snapshot) {
-              String currentSite = 'Initializing...';
-              String status = 'Preparing to scan enabled sites...';
-
-              if (snapshot.hasData) {
-                final activity = snapshot.data!;
-                currentSite = activity.siteName ?? 'System';
-                status = activity.message;
-              }
-
-              return AlertDialog(
-                title: Row(
-                  children: [
-                    const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text('Scanning Sites'),
-                  ],
-                ),
-                content: SingleChildScrollView(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 320),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Enabled Sites: $enabledBuiltInSites built-in sites',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary,
-                            fontSize: 14,
-                          ),
-                          softWrap: true,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Current Site:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withAlpha(150),
-                          ),
-                          softWrap: true,
-                        ),
-                        Text(
-                          currentSite,
-                          style: const TextStyle(fontSize: 16),
-                          softWrap: true,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 2,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Status:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withAlpha(150),
-                          ),
-                          softWrap: true,
-                        ),
-                        Text(
-                          status,
-                          style: const TextStyle(fontSize: 14),
-                          softWrap: true,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 3,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-    );
-  }
-
   void _onFilterChanged(ProductFilter newFilter) {
     setState(() {
       _filter = newFilter;
@@ -629,12 +404,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
-  }
-
-  void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.green),
     );
   }
 
@@ -725,18 +494,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ],
             ),
 
-            // Floating Action Button positioned in the stack (local mode only)
-            if (_userSettings.appMode == 'local')
-              Builder(
-                builder: (context) {
-                  return Positioned(
-                    bottom: 64,
-                    right: 16,
-                    child: _buildFloatingActionButtons(),
-                  );
-                },
-              ),
-
             // Filter overlay
             if (_showFilters)
               GestureDetector(
@@ -783,6 +540,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _loadProducts(),
+        tooltip: 'Refresh products',
+        child: const Icon(Icons.refresh),
       ),
     );
   }
@@ -878,6 +640,68 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   });
                 },
               ),
+              // Category filter dropdown
+              if (_availableCategories.isNotEmpty)
+                PopupMenuButton<String>(
+                  icon: Icon(
+                    Icons.category,
+                    color:
+                        _filter.category != null && _filter.category!.isNotEmpty
+                            ? Theme.of(context).primaryColor
+                            : null,
+                  ),
+                  tooltip: 'Filter by category',
+                  onSelected: (String? category) async {
+                    setState(() {
+                      if (category == 'all') {
+                        _filter = _filter.copyWith(category: null);
+                      } else {
+                        _filter = _filter.copyWith(category: category);
+                      }
+                      _currentPage = 1;
+                      _hasMoreProducts = true;
+                    });
+                    await _saveFilterToPrefs(_filter);
+                    _loadProducts();
+                  },
+                  itemBuilder: (BuildContext context) {
+                    return [
+                      PopupMenuItem<String>(
+                        value: 'all',
+                        child: Row(
+                          children: [
+                            Icon(
+                              _filter.category == null ||
+                                      _filter.category!.isEmpty
+                                  ? Icons.check
+                                  : Icons.category_outlined,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('All Categories'),
+                          ],
+                        ),
+                      ),
+                      ..._availableCategories.map(
+                        (category) => PopupMenuItem<String>(
+                          value: category,
+                          child: Row(
+                            children: [
+                              Icon(
+                                _filter.category == category
+                                    ? Icons.check
+                                    : Icons.label_outline,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(category),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ];
+                  },
+                ),
             ],
           ),
 
@@ -1375,31 +1199,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           );
         },
       ),
-    );
-  }
-
-  Widget _buildFloatingActionButtons() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        // Comprehensive scan button
-        FloatingActionButton(
-          heroTag: "comprehensive_scan",
-          onPressed: _isFullCheckRunning ? null : _performComprehensiveScan,
-          shape: const CircleBorder(),
-          child:
-              _isFullCheckRunning
-                  ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                  : const Icon(Icons.radar, size: 28),
-        ),
-      ],
     );
   }
 }

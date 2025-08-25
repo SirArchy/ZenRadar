@@ -36,11 +36,14 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
     });
 
     try {
+      // Load analytics (will use cache if available)
       final analytics = await _analyticsService.getAllWebsiteAnalytics(
         timeRange: _selectedTimeRange,
+        forceRefresh: false, // Use cache by default
       );
       final summary = await _analyticsService.getOverallSummary(
         timeRange: _selectedTimeRange,
+        forceRefresh: false, // Use cache by default
       );
 
       setState(() {
@@ -51,6 +54,36 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
     } catch (e) {
       setState(() {
         _error = 'Failed to load analytics: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _forceRefreshAnalytics() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      // Force refresh from server/database, bypass cache
+      final analytics = await _analyticsService.getAllWebsiteAnalytics(
+        timeRange: _selectedTimeRange,
+        forceRefresh: true, // Force refresh
+      );
+      final summary = await _analyticsService.getOverallSummary(
+        timeRange: _selectedTimeRange,
+        forceRefresh: true, // Force refresh
+      );
+
+      setState(() {
+        _websiteAnalytics = analytics;
+        _summary = summary;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to refresh analytics: $e';
         _isLoading = false;
       });
     }
@@ -98,7 +131,15 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: _buildBody());
+    return Scaffold(
+      appBar: AppBar(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _forceRefreshAnalytics,
+        tooltip: 'Refresh analytics',
+        child: const Icon(Icons.refresh),
+      ),
+      body: _buildBody(),
+    );
   }
 
   // Public method to refresh analytics (can be called from parent)
@@ -137,7 +178,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _loadAnalytics,
+              onPressed: _forceRefreshAnalytics,
               child: const Text('Retry'),
             ),
           ],
@@ -146,7 +187,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: _loadAnalytics,
+      onRefresh: _forceRefreshAnalytics,
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(child: _buildSummaryCard()),
@@ -269,14 +310,21 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
               ),
               if (_summary['mostRecentUpdate'] != null) ...[
                 const SizedBox(height: 12),
-                Text(
-                  'Last update: ${_formatDateTime(_summary['mostRecentUpdate'] as DateTime)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withAlpha(175),
-                  ),
+                Builder(
+                  builder: (context) {
+                    final mostRecentUpdate = _safeParseDateTime(
+                      _summary['mostRecentUpdate'],
+                    );
+                    return Text(
+                      'Last update: ${mostRecentUpdate != null ? _formatDateTime(mostRecentUpdate) : 'Unknown'}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withAlpha(175),
+                      ),
+                    );
+                  },
                 ),
               ],
               if (_summary['mostActiveWebsite'] != null) ...[
@@ -542,6 +590,22 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
       default:
         return timeRange;
     }
+  }
+
+  /// Safely converts a dynamic value to DateTime, handling both DateTime objects and strings
+  DateTime? _safeParseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String) {
+      try {
+        return DateTime.parse(value);
+      } catch (e) {
+        print('Error parsing DateTime from string: $value, error: $e');
+        return null;
+      }
+    }
+    print('Unexpected DateTime type: ${value.runtimeType}');
+    return null;
   }
 
   String _formatDateTime(DateTime dateTime) {
