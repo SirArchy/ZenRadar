@@ -336,6 +336,7 @@ class UserSettings {
   final String preferredCurrency; // "EUR", "USD", "JPY", etc.
   final bool
   backgroundScanFavoritesOnly; // New setting for background scan mode
+  final bool hasCompletedOnboarding; // Track if user has completed onboarding
   // Note: App now runs exclusively in server mode - no local mode support
 
   UserSettings({
@@ -364,6 +365,7 @@ class UserSettings {
     this.sortAscending = true,
     this.preferredCurrency = "EUR",
     this.backgroundScanFavoritesOnly = false, // Default: scan all products
+    this.hasCompletedOnboarding = false, // Default: new user needs onboarding
   });
 
   factory UserSettings.fromJson(Map<String, dynamic> json) {
@@ -401,6 +403,7 @@ class UserSettings {
       sortAscending: json['sortAscending'] ?? true,
       preferredCurrency: json['preferredCurrency'] ?? "EUR",
       backgroundScanFavoritesOnly: json['backgroundScanFavoritesOnly'] ?? false,
+      hasCompletedOnboarding: json['hasCompletedOnboarding'] ?? false,
       // Note: appMode is no longer supported - app runs exclusively in server mode
     );
   }
@@ -421,6 +424,7 @@ class UserSettings {
       'sortAscending': sortAscending,
       'preferredCurrency': preferredCurrency,
       'backgroundScanFavoritesOnly': backgroundScanFavoritesOnly,
+      'hasCompletedOnboarding': hasCompletedOnboarding,
       // Note: appMode is no longer saved - app runs exclusively in server mode
     };
   }
@@ -440,6 +444,7 @@ class UserSettings {
     bool? sortAscending,
     String? preferredCurrency,
     bool? backgroundScanFavoritesOnly,
+    bool? hasCompletedOnboarding,
   }) {
     return UserSettings(
       checkFrequencyMinutes:
@@ -459,6 +464,8 @@ class UserSettings {
       preferredCurrency: preferredCurrency ?? this.preferredCurrency,
       backgroundScanFavoritesOnly:
           backgroundScanFavoritesOnly ?? this.backgroundScanFavoritesOnly,
+      hasCompletedOnboarding:
+          hasCompletedOnboarding ?? this.hasCompletedOnboarding,
     );
   }
 }

@@ -27,11 +27,13 @@ class _AppInitializerState extends State<AppInitializer> {
 
   Future<void> _checkInitialSetup() async {
     try {
-      final settings = await SettingsService.instance.getSettings();
+      final settingsService = SettingsService.instance;
 
-      // Check if this is a first-time user (simplified logic)
-      // In server mode, we just check if settings exist and are properly configured
-      if (settings.enabledSites.isEmpty) {
+      // Check if this is a first-time user
+      final hasCompletedOnboarding =
+          await settingsService.hasCompletedOnboarding();
+
+      if (!hasCompletedOnboarding) {
         setState(() {
           _needsOnboarding = true;
           _isLoading = false;

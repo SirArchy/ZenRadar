@@ -1279,6 +1279,41 @@ class _PlatformDatabaseService {
     }
   }
 
+  // Convenience methods with shorter names
+  Future<void> addFavorite(String productId) async {
+    return await addToFavorites(productId);
+  }
+
+  Future<void> removeFavorite(String productId) async {
+    return await removeFromFavorites(productId);
+  }
+
+  Future<List<MatchaProduct>> getFavoriteProducts() async {
+    if (await _isServerMode()) {
+      // In server mode, get favorite product IDs and then fetch the products
+      try {
+        final favoriteIds = await getFavoriteProductIds();
+        if (favoriteIds.isEmpty) return [];
+
+        final products = await FirestoreService.instance.getAllProducts();
+        return products
+            .where((product) => favoriteIds.contains(product.id))
+            .toList();
+      } catch (e) {
+        print(
+          'Failed to get Firestore favorite products, falling back to local: $e',
+        );
+      }
+    }
+
+    // Get from local storage
+    if (kIsWeb) {
+      return await WebDatabaseService.instance.getFavoriteProducts();
+    } else {
+      return await DatabaseService.instance.getFavoriteProducts();
+    }
+  }
+
   // Delegate other methods to local database service
   Future<void> initDatabase() async {
     if (kIsWeb) {

@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import '../widgets/matcha_icon.dart';
 
 class AuthScreen extends StatefulWidget {
   final bool isOnboarding;
@@ -63,15 +62,6 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      appBar:
-          widget.isOnboarding
-              ? null
-              : AppBar(
-                title: const Text('Authentication'),
-                backgroundColor: colorScheme.surface,
-                foregroundColor: colorScheme.onSurface,
-                elevation: 0,
-              ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -80,9 +70,29 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             children: [
               const SizedBox(height: 32),
 
-              // App icon and title
-              const MatchaIcon(size: 80),
-              const SizedBox(height: 24),
+              // Animated GIF instead of static icon
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.primary.withOpacity(0.1),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    'lib/assets/animation.gif',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
 
               Text(
                 'ZenRadar Server Mode',
@@ -498,7 +508,28 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.email_outlined, size: 80, color: colorScheme.primary),
+              // Animated GIF for email verification too
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.primary.withOpacity(0.1),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    'lib/assets/animation.gif',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
 
               const SizedBox(height: 24),
 

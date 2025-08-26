@@ -62,10 +62,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.radar,
-            size: 100,
-            color: Theme.of(context).colorScheme.primary,
+          // Animated GIF instead of static radar icon
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.asset('lib/assets/animation.gif', fit: BoxFit.cover),
+            ),
           ),
           const SizedBox(height: 32),
           Text(
@@ -110,10 +115,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.cloud,
-            size: 100,
-            color: Theme.of(context).colorScheme.primary,
+          // Cloud animated GIF for server explanation
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.asset(
+                'lib/assets/cloud_17905309.gif',
+                fit: BoxFit.cover,
+              ),
+            ),
           ),
           const SizedBox(height: 32),
           Text(
@@ -165,10 +178,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.notifications_active,
-            size: 100,
-            color: Theme.of(context).colorScheme.primary,
+          // Notifications animated GIF
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.asset(
+                'lib/assets/bell_14642663.gif',
+                fit: BoxFit.cover,
+              ),
+            ),
           ),
           const SizedBox(height: 32),
           Text(
@@ -224,10 +245,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ).colorScheme.primaryContainer.withAlpha(100),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(
-            icon,
-            color: Theme.of(context).colorScheme.primary,
-            size: 24,
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                // choose a small GIF based on the requested icon
+                icon == Icons.cloud_sync
+                    ? 'lib/assets/clouds_17102874.gif'
+                    : icon == Icons.notifications_active
+                    ? 'lib/assets/bell_14642663.gif'
+                    : icon == Icons.battery_saver
+                    ? 'lib/assets/evolution_17091777.gif'
+                    : 'lib/assets/animation.gif',
+                fit: BoxFit.cover,
+              ),
+            ),
           ),
         ),
         const SizedBox(width: 16),
@@ -352,9 +386,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         }
       }
 
-      // Save default settings (server mode is implicit)
+      // Save default settings and mark onboarding as completed
       final settings = await SettingsService.instance.getSettings();
       await SettingsService.instance.saveSettings(settings);
+      await SettingsService.instance.markOnboardingCompleted();
 
       // Request notification permission if not already asked
       if (!kIsWeb && !_notificationPermissionAsked) {

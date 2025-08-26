@@ -179,4 +179,22 @@ class SettingsService {
       return true; // Default to allowing if parsing fails
     }
   }
+
+  // Convenience methods for onboarding tracking
+  Future<bool> hasCompletedOnboarding() async {
+    final settings = await getSettings();
+    return settings.hasCompletedOnboarding;
+  }
+
+  Future<void> markOnboardingCompleted() async {
+    await updateSettings(
+      (settings) => settings.copyWith(hasCompletedOnboarding: true),
+    );
+  }
+
+  Future<void> resetOnboarding() async {
+    await updateSettings(
+      (settings) => settings.copyWith(hasCompletedOnboarding: false),
+    );
+  }
 }
