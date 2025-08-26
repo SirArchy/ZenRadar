@@ -3,7 +3,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'services/notification_service.dart';
 import 'services/background_service.dart';
 import 'services/database_service.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,7 +44,7 @@ class ZenRadarApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const HomeScreen(),
+      home: const MainScreen(),
       debugShowCheckedModeBanner: false,
     );
   }

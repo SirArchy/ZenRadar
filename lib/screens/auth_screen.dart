@@ -78,7 +78,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: colorScheme.primary.withOpacity(0.1),
+                      color: colorScheme.primary.withAlpha(25),
                       blurRadius: 20,
                       spreadRadius: 5,
                     ),
@@ -212,20 +212,6 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                     ],
                   ),
                 ),
-              ],
-
-              const SizedBox(height: 24),
-
-              // Skip button for onboarding
-              if (widget.isOnboarding && widget.onSkip != null) ...[
-                TextButton(
-                  onPressed: widget.onSkip,
-                  child: Text(
-                    'Skip and use local mode',
-                    style: TextStyle(color: colorScheme.onSurfaceVariant),
-                  ),
-                ),
-                const SizedBox(height: 16),
               ],
             ],
           ),
@@ -516,7 +502,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: colorScheme.primary.withOpacity(0.1),
+                      color: colorScheme.primary.withAlpha(25),
                       blurRadius: 20,
                       spreadRadius: 5,
                     ),

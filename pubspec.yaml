@@ -104,7 +104,6 @@ flutter:
     - lib/assets/evolution_17091777.gif
     - lib/assets/confetti_18829742.gif
     - lib/assets/swipe-left_10522218.gif
-    - lib/assets/swipe-right_10522239.gif
     - lib/assets/animation.gif
 
   # An image asset can refer to one or more resolution-specific "variants", see

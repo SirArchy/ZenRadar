@@ -256,7 +256,6 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
       floatingActionButton: FloatingActionButton(
         onPressed: _forceRefreshActivities,
         tooltip: 'Refresh activities',
@@ -479,8 +478,6 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                             fontSize: 16,
                           ),
                         ),
-                        const Spacer(),
-                        _buildScanTypeChip(activity.scanType),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -573,65 +570,6 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildScanTypeChip(String scanType) {
-    Color chipColor;
-    IconData chipIcon;
-
-    switch (scanType) {
-      case 'background':
-        chipColor = Colors.blue;
-        chipIcon = Icons.schedule;
-        break;
-      case 'manual':
-        chipColor = Colors.orange;
-        chipIcon = Icons.touch_app;
-        break;
-      case 'favorites':
-        chipColor = Colors.pink;
-        chipIcon = Icons.favorite;
-        break;
-      case 'server':
-        chipColor = Colors.purple;
-        chipIcon = Icons.cloud;
-        break;
-      default:
-        chipColor = Colors.grey;
-        chipIcon = Icons.help_outline;
-        break;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: chipColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: chipColor.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(chipIcon, size: 12, color: chipColor),
-          const SizedBox(width: 4),
-          Text(
-            ScanActivity(
-              id: '',
-              timestamp: DateTime.now(),
-              itemsScanned: 0,
-              duration: 0,
-              hasStockUpdates: false,
-              scanType: scanType,
-            ).scanTypeDisplayName,
-            style: TextStyle(
-              color: chipColor,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
       ),
     );
   }

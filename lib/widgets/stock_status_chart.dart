@@ -210,7 +210,15 @@ class StockStatusChart extends StatelessWidget {
 
     switch (timeRange) {
       case 'day':
-        baseInterval = const Duration(hours: 2).inMilliseconds.toDouble();
+      case 'today':
+        // For today/day, if duration is very short, use smaller intervals
+        if (totalDuration.inHours <= 1) {
+          baseInterval = const Duration(minutes: 15).inMilliseconds.toDouble();
+        } else if (totalDuration.inHours <= 6) {
+          baseInterval = const Duration(minutes: 30).inMilliseconds.toDouble();
+        } else {
+          baseInterval = const Duration(hours: 2).inMilliseconds.toDouble();
+        }
         break;
       case 'week':
         baseInterval = const Duration(days: 1).inMilliseconds.toDouble();
@@ -218,13 +226,23 @@ class StockStatusChart extends StatelessWidget {
       case 'month':
         baseInterval = const Duration(days: 5).inMilliseconds.toDouble();
         break;
+      case 'all':
       default:
         // For "all" time range, ensure we have a reasonable interval
         if (totalDuration.inMilliseconds <= 0) {
           // If duration is zero or negative, use a default interval
           baseInterval = const Duration(days: 1).inMilliseconds.toDouble();
+        } else if (totalDuration.inDays <= 1) {
+          // Very short duration - use hourly intervals
+          baseInterval = const Duration(hours: 2).inMilliseconds.toDouble();
+        } else if (totalDuration.inDays <= 7) {
+          // Week duration - use daily intervals
+          baseInterval = const Duration(days: 1).inMilliseconds.toDouble();
+        } else if (totalDuration.inDays <= 30) {
+          // Month duration - use 5-day intervals
+          baseInterval = const Duration(days: 5).inMilliseconds.toDouble();
         } else {
-          // Divide by 8 but ensure minimum interval
+          // Longer duration - calculate based on total duration
           final calculatedInterval = totalDuration.inMilliseconds / 8.0;
           baseInterval =
               calculatedInterval < const Duration(hours: 1).inMilliseconds
@@ -234,7 +252,7 @@ class StockStatusChart extends StatelessWidget {
         break;
     }
 
-    // Ensure the interval is never zero
+    // Ensure the interval is never zero or negative
     return baseInterval > 0
         ? baseInterval
         : const Duration(hours: 1).inMilliseconds.toDouble();
@@ -243,11 +261,13 @@ class StockStatusChart extends StatelessWidget {
   String _formatTimeForAxis(DateTime date) {
     switch (timeRange) {
       case 'day':
+      case 'today':
         return DateFormat('HH:mm').format(date);
       case 'week':
         return DateFormat('MM/dd').format(date);
       case 'month':
         return DateFormat('MM/dd').format(date);
+      case 'all':
       default:
         return DateFormat('MM/yy').format(date);
     }
@@ -256,9 +276,11 @@ class StockStatusChart extends StatelessWidget {
   String _formatTimeForTooltip(DateTime date) {
     switch (timeRange) {
       case 'day':
+      case 'today':
         return DateFormat('MMM dd, HH:mm').format(date);
       case 'week':
         return DateFormat('MMM dd, HH:mm').format(date);
+      case 'all':
       default:
         return DateFormat('MMM dd, yyyy HH:mm').format(date);
     }

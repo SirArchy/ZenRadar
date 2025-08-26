@@ -276,15 +276,6 @@ class CrawlerService {
             continue;
           }
 
-          // Extract price
-          let price = this.extractText(productElement, config.priceSelector);
-          if (!price) {
-            price = this.extractText(productElement, '.price, .product-price, [class*="price"]');
-          }
-
-          // Clean price using site-specific logic
-          price = this.cleanPriceBySite(price, siteKey);
-
           // Extract product URL
           let productUrl = this.extractLink(productElement, config.linkSelector);
           if (!productUrl) {
@@ -295,6 +286,35 @@ class CrawlerService {
           if (productUrl && !productUrl.startsWith('http')) {
             productUrl = config.baseUrl + (productUrl.startsWith('/') ? '' : '/') + productUrl;
           }
+
+          // For Poppatea, extract variants from individual product pages
+          if (siteKey === 'poppatea' && productUrl) {
+            try {
+              const variants = await this.extractPoppateaVariants(productUrl, name, config);
+              for (const variant of variants) {
+                products.push(variant);
+                const wasUpdated = await this.saveProduct(variant);
+                if (wasUpdated) stockUpdates++;
+              }
+              continue; // Skip the regular product processing for Poppatea
+            } catch (error) {
+              this.logger.warn('Failed to extract Poppatea variants', {
+                site: siteKey,
+                productUrl,
+                error: error.message
+              });
+              // Fall back to regular processing
+            }
+          }
+
+          // Extract price
+          let price = this.extractText(productElement, config.priceSelector);
+          if (!price) {
+            price = this.extractText(productElement, '.price, .product-price, [class*="price"]');
+          }
+
+          // Clean price using site-specific logic
+          price = this.cleanPriceBySite(price, siteKey);
 
           // Determine stock status
           const isInStock = this.determineStockStatusFromListing(productElement, config, siteKey);
@@ -470,13 +490,25 @@ class CrawlerService {
 
       case 'horiishichimeien':
         // For Horiishichimeien, check for Japanese and English out-of-stock indicators
-        // Also check for sold-out badge which is a reliable indicator
-        if (productElement.find('.price__badge--sold-out, .sold-out-badge, .out-of-stock').length > 0) return false;
+        // First check for explicit sold-out badges or text
+        if (productElement.find('.price__badge--sold-out, .sold-out-badge, .out-of-stock, .badge--sold-out').length > 0) {
+          return false;
+        }
         if (elementText.includes('売り切れ') || elementText.includes('out of stock') || 
-            elementText.includes('sold out') || elementText.includes('unavailable')) return false;
-        // Check for add to cart button or similar indicators
-        const addToCartExists = productElement.find(config.stockSelector).length > 0;
-        return addToCartExists;
+            elementText.includes('sold out') || elementText.includes('unavailable')) {
+          return false;
+        }
+        
+        // Check for presence of price as a primary indicator
+        const hasPriceElement = productElement.find(config.priceSelector).length > 0;
+        const priceText = productElement.find(config.priceSelector).text().trim();
+        const hasValidPrice = hasPriceElement && priceText && !priceText.includes('sold out');
+        
+        // Check for add to cart button or form
+        const hasAddToCartButton = productElement.find('.btn--add-to-cart, .add-to-cart, .product-form__buttons button:not([disabled])').length > 0;
+        
+        // Product is in stock if it has a valid price AND (has add to cart button OR doesn't have explicit out-of-stock indicators)
+        return hasValidPrice && (hasAddToCartButton || !elementText.toLowerCase().includes('sold'));
 
       default:
         // Fallback: check for stock keywords vs out-of-stock keywords
@@ -890,6 +922,222 @@ class CrawlerService {
 
     // Add price history entry every 24 hours for regular tracking
     return hoursSinceLastUpdate >= 24;
+  }
+
+  /**
+   * Extract variants from Poppatea product page
+   */
+  async extractPoppateaVariants(productUrl, baseName, config) {
+    try {
+      const response = await axios.get(productUrl, this.requestConfig);
+      const $ = cheerio.load(response.data);
+      const variants = [];
+
+      // Look for variant selectors (Shopify standard)
+      const variantSelectors = $('select[name="id"], .product-form__option select, input[name="id"]');
+      
+      if (variantSelectors.length > 0) {
+        // Extract variants from select options
+        variantSelectors.each((_, element) => {
+          const $select = $(element);
+          $select.find('option').each((_, option) => {
+            const $option = $(option);
+            const value = $option.attr('value');
+            const text = $option.text().trim();
+            
+            if (value && text && !text.toLowerCase().includes('select') && !text.includes('---')) {
+              // Parse variant info (typically includes size and price)
+              const variant = this.parseVariantText(text, baseName);
+              if (variant) {
+                variant.id = this.generateProductId(productUrl, variant.name, 'poppatea');
+                variant.site = 'poppatea';
+                variant.siteName = config.name;
+                variant.url = productUrl;
+                variant.category = this.detectCategory(baseName, 'poppatea');
+                variant.lastChecked = new Date();
+                variant.lastUpdated = new Date();
+                variant.firstSeen = new Date();
+                variant.isDiscontinued = false;
+                variant.missedScans = 0;
+                variant.crawlSource = 'cloud-run';
+                variant.variantId = value;
+                
+                // Check stock status for this variant
+                variant.isInStock = this.checkVariantStock($, value, text);
+                
+                variants.push(variant);
+              }
+            }
+          });
+        });
+      }
+
+      // If no variants found in selectors, try extracting from JSON-LD or variant forms
+      if (variants.length === 0) {
+        // Look for Shopify product JSON
+        const scriptTags = $('script[type="application/json"]');
+        scriptTags.each((_, script) => {
+          try {
+            const jsonData = JSON.parse($(script).html());
+            if (jsonData.variants) {
+              for (const variant of jsonData.variants) {
+                const variantName = `${baseName} - ${variant.title || variant.option1 || ''}`;
+                const variantProduct = {
+                  id: this.generateProductId(productUrl, variantName, 'poppatea'),
+                  name: variantName.trim(),
+                  normalizedName: this.normalizeName(variantName),
+                  site: 'poppatea',
+                  siteName: config.name,
+                  price: variant.price ? `€${(variant.price / 100).toFixed(2)}` : '',
+                  originalPrice: variant.price ? `€${(variant.price / 100).toFixed(2)}` : '',
+                  priceValue: variant.price ? variant.price / 100 : 0,
+                  currency: 'EUR',
+                  url: productUrl,
+                  isInStock: variant.available || false,
+                  category: this.detectCategory(baseName, 'poppatea'),
+                  lastChecked: new Date(),
+                  lastUpdated: new Date(),
+                  firstSeen: new Date(),
+                  isDiscontinued: false,
+                  missedScans: 0,
+                  crawlSource: 'cloud-run',
+                  variantId: variant.id
+                };
+                variants.push(variantProduct);
+              }
+            }
+          } catch (e) {
+            // Continue if JSON parsing fails
+          }
+        });
+      }
+
+      // If still no variants, create a single product
+      if (variants.length === 0) {
+        const price = this.extractText($('.price__regular, .price'), '');
+        const cleanedPrice = this.cleanPriceBySite(price, 'poppatea');
+        
+        variants.push({
+          id: this.generateProductId(productUrl, baseName, 'poppatea'),
+          name: baseName,
+          normalizedName: this.normalizeName(baseName),
+          site: 'poppatea',
+          siteName: config.name,
+          price: cleanedPrice,
+          originalPrice: cleanedPrice,
+          priceValue: this.extractPriceValue(cleanedPrice),
+          currency: 'EUR',
+          url: productUrl,
+          isInStock: !($('.sold-out, .unavailable').length > 0 || 
+                      $('body').text().toLowerCase().includes('ausverkauft')),
+          category: this.detectCategory(baseName, 'poppatea'),
+          lastChecked: new Date(),
+          lastUpdated: new Date(),
+          firstSeen: new Date(),
+          isDiscontinued: false,
+          missedScans: 0,
+          crawlSource: 'cloud-run'
+        });
+      }
+
+      this.logger.info('Extracted Poppatea variants', {
+        productUrl,
+        baseName,
+        variantCount: variants.length
+      });
+
+      return variants;
+    } catch (error) {
+      this.logger.error('Failed to extract Poppatea variants', {
+        productUrl,
+        error: error.message
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Parse variant text to extract size and price information
+   */
+  parseVariantText(text, baseName) {
+    // Common patterns for Poppatea variants: "50g - €12.50", "100g / €25.00"
+    const patterns = [
+      /(\d+g)\s*[-\/]\s*€(\d+[,.]?\d*)/,  // "50g - €12.50"
+      /(\d+g)\s*\(\s*€(\d+[,.]?\d*)\)/,   // "50g (€12.50)"
+      /(\d+g)\s*€(\d+[,.]?\d*)/,          // "50g €12.50"
+      /(\d+\s*ml)\s*[-\/]\s*€(\d+[,.]?\d*)/, // For liquid products
+    ];
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        const size = match[1];
+        let price = match[2].replace(',', '.');
+        
+        return {
+          name: `${baseName} (${size})`,
+          normalizedName: this.normalizeName(`${baseName} ${size}`),
+          price: `€${price}`,
+          originalPrice: `€${price}`,
+          priceValue: parseFloat(price),
+          currency: 'EUR'
+        };
+      }
+    }
+
+    // If no pattern matches, try to extract just the size/variant info
+    const sizeMatch = text.match(/(\d+\s*(?:g|ml|kg))/i);
+    if (sizeMatch) {
+      return {
+        name: `${baseName} (${sizeMatch[1]})`,
+        normalizedName: this.normalizeName(`${baseName} ${sizeMatch[1]}`),
+        price: '',
+        originalPrice: '',
+        priceValue: 0,
+        currency: 'EUR'
+      };
+    }
+
+    // Fallback: use the text as variant name if it seems meaningful
+    if (text.length > 2 && text.length < 50) {
+      return {
+        name: `${baseName} - ${text}`,
+        normalizedName: this.normalizeName(`${baseName} ${text}`),
+        price: '',
+        originalPrice: '',
+        priceValue: 0,
+        currency: 'EUR'
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Check stock status for a specific variant
+   */
+  checkVariantStock($, variantId, variantText) {
+    // Check if the variant option is disabled (usually indicates out of stock)
+    const option = $(`option[value="${variantId}"]`);
+    if (option.attr('disabled')) {
+      return false;
+    }
+
+    // Check for out of stock text in the variant text
+    const lowerText = variantText.toLowerCase();
+    if (lowerText.includes('ausverkauft') || lowerText.includes('sold out') || 
+        lowerText.includes('nicht verfügbar') || lowerText.includes('unavailable')) {
+      return false;
+    }
+
+    // Check for general out of stock indicators on the page
+    const pageText = $('body').text().toLowerCase();
+    if (pageText.includes('ausverkauft') || pageText.includes('sold out')) {
+      // If general out of stock, but this specific variant doesn't mention it, it might be available
+      return !lowerText.includes('not available');
+    }
+
+    return true; // Assume in stock if no negative indicators
   }
 
   /**

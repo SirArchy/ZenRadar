@@ -6,7 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../services/settings_service.dart';
 import '../services/background_service.dart';
 import 'auth_screen.dart';
-import 'home_screen.dart';
+import 'main_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -405,9 +405,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       }
 
       if (mounted) {
-        // Navigate to home screen
+        // Navigate to main screen
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          MaterialPageRoute(builder: (context) => const MainScreen()),
         );
       }
     } catch (e) {

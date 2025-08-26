@@ -201,19 +201,39 @@ class WebsiteStockChart extends StatelessWidget {
 
     switch (timeRange) {
       case 'day':
-        return const Duration(hours: 2).inMilliseconds.toDouble();
+      case 'today':
+        // For today/day, if duration is very short, use smaller intervals
+        if (totalDuration.inHours <= 1) {
+          return const Duration(minutes: 15).inMilliseconds.toDouble();
+        } else if (totalDuration.inHours <= 6) {
+          return const Duration(minutes: 30).inMilliseconds.toDouble();
+        } else {
+          return const Duration(hours: 2).inMilliseconds.toDouble();
+        }
       case 'week':
         return const Duration(days: 1).inMilliseconds.toDouble();
       case 'month':
         return const Duration(days: 5).inMilliseconds.toDouble();
+      case 'all':
       default:
         if (totalDuration.inMilliseconds <= 0) {
           return const Duration(days: 1).inMilliseconds.toDouble();
+        } else if (totalDuration.inDays <= 1) {
+          // Very short duration - use hourly intervals
+          return const Duration(hours: 2).inMilliseconds.toDouble();
+        } else if (totalDuration.inDays <= 7) {
+          // Week duration - use daily intervals
+          return const Duration(days: 1).inMilliseconds.toDouble();
+        } else if (totalDuration.inDays <= 30) {
+          // Month duration - use 5-day intervals
+          return const Duration(days: 5).inMilliseconds.toDouble();
+        } else {
+          // Longer duration - calculate based on total duration
+          final calculatedInterval = totalDuration.inMilliseconds / 8.0;
+          return calculatedInterval < const Duration(hours: 1).inMilliseconds
+              ? const Duration(hours: 1).inMilliseconds.toDouble()
+              : calculatedInterval;
         }
-        final calculatedInterval = totalDuration.inMilliseconds / 8.0;
-        return calculatedInterval < const Duration(hours: 1).inMilliseconds
-            ? const Duration(hours: 1).inMilliseconds.toDouble()
-            : calculatedInterval;
     }
   }
 
@@ -271,11 +291,13 @@ class WebsiteStockChart extends StatelessWidget {
   String _formatTimeForAxis(DateTime date) {
     switch (timeRange) {
       case 'day':
+      case 'today':
         return DateFormat('HH:mm').format(date);
       case 'week':
         return DateFormat('MM/dd').format(date);
       case 'month':
         return DateFormat('MM/dd').format(date);
+      case 'all':
       default:
         return DateFormat('MM/yy').format(date);
     }
@@ -284,9 +306,11 @@ class WebsiteStockChart extends StatelessWidget {
   String _formatTimeForTooltip(DateTime date) {
     switch (timeRange) {
       case 'day':
+      case 'today':
         return DateFormat('MMM dd, HH:mm').format(date);
       case 'week':
         return DateFormat('MMM dd, HH:mm').format(date);
+      case 'all':
       default:
         return DateFormat('MMM dd, yyyy HH:mm').format(date);
     }
@@ -295,11 +319,14 @@ class WebsiteStockChart extends StatelessWidget {
   String _getTimeRangeLabel() {
     switch (timeRange) {
       case 'day':
+      case 'today':
         return 'the last 24 hours';
       case 'week':
         return 'the last week';
       case 'month':
         return 'the last month';
+      case 'all':
+        return 'all time';
       default:
         return 'this time period';
     }

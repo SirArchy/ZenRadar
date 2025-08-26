@@ -132,7 +132,6 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
       floatingActionButton: FloatingActionButton(
         onPressed: _forceRefreshAnalytics,
         tooltip: 'Refresh analytics',

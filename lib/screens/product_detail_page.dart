@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/matcha_product.dart';
@@ -9,7 +8,8 @@ import '../services/database_service.dart';
 import '../services/currency_converter_service.dart';
 import '../services/settings_service.dart';
 import '../widgets/category_icon.dart';
-import '../widgets/stock_status_chart.dart';
+import '../widgets/improved_price_chart.dart';
+import '../widgets/improved_stock_chart.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final MatchaProduct product;
@@ -699,185 +699,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ],
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              height: 250,
-              child: LineChart(
-                LineChartData(
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: true,
-                    horizontalInterval: 1,
-                    verticalInterval: 1,
-                    getDrawingHorizontalLine: (value) {
-                      return FlLine(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.outline.withAlpha(50),
-                        strokeWidth: 1,
-                      );
-                    },
-                    getDrawingVerticalLine: (value) {
-                      return FlLine(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.outline.withAlpha(50),
-                        strokeWidth: 1,
-                      );
-                    },
-                  ),
-                  titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 30,
-                        interval: _getDateInterval(),
-                        getTitlesWidget: (value, meta) {
-                          final date = DateTime.fromMillisecondsSinceEpoch(
-                            value.toInt(),
-                          );
-                          return SideTitleWidget(
-                            axisSide: meta.axisSide,
-                            child: Text(
-                              _formatDateForAxis(date),
-                              style: const TextStyle(fontSize: 10),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 50,
-                        getTitlesWidget: (value, meta) {
-                          return SideTitleWidget(
-                            axisSide: meta.axisSide,
-                            child: Text(
-                              '${value.toStringAsFixed(0)}€',
-                              style: const TextStyle(fontSize: 10),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    topTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    rightTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                  ),
-                  borderData: FlBorderData(
-                    show: true,
-                    border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outline.withAlpha(50),
-                    ),
-                  ),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots:
-                          _filteredHistory.map((history) {
-                            return FlSpot(
-                              history.date.millisecondsSinceEpoch.toDouble(),
-                              history.price,
-                            );
-                          }).toList(),
-                      isCurved: true,
-                      color: Theme.of(context).colorScheme.primary,
-                      barWidth: 3,
-                      isStrokeCapRound: true,
-                      dotData: FlDotData(
-                        show: _filteredHistory.length <= 20,
-                        getDotPainter:
-                            (spot, percent, barData, index) =>
-                                FlDotCirclePainter(
-                                  radius: 3,
-                                  color: Theme.of(context).colorScheme.primary,
-                                  strokeWidth: 2,
-                                  strokeColor:
-                                      Theme.of(context).colorScheme.surface,
-                                ),
-                      ),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withAlpha(25),
-                      ),
-                    ),
-                  ],
-                  lineTouchData: LineTouchData(
-                    touchTooltipData: LineTouchTooltipData(
-                      getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
-                        return touchedBarSpots.map((barSpot) {
-                          final date = DateTime.fromMillisecondsSinceEpoch(
-                            barSpot.x.toInt(),
-                          );
-                          return LineTooltipItem(
-                            '${DateFormat('MMM dd, yyyy').format(date)}\n${barSpot.y.toStringAsFixed(2)}€',
-                            TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          );
-                        }).toList();
-                      },
-                    ),
-                  ),
-                ),
-              ),
+            // Use the improved price chart
+            ImprovedPriceChart(
+              priceHistory: _filteredHistory,
+              currencySymbol: _currentCurrencySymbol,
+              timeRange: _selectedTimeRange,
             ),
           ],
         ),
       ),
     );
-  }
-
-  double _getDateInterval() {
-    if (_filteredHistory.isEmpty) {
-      return const Duration(days: 1).inMilliseconds.toDouble();
-    }
-
-    final totalDuration = _filteredHistory.last.date.difference(
-      _filteredHistory.first.date,
-    );
-
-    switch (_selectedTimeRange) {
-      case 'day':
-        return const Duration(days: 1).inMilliseconds.toDouble();
-      case 'week':
-        return const Duration(days: 3).inMilliseconds.toDouble();
-      case 'month':
-        return const Duration(days: 30).inMilliseconds.toDouble();
-      default:
-        // For "all" time range, ensure we have a reasonable interval
-        if (totalDuration.inMilliseconds <= 0) {
-          // If duration is zero or negative, use a default interval
-          return const Duration(days: 1).inMilliseconds.toDouble();
-        } else {
-          // Divide by 6 but ensure minimum interval
-          final calculatedInterval =
-              (totalDuration.inMilliseconds / 6).toDouble();
-          return calculatedInterval < const Duration(hours: 1).inMilliseconds
-              ? const Duration(hours: 1).inMilliseconds.toDouble()
-              : calculatedInterval;
-        }
-    }
-  }
-
-  String _formatDateForAxis(DateTime date) {
-    switch (_selectedTimeRange) {
-      case 'day':
-        return DateFormat('MM/dd').format(date);
-      case 'week':
-        return DateFormat('MM/dd').format(date);
-      case 'month':
-        return DateFormat('MMM').format(date);
-      default:
-        return DateFormat('MM/yy').format(date);
-    }
   }
 
   Widget _buildProductDetails() {
@@ -1101,14 +932,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     );
                   }
 
-                  return StockStatusGrid(
+                  return ImprovedStockGrid(
                     stockPoints: snapshot.data!,
                     selectedDay: _selectedDay!,
                   );
                 },
               )
             else
-              StockStatusChart(
+              ImprovedStockChart(
                 stockPoints: _getFilteredStockPoints(),
                 timeRange: _selectedTimeRange,
               ),

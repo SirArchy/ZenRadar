@@ -21,7 +21,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
       setState(() {
         _currentIndex = _tabController.index;
@@ -41,43 +41,14 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     return Scaffold(
       body: Column(
         children: [
-          // Custom header with tabs and settings
+          // Custom header with tabs only - removed settings button
           Container(
             color: Theme.of(context).colorScheme.inversePrimary,
             child: SafeArea(
               bottom: false,
               child: Column(
                 children: [
-                  // Header with title and settings
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _getAppBarTitle(),
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.settings),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const SettingsScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Tab bar
+                  // Tab bar only - removed title and settings button
                   TabBar(
                     controller: _tabController,
                     indicatorColor: Theme.of(context).colorScheme.primary,
@@ -89,6 +60,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                       Tab(icon: Icon(Icons.home), text: 'Home'),
                       Tab(icon: Icon(Icons.web), text: 'Websites'),
                       Tab(icon: Icon(Icons.history), text: 'Activity'),
+                      Tab(icon: Icon(Icons.settings), text: 'Settings'),
                     ],
                   ),
                 ],
@@ -103,36 +75,34 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                 HomeScreenContent(),
                 WebsiteOverviewScreen(),
                 BackgroundActivityScreen(),
+                SettingsScreen(),
               ],
             ),
           ),
         ],
       ),
       floatingActionButton:
-          _currentIndex == 0
+          _currentIndex <
+                  3 // Only show FAB for first 3 tabs (not settings)
               ? FloatingActionButton(
                 onPressed: () {
-                  // Trigger refresh on the HomeScreenContent widget
-                  HomeScreenContent.refreshIfActive();
+                  // Trigger refresh based on current tab
+                  switch (_currentIndex) {
+                    case 0:
+                      HomeScreenContent.refreshIfActive();
+                      break;
+                    case 1:
+                      // Add refresh for website overview if needed
+                      break;
+                    case 2:
+                      // Add refresh for background activity if needed
+                      break;
+                  }
                 },
-                tooltip: 'Refresh products',
+                tooltip: 'Refresh',
                 child: const Icon(Icons.refresh),
               )
               : null,
-      // No FAB needed in server mode - all monitoring is handled by cloud services
     );
-  }
-
-  String _getAppBarTitle() {
-    switch (_currentIndex) {
-      case 0:
-        return 'ZenRadar';
-      case 1:
-        return 'Website Overview';
-      case 2:
-        return 'Background Activity';
-      default:
-        return 'ZenRadar';
-    }
   }
 }

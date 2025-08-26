@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_print, use_build_context_synchronously
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/matcha_product.dart';
@@ -7,6 +8,7 @@ import '../services/auth_service.dart';
 import '../services/settings_service.dart';
 import '../services/theme_service.dart';
 import '../services/favorite_notification_service.dart';
+import '../services/notification_service.dart';
 import '../widgets/matcha_icon.dart';
 import 'auth_screen.dart';
 
@@ -99,10 +101,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
       body:
           _isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -130,6 +128,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     // Display Settings
                     _buildDisplaySettings(),
                     const SizedBox(height: 16),
+
+                    // Debug Section (only in debug mode)
+                    if (kDebugMode) ...[
+                      _buildDebugSection(),
+                      const SizedBox(height: 16),
+                    ],
 
                     // Contact Section
                     _buildContactSection(),
@@ -1019,5 +1023,88 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// Get the current status of favorite product monitoring
   Future<bool> _getFavoriteMonitoringStatus() async {
     return FavoriteNotificationService.instance.isMonitoring;
+  }
+
+  Widget _buildDebugSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.bug_report,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Debug Tools',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Test notification button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _testNotification,
+                icon: const Icon(Icons.notifications_active),
+                label: const Text('Test Notification'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      Theme.of(context).colorScheme.primaryContainer,
+                  foregroundColor:
+                      Theme.of(context).colorScheme.onPrimaryContainer,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+            Text(
+              'Send a test notification to verify that notifications are working correctly.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _testNotification() async {
+    try {
+      await NotificationService.instance.showNotification(
+        id: 999,
+        title: 'ZenRadar Test Notification',
+        body:
+            'This is a test notification to verify that notifications are working correctly.',
+        payload: 'test_notification',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Test notification sent!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error sending test notification: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to send test notification: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
