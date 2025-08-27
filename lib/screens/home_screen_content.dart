@@ -401,17 +401,19 @@ class _HomeScreenContentState extends State<HomeScreenContent>
           children: [
             _buildSearchBar(),
             if (_showFilters && !_showSearchSuggestions)
-              ProductFilters(
-                filter: _filter,
-                availableSites: _availableSites,
-                availableCategories: _availableCategories,
-                priceRange: _priceRange,
-                onFilterChanged: (newFilter) {
-                  setState(() {
-                    _showSearchSuggestions = false;
-                  });
-                  _onFilterChanged(newFilter);
-                },
+              Flexible(
+                child: ProductFilters(
+                  filter: _filter,
+                  availableSites: _availableSites,
+                  availableCategories: _availableCategories,
+                  priceRange: _priceRange,
+                  onFilterChanged: (newFilter) {
+                    setState(() {
+                      _showSearchSuggestions = false;
+                    });
+                    _onFilterChanged(newFilter);
+                  },
+                ),
               ),
             _buildStockStatusChips(),
             Expanded(child: _buildProductsList()),

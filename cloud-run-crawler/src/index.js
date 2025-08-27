@@ -33,7 +33,9 @@ const logger = require('./logger');
 const CrawlerService = require('./crawler-service');
 
 // Initialize Firebase Admin
-initializeApp();
+const firebaseApp = initializeApp({
+  storageBucket: 'zenradar-acb85.firebasestorage.app'
+});
 const db = getFirestore();
 
 const app = express();

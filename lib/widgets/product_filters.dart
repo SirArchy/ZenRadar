@@ -70,6 +70,7 @@ class _ProductFiltersState extends State<ProductFilters> {
     return SingleChildScrollView(
       controller: widget.scrollController,
       padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
+      physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -285,44 +286,46 @@ class _ProductFiltersState extends State<ProductFilters> {
                 const Divider(height: 1),
                 // Individual site checkboxes
                 Container(
-                  constraints: const BoxConstraints(
-                    maxHeight: 200,
-                  ), // Limit height
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children:
-                          availableSitesWithoutAll
-                              .map(
-                                (site) => CheckboxListTile(
-                                  title: Text(
-                                    site,
-                                    style: TextStyle(
-                                      fontSize: isSmallScreen ? 14 : 16,
+                  constraints: BoxConstraints(
+                    maxHeight: isSmallScreen ? 150 : 200,
+                  ), // Responsive height limit
+                  child: Scrollbar(
+                    thumbVisibility: true,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children:
+                            availableSitesWithoutAll
+                                .map(
+                                  (site) => CheckboxListTile(
+                                    title: Text(
+                                      site,
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 14 : 16,
+                                      ),
+                                    ),
+                                    value: selectedSites.contains(site),
+                                    onChanged: (isChecked) {
+                                      final newSelectedSites =
+                                          List<String>.from(selectedSites);
+                                      if (isChecked == true) {
+                                        newSelectedSites.add(site);
+                                      } else {
+                                        newSelectedSites.remove(site);
+                                      }
+                                      _updateFilter(
+                                        _currentFilter.copyWith(
+                                          sites: newSelectedSites,
+                                        ),
+                                      );
+                                    },
+                                    dense: isSmallScreen,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
                                     ),
                                   ),
-                                  value: selectedSites.contains(site),
-                                  onChanged: (isChecked) {
-                                    final newSelectedSites = List<String>.from(
-                                      selectedSites,
-                                    );
-                                    if (isChecked == true) {
-                                      newSelectedSites.add(site);
-                                    } else {
-                                      newSelectedSites.remove(site);
-                                    }
-                                    _updateFilter(
-                                      _currentFilter.copyWith(
-                                        sites: newSelectedSites,
-                                      ),
-                                    );
-                                  },
-                                  dense: isSmallScreen,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                  ),
-                                ),
-                              )
-                              .toList(),
+                                )
+                                .toList(),
+                      ),
                     ),
                   ),
                 ),

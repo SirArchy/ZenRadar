@@ -2,6 +2,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/matcha_product.dart';
 import '../services/auth_service.dart';
@@ -722,19 +723,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       path: 'fabian.ebert@online.de',
                       query: 'subject=ZenRadar Feedback',
                     );
-                    if (await canLaunchUrl(emailUri)) {
-                      await launchUrl(
-                        emailUri,
-                        mode: LaunchMode.externalApplication,
-                      );
-                    } else {
+                    try {
+                      if (await canLaunchUrl(emailUri)) {
+                        await launchUrl(emailUri);
+                      } else {
+                        // Fallback for Android - try different launch modes
+                        try {
+                          await launchUrl(
+                            emailUri,
+                            mode: LaunchMode.platformDefault,
+                          );
+                        } catch (e) {
+                          if (context.mounted) {
+                            // Copy email to clipboard as final fallback
+                            await _copyEmailToClipboard();
+                          }
+                        }
+                      }
+                    } catch (e) {
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Could not open email app.'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                        await _copyEmailToClipboard();
                       }
                     }
                   },
@@ -1378,5 +1386,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
     );
+  }
+
+  Future<void> _copyEmailToClipboard() async {
+    await Clipboard.setData(
+      const ClipboardData(text: 'fabian.ebert@online.de'),
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Email address copied to clipboard!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 }

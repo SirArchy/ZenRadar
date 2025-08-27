@@ -104,7 +104,7 @@ class CrawlerService {
         priceSelector: '.product-price',
         stockSelector: '.product-price', // Products with prices are available
         linkSelector: 'a[href*="/products/"]',
-        imageSelector: '.product-image img, .product-photo img',
+        imageSelector: 'img[src*="/content/products/"], .product-image-img, img[alt*="Matcha"]:not([alt*="Best"]):not([alt*="Selling"]):not([alt*="Specialty"]):not([alt*="Extra"])',
         stockKeywords: ['add to cart', 'in stock', 'available'],
         outOfStockKeywords: ['out of stock', 'sold out', 'unavailable']
       },
@@ -138,10 +138,10 @@ class CrawlerService {
         name: 'Horiishichimeien',
         baseUrl: 'https://horiishichimeien.com',
         categoryUrl: 'https://horiishichimeien.com/en/collections/all?selected=%E6%8A%B9%E8%8C%B6',
-        productSelector: 'li[contains(@class, "grid__item")] .card, .grid-product__link, a[href*="/products/matcha-"]',
-        nameSelector: '.card__heading a, .grid-product__meta .grid-product__title, h1',
-        priceSelector: '.price, .price__regular, .money',
-        stockSelector: '.product-form__buttons, .product-form, form[action="/cart/add"]',
+        productSelector: '.grid__item',
+        nameSelector: 'a[href*="/products/"]',
+        priceSelector: '.price, .price__regular, .money, .price-item',
+        stockSelector: '.product-form__buttons, .product-form, form[action="/cart/add"], button[name="add"]',
         linkSelector: 'a[href*="/products/"]',
         imageSelector: '.card__media img, .grid-product__image img, .product__media img, img[alt*="Matcha"]',
         stockKeywords: ['add to cart', 'buy now', 'purchase', 'add to bag', 'カートに入れる'],
@@ -799,9 +799,15 @@ class CrawlerService {
       case 'poppatea':
         // Handle German price format (€XX,XX or XX,XX €)
         cleaned = cleaned.replace(/\n/g, ' ').replace(/\s+/g, ' ');
-        const poppateaMatch = cleaned.match(/€?(\d+,\d{2})\s*€?/);
+        const poppateaMatch = cleaned.match(/€?\s*(\d+[,.]\d{2})\s*€?/);
         if (poppateaMatch) {
-          return `€${poppateaMatch[1]}`;
+          const price = poppateaMatch[1].replace(',', '.');
+          return `€${price}`;
+        }
+        // Also try to match prices without decimals
+        const simpleMatch = cleaned.match(/€?\s*(\d+)\s*€?/);
+        if (simpleMatch) {
+          return `€${simpleMatch[1]}.00`;
         }
         break;
 
@@ -1055,7 +1061,7 @@ class CrawlerService {
       }
 
       // Method 1: Look for Shopify product JSON (most reliable)
-      const scriptTags = $('script[type="application/json"], script:contains("product")');
+      const scriptTags = $('script[type="application/json"], script:contains("variants"), script:contains("product")');
       let foundInJson = false;
       
       scriptTags.each((_, script) => {
@@ -1065,14 +1071,33 @@ class CrawlerService {
           let jsonData;
           const scriptContent = $(script).html();
           
+          // Skip if this looks like window object or other non-JSON
+          if (scriptContent.trim().startsWith('window.') || 
+              scriptContent.includes('window.Shopify') ||
+              scriptContent.includes('function(')) {
+            return;
+          }
+          
           // Try to parse as JSON
           try {
             jsonData = JSON.parse(scriptContent);
           } catch (e) {
             // If direct parsing fails, look for JSON within the script
-            const jsonMatch = scriptContent.match(/product["\s]*:[^{]*({[^}]+})/);
-            if (jsonMatch) {
-              jsonData = JSON.parse(jsonMatch[1]);
+            const jsonMatches = [
+              scriptContent.match(/product["\s]*:[^{]*({[^}]+variants[^}]+})/),
+              scriptContent.match(/variants["\s]*:\s*(\[[^\]]+\])/),
+              scriptContent.match(/"product":\s*({[^}]+variants[^}]+})/),
+            ];
+            
+            for (const match of jsonMatches) {
+              if (match) {
+                try {
+                  jsonData = JSON.parse(match[1]);
+                  break;
+                } catch (e2) {
+                  // Continue trying
+                }
+              }
             }
           }
           
@@ -1128,15 +1153,19 @@ class CrawlerService {
           this.logger.info('Found variant selectors', { productUrl, selectorCount: variantSelectors.length });
           
           variantSelectors.each((_, element) => {
-            const $select = $(element);
-            $select.find('option').each((_, option) => {
-              const $option = $(option);
-              const value = $option.attr('value');
-              const text = $option.text().trim();
+            const $element = $(element);
+            
+            if ($element.is('input')) {
+              // Handle radio buttons or other input elements
+              const value = $element.attr('value');
+              const label = $element.next('label').text() || 
+                           $element.parent().text() || 
+                           $element.siblings('label').text() ||
+                           $element.attr('data-variant-title') || '';
               
-              if (value && text && !text.toLowerCase().includes('select') && !text.includes('---')) {
-                // Parse variant info (typically includes size and price)
-                const variant = this.parseVariantText(text, baseName);
+              if (value && label) {
+                this.logger.info('Found input variant', { value, label: label.trim() });
+                const variant = this.parseVariantText(label.trim(), baseName);
                 if (variant) {
                   const variantId = this.generateProductId(productUrl, variant.name, 'poppatea');
                   
@@ -1155,12 +1184,46 @@ class CrawlerService {
                   variant.variantId = value;
                   
                   // Check stock status for this variant
-                  variant.isInStock = this.checkVariantStock($, value, text);
+                  variant.isInStock = this.checkVariantStock($, value, label);
                   
                   variants.push(variant);
                 }
               }
-            });
+            } else {
+              // Handle select dropdowns
+              $element.find('option').each((_, option) => {
+                const $option = $(option);
+                const value = $option.attr('value');
+                const text = $option.text().trim();
+                
+                if (value && text && !text.toLowerCase().includes('select') && !text.includes('---')) {
+                  // Parse variant info (typically includes size and price)
+                  const variant = this.parseVariantText(text, baseName);
+                  if (variant) {
+                    const variantId = this.generateProductId(productUrl, variant.name, 'poppatea');
+                    
+                    variant.id = variantId;
+                    variant.site = 'poppatea';
+                    variant.siteName = config.name;
+                    variant.url = productUrl;
+                    variant.imageUrl = processedMainImageUrl;
+                    variant.category = this.detectCategory(baseName, 'poppatea');
+                    variant.lastChecked = new Date();
+                    variant.lastUpdated = new Date();
+                    variant.firstSeen = new Date();
+                    variant.isDiscontinued = false;
+                    variant.missedScans = 0;
+                    variant.crawlSource = 'cloud-run';
+                    variant.variantId = value;
+                    
+                    // Check stock status for this variant
+                    variant.isInStock = this.checkVariantStock($, value, text);
+                    
+                    variants.push(variant);
+                  }
+                }
+              });
+            }
           });
         }
       }
