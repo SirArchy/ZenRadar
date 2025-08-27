@@ -356,94 +356,197 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Widget _buildProductHeader() {
-    final bool isUnavailable =
-        !widget.product.isInStock || widget.product.isDiscontinued;
-
     return Card(
       child: InkWell(
         onTap: () => _launchUrl(widget.product.url),
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: Container(
+          height: 200,
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+          child: Stack(
             children: [
-              Row(
-                children: [
-                  CategoryIcon(
-                    category: widget.product.category,
-                    size: 48,
-                    color:
-                        isUnavailable
-                            ? Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 100 / 255)
-                            : null,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.product.name,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.headlineSmall?.copyWith(
-                            decoration:
-                                widget.product.isDiscontinued
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.store,
-                              size: 16,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withAlpha(150),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              widget.product.site,
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withAlpha(150),
-                                fontSize: 14,
+              // Background Image
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: double.infinity,
+                  child:
+                      widget.product.imageUrl != null
+                          ? Stack(
+                            children: [
+                              Image.network(
+                                widget.product.imageUrl!,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                                errorBuilder:
+                                    (context, error, stackTrace) =>
+                                        _buildHeaderPlaceholderBackground(
+                                          context,
+                                        ),
                               ),
+                              // Dark overlay for better text readability
+                              Container(
+                                width: double.infinity,
+                                height: double.infinity,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.black.withValues(alpha: 0.4),
+                                      Colors.black.withValues(alpha: 0.8),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                          : _buildHeaderPlaceholderBackground(context),
+                ),
+              ),
+
+              // Content Overlay
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Top row with status chip
+                      Row(children: [const Spacer(), _buildStatusChip()]),
+
+                      const Spacer(),
+
+                      // Bottom content
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Product name with background
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.7),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.product.name,
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    decoration:
+                                        widget.product.isDiscontinued
+                                            ? TextDecoration.lineThrough
+                                            : null,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    CategoryIcon(
+                                      category: widget.product.category,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Icon(
+                                      Icons.store,
+                                      size: 16,
+                                      color: Colors.white.withValues(
+                                        alpha: 0.9,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      widget.product.site,
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.9,
+                                        ),
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          if (widget.product.price != null) ...[
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    borderRadius: BorderRadius.circular(8),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    'Current Price: ${_convertedPrice != null ? '${_convertedPrice!.toStringAsFixed(2)}$_currentCurrencySymbol' : (widget.product.price ?? 'N/A')}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.25,
+                                        ),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: IconButton(
+                                    icon: Icon(
+                                      Icons.open_in_new,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                    ),
+                                    onPressed:
+                                        () => _launchUrl(widget.product.url),
+                                    tooltip: 'Open product URL',
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  _buildStatusChip(),
-                ],
-              ),
-              if (widget.product.price != null) ...[
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Current Price: ${_convertedPrice != null ? '${_convertedPrice!.toStringAsFixed(2)}$_currentCurrencySymbol' : (widget.product.price ?? 'N/A')}',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
+                        ],
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.open_in_new),
-                      onPressed: () => _launchUrl(widget.product.url),
-                      tooltip: 'Open product URL',
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ],
           ),
         ),
@@ -846,43 +949,87 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   Icons.inventory_2,
                   color: Theme.of(context).colorScheme.primary,
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  'Stock History',
-                  style: Theme.of(context).textTheme.titleLarge,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Stock History',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                 ),
-                const Spacer(),
-                PopupMenuButton<String>(
-                  initialValue: _selectedTimeRange,
-                  onSelected: (value) {
-                    setState(() {
-                      _selectedTimeRange = value;
-                      if (value == 'day') {
-                        _selectedDay = DateTime.now();
-                      } else {
-                        _selectedDay = null;
-                      }
-                    });
-                  },
-                  itemBuilder:
-                      (context) => [
-                        const PopupMenuItem(value: 'day', child: Text('Today')),
-                        const PopupMenuItem(
-                          value: 'week',
-                          child: Text('This Week'),
+                Flexible(
+                  child: PopupMenuButton<String>(
+                    initialValue: _selectedTimeRange,
+                    onSelected: (value) {
+                      setState(() {
+                        _selectedTimeRange = value;
+                        if (value == 'day') {
+                          _selectedDay = DateTime.now();
+                        } else {
+                          _selectedDay = null;
+                        }
+                      });
+                    },
+                    itemBuilder:
+                        (context) => [
+                          const PopupMenuItem(
+                            value: 'day',
+                            child: Text('Today'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'week',
+                            child: Text('This Week'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'month',
+                            child: Text('This Month'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'all',
+                            child: Text('All Time'),
+                          ),
+                        ],
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withAlpha(20),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withAlpha(100),
                         ),
-                        const PopupMenuItem(
-                          value: 'month',
-                          child: Text('This Month'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'all',
-                          child: Text('All Time'),
-                        ),
-                      ],
-                  child: Chip(
-                    label: Text(_getTimeRangeLabel()),
-                    avatar: const Icon(Icons.access_time, size: 16),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.access_time,
+                            size: 14,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _getTimeRangeLabel(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(
+                            Icons.arrow_drop_down,
+                            size: 16,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -1090,6 +1237,60 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         _selectedDay = picked;
       });
     }
+  }
+
+  Widget _buildHeaderPlaceholderBackground(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Stack(
+        children: [
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.local_cafe,
+                  size: 64,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.3),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Matcha Product',
+                  style: TextStyle(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.4),
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Dark overlay for consistency
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.3),
+                  Colors.black.withValues(alpha: 0.6),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Launches a URL in the default browser

@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter/material.dart';
 import '../models/website_stock_analytics.dart';
 import '../services/website_analytics_service.dart';

@@ -24,7 +24,6 @@ class WebsiteAnalyticsService {
     'tokichi',
     'marukyu',
     'ippodo',
-    'horiishichimeien',
     'yoshien',
     'matcha-karu',
     'sho-cha',

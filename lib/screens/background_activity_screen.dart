@@ -350,32 +350,6 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       ),
       child: Column(
         children: [
-          // Mode indicator
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade100,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.blue, width: 1),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.cloud, size: 16, color: Colors.blue),
-                const SizedBox(width: 6),
-                Text(
-                  'Server Mode',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.blue.shade700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
           // Statistics
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,

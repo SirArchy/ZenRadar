@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/matcha_product.dart';
 import '../services/auth_service.dart';
+import '../services/database_service.dart';
 import '../services/settings_service.dart';
 import '../services/theme_service.dart';
 import '../services/favorite_notification_service.dart';
@@ -24,12 +25,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isLoading = true;
   bool _isLoggedIn = false;
   String? _userEmail;
+  Map<String, int> _siteProductCounts = {};
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
     _checkAuthStatus();
+    _loadSiteProductCounts();
   }
 
   Future<void> _loadSettings() async {
@@ -61,6 +64,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _isLoggedIn = isLoggedIn;
       _userEmail = email;
     });
+  }
+
+  Future<void> _loadSiteProductCounts() async {
+    try {
+      final db = DatabaseService.platformService;
+      final sites = _getBuiltInSites();
+      final Map<String, int> counts = {};
+
+      for (final site in sites) {
+        final products = await db.getProductsBySite(site['key']!);
+        counts[site['key']!] = products.length;
+      }
+
+      setState(() {
+        _siteProductCounts = counts;
+      });
+    } catch (e) {
+      print('Error loading site product counts: $e');
+    }
   }
 
   Future<void> _saveSettings() async {
@@ -109,10 +131,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Cloud Monitoring Status
-                    _buildCloudStatusCard(),
-                    const SizedBox(height: 16),
-
                     // Authentication Card
                     _buildAuthCard(),
                     const SizedBox(height: 16),
@@ -151,54 +169,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildCloudStatusCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.cloud,
-                  color:
-                      Theme.of(context).brightness == Brightness.dark
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).primaryColor,
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Cloud Monitoring',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'ZenRadar uses cloud-based monitoring to check matcha availability 24/7. '
-              'No need to keep the app running in the background!',
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.green, size: 16),
-                const SizedBox(width: 4),
-                const Text(
-                  'Cloud monitoring active',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildAuthCard() {
     return Card(
       child: Padding(
@@ -228,13 +198,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (_isLoggedIn) ...[
               Text('Signed in as: $_userEmail'),
               const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () async {
-                  final authService = AuthService();
-                  await authService.signOut();
-                  await _checkAuthStatus();
-                },
-                child: const Text('Sign Out'),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        // Show confirmation dialog
+                        final shouldSignOut = await showDialog<bool>(
+                          context: context,
+                          builder:
+                              (context) => AlertDialog(
+                                title: const Text('Sign Out'),
+                                content: const Text(
+                                  'Are you sure you want to sign out? Your settings will remain on this device.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.pop(context, false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed:
+                                        () => Navigator.pop(context, true),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          Theme.of(context).colorScheme.error,
+                                      foregroundColor:
+                                          Theme.of(context).colorScheme.onError,
+                                    ),
+                                    child: const Text('Sign Out'),
+                                  ),
+                                ],
+                              ),
+                        );
+
+                        if (shouldSignOut == true) {
+                          final authService = AuthService();
+                          await authService.signOut();
+                          await _checkAuthStatus();
+
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Successfully signed out'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Sign Out'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Theme.of(context).colorScheme.error,
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ] else ...[
               const Text('Sign in to sync your settings across devices'),
@@ -522,11 +550,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                     ),
-                    Text(
-                      '~50 products', // Placeholder - would come from server
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withAlpha(20),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withAlpha(100),
+                        ),
+                      ),
+                      child: Text(
+                        '${_siteProductCounts[site['key']] ?? 0} products',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
@@ -657,24 +703,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             : Colors.blueGrey,
                   ),
                   'Contact',
-                  () {
-                    showDialog(
-                      context: context,
-                      builder:
-                          (context) => AlertDialog(
-                            title: const Text('Contact'),
-                            content: const Text(
-                              'Feel free to reach out via email, GitHub, LinkedIn, PayPal, or BuyMeACoffee!',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('Close'),
-                              ),
-                            ],
-                          ),
-                    );
-                  },
+                  _showContactDialog,
                 ),
                 const SizedBox(width: 16),
                 _buildSocialButton(
@@ -838,7 +867,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   List<Map<String, String>> _getBuiltInSites() {
     return [
       {'key': 'tokichi', 'name': 'Tokichi'},
-      {'key': 'marukyu-koyamaen', 'name': 'Marukyu-Koyamaen'},
+      {'key': 'marukyu', 'name': 'Marukyu-Koyamaen'},
       {'key': 'ippodo', 'name': 'Ippodo Tea'},
       {'key': 'yoshien', 'name': 'Yoshien'},
       {'key': 'matcha-karu', 'name': 'Matcha-Karu'},
@@ -905,18 +934,135 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showWebsiteSuggestionDialog() {
+    final websiteUrlController = TextEditingController();
+    final websiteNameController = TextEditingController();
+    final additionalInfoController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
             title: const Text('Suggest New Website'),
-            content: const Text(
-              'To suggest a new matcha website for monitoring, please contact us via email or GitHub with the website URL and details.',
+            content: Form(
+              key: formKey,
+              child: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Help us expand ZenRadar by suggesting a new matcha website to monitor!',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: websiteNameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Website Name',
+                        hintText: 'e.g. "Uji Tea Company"',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter the website name';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: websiteUrlController,
+                      decoration: const InputDecoration(
+                        labelText: 'Website URL',
+                        hintText: 'https://example.com',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.url,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter the website URL';
+                        }
+                        final uri = Uri.tryParse(value);
+                        if (uri == null ||
+                            !uri.hasAbsolutePath ||
+                            (!uri.scheme.startsWith('http'))) {
+                          return 'Please enter a valid URL';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: additionalInfoController,
+                      decoration: const InputDecoration(
+                        labelText: 'Additional Information (Optional)',
+                        hintText: 'Special features, product types, etc.',
+                        border: OutlineInputBorder(),
+                        alignLabelWithHint: true,
+                      ),
+                      maxLines: 3,
+                    ),
+                  ],
+                ),
+              ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (formKey.currentState!.validate()) {
+                    // Compose suggestion email
+                    final Uri emailUri = Uri(
+                      scheme: 'mailto',
+                      path: 'fabian.ebert@online.de',
+                      query: Uri.encodeQueryComponent(
+                        'subject=ZenRadar Website Suggestion - ${websiteNameController.text}&'
+                        'body=Website Suggestion for ZenRadar\n\n'
+                        'Website Name: ${websiteNameController.text}\n'
+                        'Website URL: ${websiteUrlController.text}\n\n'
+                        'Additional Information:\n${additionalInfoController.text.isEmpty ? 'None provided' : additionalInfoController.text}\n\n'
+                        'Please consider adding this website to ZenRadar for matcha monitoring.\n\n'
+                        'Thank you!',
+                      ),
+                    );
+
+                    try {
+                      if (await canLaunchUrl(emailUri)) {
+                        await launchUrl(
+                          emailUri,
+                          mode: LaunchMode.externalApplication,
+                        );
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Thank you for your suggestion! Email app opened.',
+                              ),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } else {
+                        throw 'Could not launch email app';
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Could not open email app: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+                child: const Text('Send Suggestion'),
               ),
             ],
           ),
@@ -993,28 +1139,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _launchLinkedIn() async {
-    final Uri url = Uri.parse('https://linkedin.com/in/your-profile');
+    final Uri url = Uri.parse('https://www.linkedin.com/in/fabian-e-762b85244');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
   }
 
   void _launchPayPal() async {
-    final Uri url = Uri.parse('https://paypal.me/your-paypal');
+    final Uri url = Uri.parse('https://paypal.me/FEbert353');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
   }
 
   void _launchBuyMeACoffee() async {
-    final Uri url = Uri.parse('https://buymeacoffee.com/your-profile');
+    final Uri url = Uri.parse('https://buymeacoffee.com/worktimetracker');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
   }
 
   void _launchFeedbacky() async {
-    final Uri url = Uri.parse('https://zenradar.feedbacky.net');
+    final Uri url = Uri.parse('https://app.feedbacky.net/b/zenRadar');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
@@ -1106,5 +1252,131 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     }
+  }
+
+  void _showContactDialog() {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final messageController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Contact Us'),
+            content: Form(
+              key: formKey,
+              child: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Your Name',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter your name';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Your Email',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter your email';
+                        }
+                        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                          return 'Please enter a valid email';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: messageController,
+                      decoration: const InputDecoration(
+                        labelText: 'Your Message',
+                        border: OutlineInputBorder(),
+                        alignLabelWithHint: true,
+                      ),
+                      maxLines: 4,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter your message';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (formKey.currentState!.validate()) {
+                    // Compose email
+                    final Uri emailUri = Uri(
+                      scheme: 'mailto',
+                      path: 'fabian.ebert@online.de',
+                      query: Uri.encodeQueryComponent(
+                        'subject=ZenRadar Contact Form - ${nameController.text}&'
+                        'body=Name: ${nameController.text}\n'
+                        'Email: ${emailController.text}\n\n'
+                        'Message:\n${messageController.text}',
+                      ),
+                    );
+
+                    try {
+                      if (await canLaunchUrl(emailUri)) {
+                        await launchUrl(
+                          emailUri,
+                          mode: LaunchMode.externalApplication,
+                        );
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Email app opened successfully!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } else {
+                        throw 'Could not launch email app';
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Could not open email app: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+                child: const Text('Send Email'),
+              ),
+            ],
+          ),
+    );
   }
 }

@@ -395,20 +395,45 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Column(
+    return Stack(
       children: [
-        _buildSearchBar(),
-        if (_showSearchSuggestions) _buildSearchSuggestions(),
-        if (_showFilters)
-          ProductFilters(
-            filter: _filter,
-            availableSites: _availableSites,
-            availableCategories: _availableCategories,
-            priceRange: _priceRange,
-            onFilterChanged: _onFilterChanged,
+        Column(
+          children: [
+            _buildSearchBar(),
+            if (_showFilters && !_showSearchSuggestions)
+              ProductFilters(
+                filter: _filter,
+                availableSites: _availableSites,
+                availableCategories: _availableCategories,
+                priceRange: _priceRange,
+                onFilterChanged: (newFilter) {
+                  setState(() {
+                    _showSearchSuggestions = false;
+                  });
+                  _onFilterChanged(newFilter);
+                },
+              ),
+            _buildStockStatusChips(),
+            Expanded(child: _buildProductsList()),
+          ],
+        ),
+        // Search suggestions overlay
+        if (_showSearchSuggestions)
+          Positioned(
+            top: 80, // Position below search bar
+            left: 16,
+            right: 16,
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.4,
+                ),
+                child: _buildSearchSuggestions(),
+              ),
+            ),
           ),
-        _buildStockStatusChips(),
-        Expanded(child: _buildProductsList()),
       ],
     );
   }
@@ -451,6 +476,10 @@ class _HomeScreenContentState extends State<HomeScreenContent>
             onPressed: () {
               setState(() {
                 _showFilters = !_showFilters;
+                if (_showFilters) {
+                  _showSearchSuggestions = false;
+                  _searchFocusNode.unfocus();
+                }
               });
             },
           ),
@@ -460,157 +489,175 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   }
 
   Widget _buildStockStatusChips() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 400;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
           Expanded(
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                FilterChip(
-                  label: const Text('All'),
-                  selected:
-                      _filter.inStock == null &&
-                      !_filter.favoritesOnly &&
-                      (_filter.sites == null || _filter.sites!.isEmpty) &&
-                      _filter.category == null &&
-                      _filter.minPrice == null &&
-                      _filter.maxPrice == null &&
-                      (_filter.searchTerm == null ||
-                          _filter.searchTerm!.isEmpty),
-                  onSelected: (_) async {
-                    // Clear all filters to show all products
-                    setState(() {
-                      _filter =
-                          ProductFilter(); // Reset to default empty filter
-                      _searchQuery = '';
-                      _searchController.clear();
-                      _currentPage = 1;
-                      _hasMoreProducts = true;
-                    });
-                    await _saveFilterToPrefs(_filter);
-                    _loadProducts();
-                  },
-                  selectedColor:
-                      Theme.of(context).brightness == Brightness.light
-                          ? Colors.green.shade50
-                          : Colors.green.withAlpha((0.2 * 255).toInt()),
-                  checkmarkColor:
-                      Theme.of(context).brightness == Brightness.light
-                          ? Colors.green.shade600
-                          : Colors.green,
-                  labelStyle: TextStyle(
-                    color:
-                        Theme.of(context).brightness == Brightness.light
-                            ? Colors.black87
-                            : Colors.white,
-                  ),
-                ),
-                FilterChip(
-                  label: const Text('Favorites'),
-                  selected: _filter.favoritesOnly,
-                  onSelected: (_) async {
-                    setState(() {
-                      if (_filter.favoritesOnly) {
-                        // If already selected, reset to All
-                        _filter = ProductFilter();
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  FilterChip(
+                    label: Text(
+                      'All',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 12 : 14,
+                        color:
+                            Theme.of(context).brightness == Brightness.light
+                                ? Colors.black87
+                                : Colors.white,
+                      ),
+                    ),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isSmallScreen ? 6 : 8,
+                      vertical: isSmallScreen ? 2 : 4,
+                    ),
+                    selected:
+                        _filter.inStock == null &&
+                        !_filter.favoritesOnly &&
+                        (_filter.sites == null || _filter.sites!.isEmpty) &&
+                        _filter.category == null &&
+                        _filter.minPrice == null &&
+                        _filter.maxPrice == null &&
+                        (_filter.searchTerm == null ||
+                            _filter.searchTerm!.isEmpty),
+                    onSelected: (_) async {
+                      // Clear all filters to show all products
+                      setState(() {
+                        _filter =
+                            ProductFilter(); // Reset to default empty filter
                         _searchQuery = '';
                         _searchController.clear();
-                      } else {
-                        _filter = _filter.copyWith(favoritesOnly: true);
-                      }
-                      _currentPage = 1;
-                      _hasMoreProducts = true;
-                    });
-                    await _saveFilterToPrefs(_filter);
-                    _loadProducts();
-                  },
-                  selectedColor:
-                      Theme.of(context).brightness == Brightness.light
-                          ? Colors.pink.shade50
-                          : Colors.pink.withAlpha((0.2 * 255).toInt()),
-                  checkmarkColor:
-                      Theme.of(context).brightness == Brightness.light
-                          ? Colors.pink.shade600
-                          : Colors.pink,
-                  labelStyle: TextStyle(
-                    color:
+                        _currentPage = 1;
+                        _hasMoreProducts = true;
+                      });
+                      await _saveFilterToPrefs(_filter);
+                      _loadProducts();
+                    },
+                    selectedColor:
                         Theme.of(context).brightness == Brightness.light
-                            ? Colors.black87
-                            : Colors.white,
-                  ),
-                ),
-                FilterChip(
-                  label: const Text('In Stock'),
-                  selected: _filter.inStock == true,
-                  onSelected: (_) async {
-                    setState(() {
-                      if (_filter.inStock == true) {
-                        // If already selected, reset to All
-                        _filter = ProductFilter();
-                        _searchQuery = '';
-                        _searchController.clear();
-                      } else {
-                        _filter = _filter.copyWith(inStock: true);
-                      }
-                      _currentPage = 1;
-                      _hasMoreProducts = true;
-                    });
-                    await _saveFilterToPrefs(_filter);
-                    _loadProducts();
-                  },
-                  selectedColor:
-                      Theme.of(context).brightness == Brightness.light
-                          ? Colors.green.shade50
-                          : Colors.green.withAlpha((0.2 * 255).toInt()),
-                  checkmarkColor:
-                      Theme.of(context).brightness == Brightness.light
-                          ? Colors.green.shade600
-                          : Colors.green,
-                  labelStyle: TextStyle(
-                    color:
+                            ? Colors.green.shade50
+                            : Colors.green.withAlpha((0.2 * 255).toInt()),
+                    checkmarkColor:
                         Theme.of(context).brightness == Brightness.light
-                            ? Colors.black87
-                            : Colors.white,
+                            ? Colors.green.shade600
+                            : Colors.green,
                   ),
-                ),
-                FilterChip(
-                  label: const Text('Out of Stock'),
-                  selected: _filter.inStock == false,
-                  onSelected: (_) async {
-                    setState(() {
-                      if (_filter.inStock == false) {
-                        // If already selected, reset to All
-                        _filter = ProductFilter();
-                        _searchQuery = '';
-                        _searchController.clear();
-                      } else {
-                        _filter = _filter.copyWith(inStock: false);
-                      }
-                      _currentPage = 1;
-                      _hasMoreProducts = true;
-                    });
-                    await _saveFilterToPrefs(_filter);
-                    _loadProducts();
-                  },
-                  selectedColor:
-                      Theme.of(context).brightness == Brightness.light
-                          ? Colors.red.shade50
-                          : Colors.red.withAlpha((0.2 * 255).toInt()),
-                  checkmarkColor:
-                      Theme.of(context).brightness == Brightness.light
-                          ? Colors.red.shade600
-                          : Colors.red,
-                  labelStyle: TextStyle(
-                    color:
+                  const SizedBox(width: 8),
+                  FilterChip(
+                    label: Text(
+                      'Favorites',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 12 : 14,
+                        color:
+                            Theme.of(context).brightness == Brightness.light
+                                ? Colors.black87
+                                : Colors.white,
+                      ),
+                    ),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isSmallScreen ? 6 : 8,
+                      vertical: isSmallScreen ? 2 : 4,
+                    ),
+                    selected: _filter.favoritesOnly,
+                    onSelected: (isSelected) async {
+                      setState(() {
+                        _filter = _filter.copyWith(favoritesOnly: isSelected);
+                        _currentPage = 1;
+                        _hasMoreProducts = true;
+                      });
+                      await _saveFilterToPrefs(_filter);
+                      _loadProducts();
+                    },
+                    selectedColor:
                         Theme.of(context).brightness == Brightness.light
-                            ? Colors.black87
-                            : Colors.white,
+                            ? Colors.pink.shade50
+                            : Colors.pink.withAlpha((0.2 * 255).toInt()),
+                    checkmarkColor:
+                        Theme.of(context).brightness == Brightness.light
+                            ? Colors.pink.shade600
+                            : Colors.pink,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  FilterChip(
+                    label: Text(
+                      'In Stock',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 12 : 14,
+                        color:
+                            Theme.of(context).brightness == Brightness.light
+                                ? Colors.black87
+                                : Colors.white,
+                      ),
+                    ),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isSmallScreen ? 6 : 8,
+                      vertical: isSmallScreen ? 2 : 4,
+                    ),
+                    selected: _filter.inStock == true,
+                    onSelected: (isSelected) async {
+                      setState(() {
+                        _filter = _filter.copyWith(
+                          inStock: isSelected ? true : null,
+                        );
+                        _currentPage = 1;
+                        _hasMoreProducts = true;
+                      });
+                      await _saveFilterToPrefs(_filter);
+                      _loadProducts();
+                    },
+                    selectedColor:
+                        Theme.of(context).brightness == Brightness.light
+                            ? Colors.green.shade50
+                            : Colors.green.withAlpha((0.2 * 255).toInt()),
+                    checkmarkColor:
+                        Theme.of(context).brightness == Brightness.light
+                            ? Colors.green.shade600
+                            : Colors.green,
+                  ),
+                  const SizedBox(width: 8),
+                  FilterChip(
+                    label: Text(
+                      'Out of Stock',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 12 : 14,
+                        color:
+                            Theme.of(context).brightness == Brightness.light
+                                ? Colors.black87
+                                : Colors.white,
+                      ),
+                    ),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isSmallScreen ? 6 : 8,
+                      vertical: isSmallScreen ? 2 : 4,
+                    ),
+                    selected: _filter.inStock == false,
+                    onSelected: (isSelected) async {
+                      setState(() {
+                        _filter = _filter.copyWith(
+                          inStock: isSelected ? false : null,
+                        );
+                        _currentPage = 1;
+                        _hasMoreProducts = true;
+                      });
+                      await _saveFilterToPrefs(_filter);
+                      _loadProducts();
+                    },
+                    selectedColor:
+                        Theme.of(context).brightness == Brightness.light
+                            ? Colors.red.shade50
+                            : Colors.red.withAlpha((0.2 * 255).toInt()),
+                    checkmarkColor:
+                        Theme.of(context).brightness == Brightness.light
+                            ? Colors.red.shade600
+                            : Colors.red,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -620,7 +667,6 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
   Widget _buildSearchSuggestions() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
@@ -628,87 +674,121 @@ class _HomeScreenContentState extends State<HomeScreenContent>
           color: Theme.of(context).colorScheme.outline.withAlpha(75),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_recentSearches.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.history,
-                    size: 16,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withAlpha(150),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Recent Searches',
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_recentSearches.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.history,
+                      size: 16,
                       color: Theme.of(
                         context,
                       ).colorScheme.onSurface.withAlpha(150),
                     ),
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: _clearSearchHistory,
-                    child: const Text('Clear'),
-                  ),
-                ],
-              ),
-            ),
-            ...(_recentSearches.take(3)).map(
-              (search) => ListTile(
-                dense: true,
-                leading: const Icon(Icons.search, size: 16),
-                title: Text(search),
-                trailing: IconButton(
-                  icon: const Icon(Icons.close, size: 16),
-                  onPressed: () => _removeSearchTerm(search),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Recent Searches',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withAlpha(150),
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: _clearSearchHistory,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: const Size(0, 30),
+                      ),
+                      child: const Text(
+                        'Clear',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
                 ),
-                onTap: () => _selectSearchTerm(search),
               ),
-            ),
-          ],
-          if (_recommendedProducts.isNotEmpty || _isLoadingRecommendations) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.recommend,
-                    size: 16,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withAlpha(150),
+              ...(_recentSearches.take(3)).map(
+                (search) => ListTile(
+                  dense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 2,
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Recommended',
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  leading: const Icon(Icons.search, size: 16),
+                  title: Text(search, style: const TextStyle(fontSize: 14)),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.close, size: 16),
+                    onPressed: () => _removeSearchTerm(search),
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(
+                      minWidth: 24,
+                      minHeight: 24,
+                    ),
+                  ),
+                  onTap: () => _selectSearchTerm(search),
+                ),
+              ),
+              if (_recommendedProducts.isNotEmpty) const Divider(height: 1),
+            ],
+            if (_recommendedProducts.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.lightbulb_outline,
+                      size: 16,
                       color: Theme.of(
                         context,
                       ).colorScheme.onSurface.withAlpha(150),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Text(
+                      'Recommended',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withAlpha(150),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            if (_isLoadingRecommendations)
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else
-              ...(_recommendedProducts.take(3)).map(
+              ...(_recommendedProducts.take(2)).map(
                 (product) => ListTile(
                   dense: true,
-                  leading: const Icon(Icons.local_cafe, size: 16),
-                  title: Text(product.name),
-                  subtitle: Text(product.site),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 2,
+                  ),
+                  leading: Icon(
+                    Icons.local_cafe,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  title: Text(
+                    product.name,
+                    style: const TextStyle(fontSize: 14),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    product.site,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withAlpha(120),
+                    ),
+                  ),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -723,8 +803,30 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                   },
                 ),
               ),
+            ],
+            if (_isLoadingRecommendations)
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              ),
+            if (_recentSearches.isEmpty &&
+                _recommendedProducts.isEmpty &&
+                !_isLoadingRecommendations)
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Start typing to search for matcha products...',
+                  style: TextStyle(fontSize: 14),
+                ),
+              ),
           ],
-        ],
+        ),
       ),
     );
   }

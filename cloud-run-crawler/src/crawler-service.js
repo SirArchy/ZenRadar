@@ -1,6 +1,8 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { v4: uuidv4 } = require('uuid');
+const sharp = require('sharp');
+const { getStorage } = require('firebase-admin/storage');
 
 /**
  * Cloud-based crawler service for matcha websites
@@ -11,6 +13,7 @@ class CrawlerService {
     this.db = firestore;
     this.logger = logger;
     this.userAgent = 'ZenRadar Bot 1.0 (+https://zenradar.app)';
+    this.storage = getStorage();
     
     // Site configurations - complete list matching Flutter app
     this.siteConfigs = {
@@ -23,6 +26,7 @@ class CrawlerService {
         priceSelector: '.price__current .price-item--regular, .price .price-item',
         stockSelector: '', // Determine stock by absence of "Out of stock" text
         linkSelector: '.card__heading a, .card__content a',
+        imageSelector: '.card__media img, .card__inner img, img[alt*="matcha"]',
         stockKeywords: ['add to cart', 'add to bag', 'buy now'],
         outOfStockKeywords: ['out of stock', 'sold out']
       },
@@ -35,6 +39,7 @@ class CrawlerService {
         priceSelector: '.price, .item-price, .cost',
         stockSelector: '.cart-form button:not([disabled]), .add-to-cart:not(.disabled)',
         linkSelector: 'a, .item-link',
+        imageSelector: '.item-image img, .product-image img, img[src*="product"]',
         stockKeywords: ['add to cart', 'in stock', 'available'],
         outOfStockKeywords: ['out of stock', 'sold out', 'unavailable']
       },
@@ -47,6 +52,7 @@ class CrawlerService {
         priceSelector: '.m-product-card__price',
         stockSelector: '.out-of-stock', // Products are out of stock if this element exists
         linkSelector: 'a[href*="/products/"]',
+        imageSelector: '.m-product-card__image img, .product-card__media img',
         stockKeywords: ['add to cart', 'buy now', 'purchase'],
         outOfStockKeywords: ['out of stock', 'sold out']
       },
@@ -59,6 +65,7 @@ class CrawlerService {
         priceSelector: '.cs-product-tile__price',
         stockSelector: 'a[href*="matcha"]', // Links to matcha products indicate availability
         linkSelector: 'a[href*="/matcha-"]',
+        imageSelector: '.cs-product-tile__image img, .product-image img',
         stockKeywords: ['add to cart', 'in stock', 'verfügbar'],
         outOfStockKeywords: ['ausverkauft', 'out of stock', 'sold out']
       },
@@ -71,6 +78,7 @@ class CrawlerService {
         priceSelector: 'span.price, .price:not(.price--block)',
         stockSelector: '.price',
         linkSelector: '.product-item-meta__title, .product-item__info a',
+        imageSelector: '.product-item__image img, .product-item__media img',
         stockKeywords: ['add to cart', 'in den warenkorb', 'kaufen'],
         outOfStockKeywords: ['ausverkauft', 'nicht verfügbar', 'sold out']
       },
@@ -83,6 +91,7 @@ class CrawlerService {
         priceSelector: '.product-price, .sqs-money-native, .ProductList-price',
         stockSelector: '.product-price',
         linkSelector: 'a, .ProductList-title a',
+        imageSelector: '.ProductList-image img, .product-image img',
         stockKeywords: ['add to cart', 'kaufen', 'in den warenkorb'],
         outOfStockKeywords: ['ausverkauft', 'sold out', 'nicht verfügbar']
       },
@@ -95,6 +104,7 @@ class CrawlerService {
         priceSelector: '.product-price',
         stockSelector: '.product-price', // Products with prices are available
         linkSelector: 'a[href*="/products/"]',
+        imageSelector: '.product-image img, .product-photo img',
         stockKeywords: ['add to cart', 'in stock', 'available'],
         outOfStockKeywords: ['out of stock', 'sold out', 'unavailable']
       },
@@ -107,6 +117,7 @@ class CrawlerService {
         priceSelector: '.price',
         stockSelector: '.price',
         linkSelector: 'a',
+        imageSelector: '.product-card__image img, .product-image img',
         stockKeywords: ['add to cart', 'buy now', 'purchase'],
         outOfStockKeywords: ['out of stock', 'sold out']
       },
@@ -119,20 +130,27 @@ class CrawlerService {
         priceSelector: '.price__regular',
         stockSelector: 'h3', // Used only for main page, not variants
         linkSelector: 'a[href*="/products/"]',
+        imageSelector: '.card__media img, .media img, img[src*="product"]',
         stockKeywords: ['add to cart', 'in den warenkorb', 'kaufen'],
-        outOfStockKeywords: ['ausverkauft', 'nicht verfügbar', 'sold out']
+        outOfStockKeywords: ['ausverkauft', 'nicht verfügbar', 'sold out', 'notify me']
       },
       'horiishichimeien': {
         name: 'Horiishichimeien',
         baseUrl: 'https://horiishichimeien.com',
         categoryUrl: 'https://horiishichimeien.com/en/collections/all?selected=%E6%8A%B9%E8%8C%B6',
-        productSelector: '.product-card, .product-item, .grid-product',
-        nameSelector: '.product-card__title, .product__title, h1, .grid-product__title',
-        priceSelector: '.product-card__price, .product__price, .price, .grid-product__price',
-        stockSelector: '.btn--add-to-cart, .add-to-cart, .product-form__buttons',
+        productSelector: 'li[contains(@class, "grid__item")] .card, .grid-product__link, a[href*="/products/matcha-"]',
+        nameSelector: '.card__heading a, .grid-product__meta .grid-product__title, h1',
+        priceSelector: '.price, .price__regular, .money',
+        stockSelector: '.product-form__buttons, .product-form, form[action="/cart/add"]',
         linkSelector: 'a[href*="/products/"]',
-        stockKeywords: ['add to cart', 'buy now', 'purchase', 'add to bag'],
-        outOfStockKeywords: ['out of stock', 'sold out', 'unavailable', '売り切れ']
+        imageSelector: '.card__media img, .grid-product__image img, .product__media img, img[alt*="Matcha"]',
+        stockKeywords: ['add to cart', 'buy now', 'purchase', 'add to bag', 'カートに入れる'],
+        outOfStockKeywords: ['sold out', 'unavailable', '売り切れ', 'out of stock'],
+        currencyConversion: {
+          from: 'JPY',
+          to: 'EUR',
+          rate: 0.0062 // 1 JPY = 0.0062 EUR (approximate, should be updated regularly)
+        }
       }
     };
 
@@ -315,6 +333,9 @@ class CrawlerService {
 
           // Clean price using site-specific logic
           price = this.cleanPriceBySite(price, siteKey);
+          
+          // Convert price if needed (e.g., JPY to EUR for Horiishichimeien)
+          const convertedPrice = this.convertPrice(price, siteKey);
 
           // Determine stock status
           const isInStock = this.determineStockStatusFromListing(productElement, config, siteKey);
@@ -322,17 +343,33 @@ class CrawlerService {
           // Generate product ID
           const productId = this.generateProductId(productUrl || config.categoryUrl, name, siteKey);
 
+          // Extract and process image
+          let imageUrl = null;
+          try {
+            const rawImageUrl = this.extractImageUrl(productElement, config, siteKey);
+            if (rawImageUrl) {
+              imageUrl = await this.downloadAndStoreImage(rawImageUrl, productId, siteKey);
+            }
+          } catch (error) {
+            this.logger.warn('Failed to process product image', {
+              site: siteKey,
+              productId,
+              error: error.message
+            });
+          }
+
           const product = {
             id: productId,
             name: name,
             normalizedName: this.normalizeName(name),
             site: siteKey,
             siteName: config.name,
-            price: price,
-            originalPrice: price,
-            priceValue: this.extractPriceValue(price),
-            currency: 'EUR', // Default to EUR, will be normalized
+            price: convertedPrice || price,
+            originalPrice: price, // Keep original price
+            priceValue: this.extractPriceValue(convertedPrice || price),
+            currency: this.getCurrencyForSite(siteKey),
             url: productUrl || config.categoryUrl,
+            imageUrl: imageUrl,
             isInStock,
             category: this.detectCategory(name, siteKey),
             lastChecked: new Date(),
@@ -429,6 +466,39 @@ class CrawlerService {
   }
 
   /**
+   * Get currency for site
+   */
+  getCurrencyForSite(siteKey) {
+    const config = this.siteConfigs[siteKey];
+    if (config && config.currencyConversion) {
+      return config.currencyConversion.to;
+    }
+    return 'EUR'; // Default currency
+  }
+
+  /**
+   * Convert price if currency conversion is configured
+   */
+  convertPrice(price, siteKey) {
+    const config = this.siteConfigs[siteKey];
+    if (!config || !config.currencyConversion || !price) {
+      return price;
+    }
+
+    // Extract numeric value from price
+    const numericValue = this.extractPriceValue(price);
+    if (numericValue === null) {
+      return price;
+    }
+
+    // Convert currency
+    const convertedValue = numericValue * config.currencyConversion.rate;
+    
+    // Format as target currency
+    return `€${convertedValue.toFixed(2)}`;
+  }
+
+  /**
    * Determine stock status from listing page element (not individual product page)
    */
   determineStockStatusFromListing(productElement, config, siteKey) {
@@ -494,21 +564,32 @@ class CrawlerService {
         if (productElement.find('.price__badge--sold-out, .sold-out-badge, .out-of-stock, .badge--sold-out').length > 0) {
           return false;
         }
-        if (elementText.includes('売り切れ') || elementText.includes('out of stock') || 
-            elementText.includes('sold out') || elementText.includes('unavailable')) {
+        
+        // Check for "SOLD OUT" text in the element
+        if (elementText.includes('sold out') || elementText.includes('unavailable') || 
+            elementText.includes('売り切れ') || elementText.includes('out of stock')) {
           return false;
         }
         
-        // Check for presence of price as a primary indicator
-        const hasPriceElement = productElement.find(config.priceSelector).length > 0;
-        const priceText = productElement.find(config.priceSelector).text().trim();
-        const hasValidPrice = hasPriceElement && priceText && !priceText.includes('sold out');
+        // Check for price presence - Horiishichimeien shows price for available items
+        const hpriceElement = productElement.find(config.priceSelector);
+        const hpriceText = hpriceElement.text().trim();
         
-        // Check for add to cart button or form
-        const hasAddToCartButton = productElement.find('.btn--add-to-cart, .add-to-cart, .product-form__buttons button:not([disabled])').length > 0;
+        // If no price element or price is empty/invalid, consider out of stock
+        if (!hpriceElement.length || !hpriceText || hpriceText.length < 2) {
+          return false;
+        }
         
-        // Product is in stock if it has a valid price AND (has add to cart button OR doesn't have explicit out-of-stock indicators)
-        return hasValidPrice && (hasAddToCartButton || !elementText.toLowerCase().includes('sold'));
+        // If price contains "¥" and a number, it's likely in stock
+        if (hpriceText.includes('¥') && /\d/.test(hpriceText)) {
+          return true;
+        }
+        
+        // Check if there's a visible link to the product (products without links might be unavailable)
+        const hasValidLink = productElement.find('a[href*="/products/"]').length > 0;
+        
+        // Product is in stock if it has a valid price and a valid link
+        return hasValidLink && hpriceText.length > 0;
 
       default:
         // Fallback: check for stock keywords vs out-of-stock keywords
@@ -933,92 +1014,217 @@ class CrawlerService {
       const $ = cheerio.load(response.data);
       const variants = [];
 
-      // Look for variant selectors (Shopify standard)
-      const variantSelectors = $('select[name="id"], .product-form__option select, input[name="id"]');
-      
-      if (variantSelectors.length > 0) {
-        // Extract variants from select options
-        variantSelectors.each((_, element) => {
-          const $select = $(element);
-          $select.find('option').each((_, option) => {
-            const $option = $(option);
-            const value = $option.attr('value');
-            const text = $option.text().trim();
-            
-            if (value && text && !text.toLowerCase().includes('select') && !text.includes('---')) {
-              // Parse variant info (typically includes size and price)
-              const variant = this.parseVariantText(text, baseName);
-              if (variant) {
-                variant.id = this.generateProductId(productUrl, variant.name, 'poppatea');
-                variant.site = 'poppatea';
-                variant.siteName = config.name;
-                variant.url = productUrl;
-                variant.category = this.detectCategory(baseName, 'poppatea');
-                variant.lastChecked = new Date();
-                variant.lastUpdated = new Date();
-                variant.firstSeen = new Date();
-                variant.isDiscontinued = false;
-                variant.missedScans = 0;
-                variant.crawlSource = 'cloud-run';
-                variant.variantId = value;
-                
-                // Check stock status for this variant
-                variant.isInStock = this.checkVariantStock($, value, text);
-                
-                variants.push(variant);
+      // Extract main product image
+      let mainImageUrl = null;
+      try {
+        const imageSelectors = [
+          '.product__media img',
+          '.product-single__photos img',
+          '.product__photo img',
+          'img[src*="product"]'
+        ];
+        
+        for (const selector of imageSelectors) {
+          const img = $(selector).first();
+          if (img.length) {
+            let imgSrc = img.attr('src') || img.attr('data-src');
+            if (imgSrc) {
+              if (imgSrc.startsWith('//')) {
+                imgSrc = 'https:' + imgSrc;
+              } else if (imgSrc.startsWith('/')) {
+                imgSrc = config.baseUrl + imgSrc;
               }
+              mainImageUrl = imgSrc.split('?')[0]; // Remove query params
+              break;
+            }
+          }
+        }
+      } catch (imageError) {
+        this.logger.warn('Failed to extract product image', { productUrl, error: imageError.message });
+      }
+
+      // Process main image once for all variants
+      let processedMainImageUrl = null;
+      if (mainImageUrl) {
+        try {
+          const tempProductId = this.generateProductId(productUrl, baseName, 'poppatea');
+          processedMainImageUrl = await this.downloadAndStoreImage(mainImageUrl, tempProductId, 'poppatea');
+        } catch (imageError) {
+          this.logger.warn('Failed to process main product image', { productUrl, error: imageError.message });
+        }
+      }
+
+      // Method 1: Look for Shopify product JSON (most reliable)
+      const scriptTags = $('script[type="application/json"], script:contains("product")');
+      let foundInJson = false;
+      
+      scriptTags.each((_, script) => {
+        if (foundInJson) return;
+        
+        try {
+          let jsonData;
+          const scriptContent = $(script).html();
+          
+          // Try to parse as JSON
+          try {
+            jsonData = JSON.parse(scriptContent);
+          } catch (e) {
+            // If direct parsing fails, look for JSON within the script
+            const jsonMatch = scriptContent.match(/product["\s]*:[^{]*({[^}]+})/);
+            if (jsonMatch) {
+              jsonData = JSON.parse(jsonMatch[1]);
+            }
+          }
+          
+          if (jsonData && jsonData.variants) {
+            this.logger.info('Found Shopify product JSON with variants', { 
+              productUrl, 
+              variantCount: jsonData.variants.length 
+            });
+            
+            for (const variant of jsonData.variants) {
+              const sizeName = variant.title || variant.option1 || variant.option2 || '';
+              const variantName = sizeName ? `${baseName} - ${sizeName}` : baseName;
+              
+              // Calculate product ID for this variant
+              const variantId = this.generateProductId(productUrl, variantName, 'poppatea');
+              
+              const variantProduct = {
+                id: variantId,
+                name: variantName.trim(),
+                normalizedName: this.normalizeName(variantName),
+                site: 'poppatea',
+                siteName: config.name,
+                price: variant.price ? `€${(variant.price / 100).toFixed(2)}` : '',
+                originalPrice: variant.price ? `€${(variant.price / 100).toFixed(2)}` : '',
+                priceValue: variant.price ? variant.price / 100 : 0,
+                currency: 'EUR',
+                url: productUrl,
+                imageUrl: processedMainImageUrl,
+                isInStock: variant.available || false,
+                category: this.detectCategory(baseName, 'poppatea'),
+                lastChecked: new Date(),
+                lastUpdated: new Date(),
+                firstSeen: new Date(),
+                isDiscontinued: false,
+                missedScans: 0,
+                crawlSource: 'cloud-run',
+                variantId: variant.id
+              };
+              variants.push(variantProduct);
+            }
+            foundInJson = true;
+          }
+        } catch (e) {
+          // Continue if JSON parsing fails
+        }
+      });
+
+      // Method 2: Look for variant selectors (HTML forms)
+      if (!foundInJson) {
+        const variantSelectors = $('select[name="id"], .product-form__option select, input[name="id"]');
+        
+        if (variantSelectors.length > 0) {
+          this.logger.info('Found variant selectors', { productUrl, selectorCount: variantSelectors.length });
+          
+          variantSelectors.each((_, element) => {
+            const $select = $(element);
+            $select.find('option').each((_, option) => {
+              const $option = $(option);
+              const value = $option.attr('value');
+              const text = $option.text().trim();
+              
+              if (value && text && !text.toLowerCase().includes('select') && !text.includes('---')) {
+                // Parse variant info (typically includes size and price)
+                const variant = this.parseVariantText(text, baseName);
+                if (variant) {
+                  const variantId = this.generateProductId(productUrl, variant.name, 'poppatea');
+                  
+                  variant.id = variantId;
+                  variant.site = 'poppatea';
+                  variant.siteName = config.name;
+                  variant.url = productUrl;
+                  variant.imageUrl = processedMainImageUrl;
+                  variant.category = this.detectCategory(baseName, 'poppatea');
+                  variant.lastChecked = new Date();
+                  variant.lastUpdated = new Date();
+                  variant.firstSeen = new Date();
+                  variant.isDiscontinued = false;
+                  variant.missedScans = 0;
+                  variant.crawlSource = 'cloud-run';
+                  variant.variantId = value;
+                  
+                  // Check stock status for this variant
+                  variant.isInStock = this.checkVariantStock($, value, text);
+                  
+                  variants.push(variant);
+                }
+              }
+            });
+          });
+        }
+      }
+
+      // Method 3: Look for size/variant buttons or labels
+      if (variants.length === 0) {
+        const sizeButtons = $('.product-form__buttons input[type="radio"], .size-variant, .variant-option');
+        
+        if (sizeButtons.length > 0) {
+          this.logger.info('Found size variant buttons', { productUrl, buttonCount: sizeButtons.length });
+          
+          sizeButtons.each((_, element) => {
+            const $element = $(element);
+            const value = $element.attr('value') || $element.attr('data-value');
+            const label = $element.next('label').text() || $element.attr('data-title') || '';
+            
+            if (label && value) {
+              const variantName = `${baseName} - ${label}`;
+              const variantId = this.generateProductId(productUrl, variantName, 'poppatea');
+              
+              // Try to extract price from nearby elements or use main price
+              let price = '';
+              const priceElement = $element.closest('.variant-option').find('.price, .variant-price');
+              if (priceElement.length > 0) {
+                price = this.cleanPriceBySite(priceElement.text(), 'poppatea');
+              } else {
+                price = this.cleanPriceBySite($('.price__regular, .price').first().text(), 'poppatea');
+              }
+              
+              variants.push({
+                id: variantId,
+                name: variantName,
+                normalizedName: this.normalizeName(variantName),
+                site: 'poppatea',
+                siteName: config.name,
+                price: price,
+                originalPrice: price,
+                priceValue: this.extractPriceValue(price),
+                currency: 'EUR',
+                url: productUrl,
+                imageUrl: processedMainImageUrl,
+                isInStock: !$element.is(':disabled') && !$element.hasClass('disabled'),
+                category: this.detectCategory(baseName, 'poppatea'),
+                lastChecked: new Date(),
+                lastUpdated: new Date(),
+                firstSeen: new Date(),
+                isDiscontinued: false,
+                missedScans: 0,
+                crawlSource: 'cloud-run',
+                variantId: value
+              });
             }
           });
-        });
+        }
       }
 
-      // If no variants found in selectors, try extracting from JSON-LD or variant forms
-      if (variants.length === 0) {
-        // Look for Shopify product JSON
-        const scriptTags = $('script[type="application/json"]');
-        scriptTags.each((_, script) => {
-          try {
-            const jsonData = JSON.parse($(script).html());
-            if (jsonData.variants) {
-              for (const variant of jsonData.variants) {
-                const variantName = `${baseName} - ${variant.title || variant.option1 || ''}`;
-                const variantProduct = {
-                  id: this.generateProductId(productUrl, variantName, 'poppatea'),
-                  name: variantName.trim(),
-                  normalizedName: this.normalizeName(variantName),
-                  site: 'poppatea',
-                  siteName: config.name,
-                  price: variant.price ? `€${(variant.price / 100).toFixed(2)}` : '',
-                  originalPrice: variant.price ? `€${(variant.price / 100).toFixed(2)}` : '',
-                  priceValue: variant.price ? variant.price / 100 : 0,
-                  currency: 'EUR',
-                  url: productUrl,
-                  isInStock: variant.available || false,
-                  category: this.detectCategory(baseName, 'poppatea'),
-                  lastChecked: new Date(),
-                  lastUpdated: new Date(),
-                  firstSeen: new Date(),
-                  isDiscontinued: false,
-                  missedScans: 0,
-                  crawlSource: 'cloud-run',
-                  variantId: variant.id
-                };
-                variants.push(variantProduct);
-              }
-            }
-          } catch (e) {
-            // Continue if JSON parsing fails
-          }
-        });
-      }
-
-      // If still no variants, create a single product
+      // If still no variants found, create a single product
       if (variants.length === 0) {
         const price = this.extractText($('.price__regular, .price'), '');
         const cleanedPrice = this.cleanPriceBySite(price, 'poppatea');
+        const productId = this.generateProductId(productUrl, baseName, 'poppatea');
         
         variants.push({
-          id: this.generateProductId(productUrl, baseName, 'poppatea'),
+          id: productId,
           name: baseName,
           normalizedName: this.normalizeName(baseName),
           site: 'poppatea',
@@ -1028,6 +1234,7 @@ class CrawlerService {
           priceValue: this.extractPriceValue(cleanedPrice),
           currency: 'EUR',
           url: productUrl,
+          imageUrl: processedMainImageUrl,
           isInStock: !($('.sold-out, .unavailable').length > 0 || 
                       $('body').text().toLowerCase().includes('ausverkauft')),
           category: this.detectCategory(baseName, 'poppatea'),
@@ -1043,14 +1250,16 @@ class CrawlerService {
       this.logger.info('Extracted Poppatea variants', {
         productUrl,
         baseName,
-        variantCount: variants.length
+        variantCount: variants.length,
+        method: foundInJson ? 'JSON' : 'HTML'
       });
 
       return variants;
     } catch (error) {
       this.logger.error('Failed to extract Poppatea variants', {
         productUrl,
-        error: error.message
+        error: error.message,
+        stack: error.stack
       });
       return [];
     }
@@ -1173,8 +1382,123 @@ class CrawlerService {
   }
 
   /**
-   * Utility function to chunk array
+   * Download and compress image, then upload to Firebase Storage
    */
+  async downloadAndStoreImage(imageUrl, productId, siteKey) {
+    try {
+      if (!imageUrl || imageUrl.includes('data:') || imageUrl.includes('placeholder')) {
+        return null;
+      }
+
+      // Make URL absolute if relative
+      let absoluteUrl = imageUrl;
+      if (imageUrl.startsWith('//')) {
+        absoluteUrl = 'https:' + imageUrl;
+      } else if (imageUrl.startsWith('/')) {
+        const config = this.siteConfigs[siteKey];
+        absoluteUrl = config.baseUrl + imageUrl;
+      }
+
+      this.logger.info('Downloading image', { 
+        productId, 
+        siteKey, 
+        imageUrl: absoluteUrl 
+      });
+
+      // Download image
+      const response = await axios({
+        method: 'GET',
+        url: absoluteUrl,
+        responseType: 'arraybuffer',
+        timeout: 15000,
+        headers: {
+          'User-Agent': this.userAgent,
+          'Accept': 'image/*',
+        }
+      });
+
+      // Compress image using Sharp
+      const compressedImageBuffer = await sharp(response.data)
+        .resize(400, 400, { 
+          fit: 'inside', 
+          withoutEnlargement: true 
+        })
+        .jpeg({ 
+          quality: 85,
+          progressive: true 
+        })
+        .toBuffer();
+
+      // Upload to Firebase Storage
+      const fileName = `product-images/${siteKey}/${productId}.jpg`;
+      const file = this.storage.bucket().file(fileName);
+      
+      await file.save(compressedImageBuffer, {
+        metadata: {
+          contentType: 'image/jpeg',
+          cacheControl: 'public, max-age=86400', // 1 day cache
+        }
+      });
+
+      // Make file publicly accessible
+      await file.makePublic();
+
+      // Return public URL
+      const publicUrl = `https://storage.googleapis.com/${this.storage.bucket().name}/${fileName}`;
+      
+      this.logger.info('Image uploaded successfully', { 
+        productId, 
+        siteKey,
+        publicUrl,
+        originalSize: response.data.length,
+        compressedSize: compressedImageBuffer.length
+      });
+
+      return publicUrl;
+
+    } catch (error) {
+      this.logger.error('Failed to download and store image', {
+        productId,
+        siteKey,
+        imageUrl,
+        error: error.message
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Extract image URL from product element
+   */
+  extractImageUrl(productElement, config, siteKey) {
+    if (!config.imageSelector) return null;
+
+    const selectors = config.imageSelector.split(',').map(s => s.trim());
+    
+    for (const selector of selectors) {
+      const img = productElement.find(selector).first();
+      if (img.length) {
+        let imageUrl = img.attr('src') || img.attr('data-src') || img.attr('data-original');
+        
+        // Handle lazy loading attributes
+        if (!imageUrl) {
+          imageUrl = img.attr('data-lazy') || img.attr('data-srcset');
+          if (imageUrl && imageUrl.includes(',')) {
+            // Extract first URL from srcset
+            imageUrl = imageUrl.split(',')[0].trim().split(' ')[0];
+          }
+        }
+
+        if (imageUrl) {
+          // Remove query parameters for cleaner URLs
+          imageUrl = imageUrl.split('?')[0];
+          return imageUrl;
+        }
+      }
+    }
+
+    return null;
+  }
   chunkArray(array, size) {
     const chunks = [];
     for (let i = 0; i < array.length; i += size) {

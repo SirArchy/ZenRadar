@@ -138,9 +138,6 @@ class _ProductFiltersState extends State<ProductFilters> {
           _buildFavoritesToggle(isSmallScreen),
           const SizedBox(height: 16),
 
-          // Discontinued Products Toggle
-          _buildDiscontinuedToggle(isSmallScreen),
-
           // Clear all button at bottom for modal version
           if (widget.onClose != null) ...[
             const SizedBox(height: 24),
@@ -651,27 +648,6 @@ class _ProductFiltersState extends State<ProductFilters> {
       contentPadding: EdgeInsets.zero,
       onChanged: (value) {
         _updateFilter(_currentFilter.copyWith(favoritesOnly: value ?? false));
-      },
-    );
-  }
-
-  Widget _buildDiscontinuedToggle(bool isSmallScreen) {
-    return CheckboxListTile(
-      title: Text(
-        'Show discontinued products',
-        style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
-      ),
-      subtitle: Text(
-        'Include products that are no longer available',
-        style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
-      ),
-      value: _currentFilter.showDiscontinued,
-      dense: isSmallScreen,
-      contentPadding: EdgeInsets.zero,
-      onChanged: (value) {
-        _updateFilter(
-          _currentFilter.copyWith(showDiscontinued: value ?? false),
-        );
       },
     );
   }
