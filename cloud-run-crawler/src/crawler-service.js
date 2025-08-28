@@ -665,11 +665,25 @@ class CrawlerService {
   extractPriceValue(priceString) {
     if (!priceString) return null;
 
-    // Remove currency symbols and common text
-    const cleaned = priceString.replace(/[€$¥£]/g, '').replace(/[^\d.,]/g, '');
+    // Handle Japanese Yen (no decimal places, may have comma thousands separator)
+    if (priceString.includes('¥') || priceString.includes('￥')) {
+      const cleaned = priceString.replace(/[¥￥]/g, '').replace(/[^\d]/g, '');
+      const jpyValue = parseInt(cleaned);
+      return jpyValue > 0 ? jpyValue : null;
+    }
+
+    // Handle European format with comma as decimal separator
+    if (/\d+,\d{2}/.test(priceString)) {
+      const cleaned = priceString.replace(/[€$£]/g, '').replace(/[^\d,]/g, '');
+      const euroValue = parseFloat(cleaned.replace(',', '.'));
+      return euroValue > 0 ? euroValue : null;
+    }
+
+    // Handle standard format with period as decimal separator
+    const cleaned = priceString.replace(/[€$¥£￥]/g, '').replace(/[^\d.]/g, '');
     
     // Extract the first number with decimal places
-    const priceMatch = cleaned.match(/(\d+)[.,](\d+)/);
+    const priceMatch = cleaned.match(/(\d+)\.(\d+)/);
     if (priceMatch) {
       const wholePart = parseInt(priceMatch[1]);
       const decimalPart = parseInt(priceMatch[2]) / 100;
@@ -1120,9 +1134,9 @@ class CrawlerService {
                 normalizedName: this.normalizeName(variantName),
                 site: 'poppatea',
                 siteName: config.name,
-                price: variant.price ? `€${(variant.price / 100).toFixed(2)}` : '',
-                originalPrice: variant.price ? `€${(variant.price / 100).toFixed(2)}` : '',
-                priceValue: variant.price ? variant.price / 100 : 0,
+                price: variant.price !== undefined && variant.price !== null ? `€${(variant.price / 100).toFixed(2).replace('.', ',')}` : '',
+                originalPrice: variant.price !== undefined && variant.price !== null ? `€${(variant.price / 100).toFixed(2).replace('.', ',')}` : '',
+                priceValue: variant.price !== undefined && variant.price !== null ? variant.price / 100 : 0,
                 currency: 'EUR',
                 url: productUrl,
                 imageUrl: processedMainImageUrl,
@@ -1314,7 +1328,9 @@ class CrawlerService {
         productUrl,
         baseName,
         variantCount: variants.length,
-        method: foundInJson ? 'JSON' : 'HTML'
+        method: foundInJson ? 'JSON' : 'HTML',
+        withPrices: variants.filter(v => v.priceValue > 0).length,
+        variantNames: variants.map(v => v.name).slice(0, 3)
       });
 
       return variants;
