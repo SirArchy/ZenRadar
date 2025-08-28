@@ -475,7 +475,8 @@ class ProductFilter {
   final bool? inStock;
   final double? minPrice;
   final double? maxPrice;
-  final String? category;
+  final List<String>?
+  categories; // Changed from single category to multiple categories
   final String? searchTerm;
   final bool showDiscontinued;
   final bool favoritesOnly;
@@ -485,18 +486,22 @@ class ProductFilter {
     this.inStock,
     this.minPrice,
     this.maxPrice,
-    this.category,
+    this.categories,
     this.searchTerm,
     this.showDiscontinued = false,
     this.favoritesOnly = false,
   });
+
+  // Backward compatibility getter
+  String? get category =>
+      categories?.isNotEmpty == true ? categories!.first : null;
 
   ProductFilter copyWith({
     List<String>? sites,
     bool? inStock,
     double? minPrice,
     double? maxPrice,
-    String? category,
+    List<String>? categories,
     String? searchTerm,
     bool? showDiscontinued,
     bool? favoritesOnly,
@@ -506,7 +511,7 @@ class ProductFilter {
       inStock: inStock ?? this.inStock,
       minPrice: minPrice ?? this.minPrice,
       maxPrice: maxPrice ?? this.maxPrice,
-      category: category ?? this.category,
+      categories: categories ?? this.categories,
       searchTerm: searchTerm ?? this.searchTerm,
       showDiscontinued: showDiscontinued ?? this.showDiscontinued,
       favoritesOnly: favoritesOnly ?? this.favoritesOnly,
@@ -515,7 +520,7 @@ class ProductFilter {
 
   @override
   String toString() {
-    return 'ProductFilter(sites: $sites, inStock: $inStock, minPrice: $minPrice, maxPrice: $maxPrice, category: $category, searchTerm: $searchTerm, showDiscontinued: $showDiscontinued, favoritesOnly: $favoritesOnly)';
+    return 'ProductFilter(sites: $sites, inStock: $inStock, minPrice: $minPrice, maxPrice: $maxPrice, categories: $categories, searchTerm: $searchTerm, showDiscontinued: $showDiscontinued, favoritesOnly: $favoritesOnly)';
   }
 }
 

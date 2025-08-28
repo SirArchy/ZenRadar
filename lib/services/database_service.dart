@@ -418,9 +418,10 @@ class DatabaseService {
         whereArgs.add(filter.maxPrice);
       }
 
-      if (filter.category != null && filter.category!.isNotEmpty) {
-        whereClause += ' AND category = ?';
-        whereArgs.add(filter.category);
+      if (filter.categories != null && filter.categories!.isNotEmpty) {
+        final placeholders = filter.categories!.map((_) => '?').join(',');
+        whereClause += ' AND category IN ($placeholders)';
+        whereArgs.addAll(filter.categories!);
       }
 
       if (filter.searchTerm != null && filter.searchTerm!.isNotEmpty) {

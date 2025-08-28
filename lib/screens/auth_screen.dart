@@ -95,18 +95,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
               const SizedBox(height: 32),
 
               Text(
-                'ZenRadar Server Mode',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 8),
-
-              Text(
-                'Sign in or create an account to access server features',
+                'Sign in or create an account to access all features',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),

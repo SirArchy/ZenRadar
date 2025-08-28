@@ -65,6 +65,10 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   // Favorites tracking
   Set<String> _favoriteProductIds = {};
 
+  // Sorting state
+  String _sortBy = 'name'; // 'name', 'price', 'category'
+  bool _sortAscending = true;
+
   // Public method to refresh products (can be called from parent)
   void refreshProducts() {
     _loadProducts();
@@ -80,7 +84,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     }
     prefs.setBool('filter_favoritesOnly', filter.favoritesOnly);
     prefs.setStringList('filter_sites', filter.sites ?? []);
-    prefs.setString('filter_category', filter.category ?? '');
+    prefs.setStringList('filter_categories', filter.categories ?? []);
     if (filter.minPrice != null) {
       prefs.setDouble('filter_minPrice', filter.minPrice!);
     } else {
@@ -103,7 +107,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         prefs.containsKey('filter_inStock') ||
         prefs.getBool('filter_favoritesOnly') == true ||
         (prefs.getStringList('filter_sites')?.isNotEmpty == true) ||
-        (prefs.getString('filter_category')?.isNotEmpty == true) ||
+        (prefs.getStringList('filter_categories')?.isNotEmpty == true) ||
         prefs.containsKey('filter_minPrice') ||
         prefs.containsKey('filter_maxPrice') ||
         (prefs.getString('filter_searchTerm')?.isNotEmpty == true);
@@ -119,7 +123,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
               : null,
       favoritesOnly: prefs.getBool('filter_favoritesOnly') ?? false,
       sites: prefs.getStringList('filter_sites'),
-      category: prefs.getString('filter_category'),
+      categories: prefs.getStringList('filter_categories'),
       minPrice:
           prefs.containsKey('filter_minPrice')
               ? prefs.getDouble('filter_minPrice')
@@ -202,6 +206,41 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         _isLoadingRecommendations = false;
       });
     }
+  }
+
+  int _getActiveFilterCount() {
+    int count = 0;
+
+    // Check if sites are filtered (not empty and not all sites)
+    if (_filter.sites?.isNotEmpty == true) {
+      count++;
+    }
+
+    // Check if categories are set
+    if (_filter.categories?.isNotEmpty == true) {
+      count++;
+    }
+
+    // Check if price range is set (different from default range)
+    if (_filter.minPrice != null || _filter.maxPrice != null) {
+      final defaultMin = _priceRange['min'] ?? 0.0;
+      final defaultMax = _priceRange['max'] ?? 1000.0;
+      if (_filter.minPrice != defaultMin || _filter.maxPrice != defaultMax) {
+        count++;
+      }
+    }
+
+    // Check if favorites only is enabled
+    if (_filter.favoritesOnly) {
+      count++;
+    }
+
+    // Check if search term is set
+    if (_filter.searchTerm?.isNotEmpty == true) {
+      count++;
+    }
+
+    return count;
   }
 
   Future<void> _restoreFilterAndLoadProducts() async {
@@ -320,6 +359,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
           _currentPage++;
         }
       });
+
+      // Apply sorting after loading products
+      _applySorting();
     } catch (e) {
       print('Error loading products: $e');
       setState(() {
@@ -416,6 +458,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                 ),
               ),
             _buildStockStatusChips(),
+            _buildSortingOptions(),
             Expanded(child: _buildProductsList()),
           ],
         ),
@@ -469,21 +512,52 @@ class _HomeScreenContentState extends State<HomeScreenContent>
             ),
           ),
           const SizedBox(width: 8),
-          IconButton(
-            icon: Icon(
-              _showFilters ? Icons.filter_alt : Icons.filter_alt_outlined,
-              color:
-                  _showFilters ? Theme.of(context).colorScheme.primary : null,
-            ),
-            onPressed: () {
-              setState(() {
-                _showFilters = !_showFilters;
-                if (_showFilters) {
-                  _showSearchSuggestions = false;
-                  _searchFocusNode.unfocus();
-                }
-              });
-            },
+          Stack(
+            children: [
+              IconButton(
+                icon: Icon(
+                  _showFilters ? Icons.filter_alt : Icons.filter_alt_outlined,
+                  color:
+                      _showFilters
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _showFilters = !_showFilters;
+                    if (_showFilters) {
+                      _showSearchSuggestions = false;
+                      _searchFocusNode.unfocus();
+                    }
+                  });
+                },
+              ),
+              if (_getActiveFilterCount() > 0)
+                Positioned(
+                  right: 6,
+                  top: 6,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.error,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      '${_getActiveFilterCount()}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onError,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
       ),
@@ -665,6 +739,124 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         ],
       ),
     );
+  }
+
+  Widget _buildSortingOptions() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 400;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Icon(
+            Icons.sort,
+            size: isSmallScreen ? 18 : 20,
+            color: Theme.of(context).colorScheme.onSurface.withAlpha(180),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Sort by:',
+            style: TextStyle(
+              fontSize: isSmallScreen ? 12 : 14,
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(180),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildSortChip('Name', 'name', isSmallScreen),
+                  const SizedBox(width: 8),
+                  _buildSortChip('Price', 'price', isSmallScreen),
+                  const SizedBox(width: 8),
+                  _buildSortChip('Category', 'category', isSmallScreen),
+                ],
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: () {
+              setState(() {
+                _sortAscending = !_sortAscending;
+              });
+              _applySorting();
+            },
+            icon: Icon(
+              _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+              size: isSmallScreen ? 18 : 20,
+            ),
+            tooltip: _sortAscending ? 'Sort Ascending' : 'Sort Descending',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSortChip(String label, String sortKey, bool isSmallScreen) {
+    final isSelected = _sortBy == sortKey;
+
+    return FilterChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: isSmallScreen ? 11 : 13,
+          color:
+              isSelected
+                  ? Theme.of(context).colorScheme.onPrimary
+                  : Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+      selected: isSelected,
+      onSelected: (selected) {
+        if (selected) {
+          setState(() {
+            _sortBy = sortKey;
+          });
+          _applySorting();
+        }
+      },
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 6 : 8,
+        vertical: isSmallScreen ? 2 : 4,
+      ),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      selectedColor: Theme.of(context).colorScheme.primary,
+      checkmarkColor: Theme.of(context).colorScheme.onPrimary,
+    );
+  }
+
+  void _applySorting() {
+    setState(() {
+      _products.sort((a, b) {
+        int comparison = 0;
+
+        switch (_sortBy) {
+          case 'name':
+            comparison = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+            break;
+          case 'price':
+            // Handle null prices - put them at the end
+            if (a.priceValue == null && b.priceValue == null) return 0;
+            if (a.priceValue == null) return 1;
+            if (b.priceValue == null) return -1;
+            comparison = a.priceValue!.compareTo(b.priceValue!);
+            break;
+          case 'category':
+            final aCategory = a.category ?? 'zzz'; // Put null categories at end
+            final bCategory = b.category ?? 'zzz';
+            comparison = aCategory.toLowerCase().compareTo(
+              bCategory.toLowerCase(),
+            );
+            break;
+        }
+
+        return _sortAscending ? comparison : -comparison;
+      });
+    });
   }
 
   Widget _buildSearchSuggestions() {

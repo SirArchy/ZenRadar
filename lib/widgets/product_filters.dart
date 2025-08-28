@@ -31,8 +31,14 @@ class _ProductFiltersState extends State<ProductFilters> {
   late ProductFilter _currentFilter;
   late RangeValues _priceRangeValues;
   bool _isSiteFilterExpanded = false; // Add state for expandable site filter
+  bool _isCategoryFilterExpanded =
+      false; // Add state for expandable category filter
   String _preferredCurrency = 'EUR';
   ProductPriceConverter? _priceConverter;
+
+  // ScrollControllers for the Scrollbars
+  final ScrollController _siteScrollController = ScrollController();
+  final ScrollController _categoryScrollController = ScrollController();
 
   @override
   void initState() {
@@ -44,6 +50,7 @@ class _ProductFiltersState extends State<ProductFilters> {
     );
     // Auto-expand if sites are already selected
     _isSiteFilterExpanded = _currentFilter.sites?.isNotEmpty ?? false;
+    _isCategoryFilterExpanded = _currentFilter.categories?.isNotEmpty ?? false;
     _initializeCurrency();
   }
 
@@ -53,6 +60,13 @@ class _ProductFiltersState extends State<ProductFilters> {
       _preferredCurrency = settings.preferredCurrency;
       _priceConverter = ProductPriceConverter();
     });
+  }
+
+  @override
+  void dispose() {
+    _siteScrollController.dispose();
+    _categoryScrollController.dispose();
+    super.dispose();
   }
 
   void _updateFilter(ProductFilter newFilter) {
@@ -290,8 +304,10 @@ class _ProductFiltersState extends State<ProductFilters> {
                     maxHeight: isSmallScreen ? 150 : 200,
                   ), // Responsive height limit
                   child: Scrollbar(
+                    controller: _siteScrollController,
                     thumbVisibility: true,
                     child: SingleChildScrollView(
+                      controller: _siteScrollController,
                       child: Column(
                         children:
                             availableSitesWithoutAll
@@ -388,55 +404,239 @@ class _ProductFiltersState extends State<ProductFilters> {
   }
 
   Widget _buildCategoryFilter(bool isSmallScreen) {
+    final selectedCategories = _currentFilter.categories ?? <String>[];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Category',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: isSmallScreen ? 14 : 16,
-          ),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String?>(
-          value:
-              _currentFilter.category?.isEmpty == true
-                  ? null
-                  : _currentFilter.category,
-          decoration: InputDecoration(
-            border: const OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: isSmallScreen ? 6 : 8,
-            ),
-          ),
-          style: TextStyle(
-            fontSize: isSmallScreen ? 14 : 16,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-          items: [
-            DropdownMenuItem(
-              value: null,
-              child: Text(
-                'All Categories',
-                style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+        Row(
+          children: [
+            Text(
+              'Categories',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: isSmallScreen ? 14 : 16,
               ),
             ),
-            ...widget.availableCategories.map(
-              (category) => DropdownMenuItem(
-                value: category,
+            const Spacer(),
+            if (selectedCategories.isNotEmpty)
+              TextButton(
+                onPressed: () {
+                  _updateFilter(
+                    _currentFilter.copyWith(categories: <String>[]),
+                  );
+                },
                 child: Text(
-                  category,
-                  style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                  'Clear',
+                  style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
                 ),
               ),
-            ),
           ],
-          onChanged: (value) {
-            _updateFilter(_currentFilter.copyWith(category: value));
-          },
         ),
+        const SizedBox(height: 8),
+
+        // Summary when collapsed or detailed view when expanded
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.3),
+            ),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            children: [
+              // Header with summary and expand/collapse button
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _isCategoryFilterExpanded = !_isCategoryFilterExpanded;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          selectedCategories.isEmpty
+                              ? 'All categories'
+                              : selectedCategories.length ==
+                                  widget.availableCategories.length
+                              ? 'All categories (${selectedCategories.length})'
+                              : '${selectedCategories.length} of ${widget.availableCategories.length} categories',
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 14 : 16,
+                            fontWeight:
+                                selectedCategories.isNotEmpty
+                                    ? FontWeight.w500
+                                    : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        _isCategoryFilterExpanded
+                            ? Icons.expand_less
+                            : Icons.expand_more,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Expandable content
+              if (_isCategoryFilterExpanded) ...[
+                const Divider(height: 1),
+                // Select All / None toggle
+                CheckboxListTile(
+                  title: Text(
+                    selectedCategories.length ==
+                            widget.availableCategories.length
+                        ? 'Deselect All'
+                        : 'Select All',
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 14 : 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  value:
+                      selectedCategories.length ==
+                      widget.availableCategories.length,
+                  tristate: true,
+                  onChanged: (value) {
+                    if (selectedCategories.length ==
+                        widget.availableCategories.length) {
+                      // Deselect all
+                      _updateFilter(
+                        _currentFilter.copyWith(categories: <String>[]),
+                      );
+                    } else {
+                      // Select all
+                      _updateFilter(
+                        _currentFilter.copyWith(
+                          categories: List<String>.from(
+                            widget.availableCategories,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  dense: isSmallScreen,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+                const Divider(height: 1),
+                // Individual category checkboxes
+                Container(
+                  constraints: BoxConstraints(
+                    maxHeight: isSmallScreen ? 150 : 200,
+                  ), // Responsive height limit
+                  child: Scrollbar(
+                    controller: _categoryScrollController,
+                    thumbVisibility: true,
+                    child: SingleChildScrollView(
+                      controller: _categoryScrollController,
+                      child: Column(
+                        children:
+                            widget.availableCategories
+                                .map(
+                                  (category) => CheckboxListTile(
+                                    title: Text(
+                                      category,
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 14 : 16,
+                                      ),
+                                    ),
+                                    value: selectedCategories.contains(
+                                      category,
+                                    ),
+                                    onChanged: (isChecked) {
+                                      final newSelectedCategories =
+                                          List<String>.from(selectedCategories);
+                                      if (isChecked == true) {
+                                        newSelectedCategories.add(category);
+                                      } else {
+                                        newSelectedCategories.remove(category);
+                                      }
+                                      _updateFilter(
+                                        _currentFilter.copyWith(
+                                          categories: newSelectedCategories,
+                                        ),
+                                      );
+                                    },
+                                    dense: isSmallScreen,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        // Show selected categories as chips when collapsed
+        if (!_isCategoryFilterExpanded && selectedCategories.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children:
+                selectedCategories
+                    .take(3)
+                    .map(
+                      (category) => Chip(
+                        label: Text(
+                          category,
+                          style: TextStyle(fontSize: isSmallScreen ? 11 : 12),
+                        ),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                        deleteIcon: const Icon(Icons.close, size: 16),
+                        onDeleted: () {
+                          final newSelectedCategories = List<String>.from(
+                            selectedCategories,
+                          );
+                          newSelectedCategories.remove(category);
+                          _updateFilter(
+                            _currentFilter.copyWith(
+                              categories: newSelectedCategories,
+                            ),
+                          );
+                        },
+                      ),
+                    )
+                    .toList()
+                  ..addAll(
+                    selectedCategories.length > 3
+                        ? [
+                          Chip(
+                            label: Text(
+                              '+${selectedCategories.length - 3} more',
+                              style: TextStyle(
+                                fontSize: isSmallScreen ? 11 : 12,
+                              ),
+                            ),
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ]
+                        : [],
+                  ),
+          ),
+        ],
       ],
     );
   }

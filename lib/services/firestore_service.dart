@@ -102,8 +102,8 @@ class FirestoreService {
           query = query.where('site', whereIn: siteKeys);
         }
 
-        if (filter.category != null && filter.category!.isNotEmpty) {
-          query = query.where('category', isEqualTo: filter.category);
+        if (filter.categories != null && filter.categories!.isNotEmpty) {
+          query = query.where('category', whereIn: filter.categories);
         }
       }
 
@@ -216,8 +216,8 @@ class FirestoreService {
           query = query.where('site', whereIn: siteKeys);
         }
 
-        if (filter.category != null && filter.category!.isNotEmpty) {
-          query = query.where('category', isEqualTo: filter.category);
+        if (filter.categories != null && filter.categories!.isNotEmpty) {
+          query = query.where('category', whereIn: filter.categories);
         }
       }
 
@@ -310,8 +310,8 @@ class FirestoreService {
           query = query.where('site', whereIn: filter.sites);
         }
 
-        if (filter.category != null && filter.category!.isNotEmpty) {
-          query = query.where('category', isEqualTo: filter.category);
+        if (filter.categories != null && filter.categories!.isNotEmpty) {
+          query = query.where('category', whereIn: filter.categories);
         }
       }
 

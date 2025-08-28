@@ -1,4 +1,7 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/matcha_product.dart';
 import '../services/product_price_converter.dart';
 import 'category_icon.dart';
@@ -28,6 +31,7 @@ class ProductCard extends StatefulWidget {
 class _ProductCardState extends State<ProductCard> {
   String? _convertedPrice;
   bool _isConvertingPrice = false;
+  static final Set<String> _loggedImageErrors = <String>{};
 
   @override
   void initState() {
@@ -93,7 +97,7 @@ class _ProductCardState extends State<ProductCard> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  Icons.local_cafe,
+                  Icons.image_not_supported,
                   size: 48,
                   color: Theme.of(
                     context,
@@ -101,13 +105,27 @@ class _ProductCardState extends State<ProductCard> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Matcha Product',
+                  'Image Unavailable',
                   style: TextStyle(
                     color: Theme.of(
                       context,
                     ).colorScheme.onSurface.withValues(alpha: 0.4),
                     fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  widget.product.name,
+                  style: TextStyle(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    fontSize: 10,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -121,8 +139,8 @@ class _ProductCardState extends State<ProductCard> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withValues(alpha: 0.2),
-                  Colors.black.withValues(alpha: 0.5),
+                  Colors.black.withValues(alpha: 0.1),
+                  Colors.black.withValues(alpha: 0.3),
                 ],
               ),
             ),
@@ -163,7 +181,7 @@ class _ProductCardState extends State<ProductCard> {
         child: Opacity(
           opacity: isUnavailable ? 0.6 : 1.0,
           child: Container(
-            height: 220, // Fixed height for consistent layout
+            height: 200, // Reduced height for better proportions
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               color:
@@ -185,22 +203,56 @@ class _ProductCardState extends State<ProductCard> {
                         widget.product.imageUrl != null
                             ? Stack(
                               children: [
-                                Image.network(
-                                  widget.product.imageUrl!,
+                                CachedNetworkImage(
+                                  imageUrl: widget.product.imageUrl!,
                                   fit: BoxFit.cover,
                                   width: double.infinity,
                                   height: double.infinity,
-                                  errorBuilder:
-                                      (context, error, stackTrace) =>
-                                          _buildPlaceholderBackground(context),
-                                  loadingBuilder: (
-                                    context,
-                                    child,
-                                    loadingProgress,
-                                  ) {
-                                    if (loadingProgress == null) return child;
-                                    return _buildImageLoading(context);
+                                  placeholder:
+                                      (context, url) =>
+                                          _buildImageLoading(context),
+                                  errorWidget: (context, url, error) {
+                                    // Enhanced error logging with deduplication
+                                    if (!_loggedImageErrors.contains(url)) {
+                                      _loggedImageErrors.add(url);
+                                      if (error.toString().contains(
+                                        'EncodingError',
+                                      )) {
+                                        print(
+                                          '🖼️ Image encoding error for $url: Image file appears to be corrupted or in unsupported format',
+                                        );
+                                      } else {
+                                        print(
+                                          '🖼️ Image load error for $url: $error',
+                                        );
+                                      }
+                                    }
+                                    return _buildPlaceholderBackground(context);
                                   },
+                                  httpHeaders: const {
+                                    'User-Agent':
+                                        'Mozilla/5.0 (compatible; ZenRadar/1.0)',
+                                  },
+                                  // Add error retry configuration
+                                  errorListener: (exception) {
+                                    final errorKey =
+                                        'listener_${widget.product.imageUrl}';
+                                    if (!_loggedImageErrors.contains(
+                                      errorKey,
+                                    )) {
+                                      _loggedImageErrors.add(errorKey);
+                                      print(
+                                        '🔍 CachedNetworkImage error listener: $exception',
+                                      );
+                                    }
+                                  },
+                                  // Increase timeout for better reliability
+                                  fadeInDuration: const Duration(
+                                    milliseconds: 300,
+                                  ),
+                                  fadeOutDuration: const Duration(
+                                    milliseconds: 100,
+                                  ),
                                 ),
                                 // Dark overlay for better text readability
                                 Container(
@@ -230,29 +282,32 @@ class _ProductCardState extends State<ProductCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Top row: Empty for now (can be used for other elements)
-                        const SizedBox.shrink(),
-
-                        const Spacer(),
-
-                        // Bottom content overlay
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Product name and favorite button row
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
+                        // Top row: Title on left, favorite button on right
+                        SizedBox(
+                          height:
+                              48, // Provide minimum height for Stack positioning
+                          child: Stack(
+                            children: [
+                              // Title with intrinsic width background - positioned on left
+                              Positioned(
+                                left: 0,
+                                top: 0,
+                                child: IntrinsicWidth(
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 8,
                                       vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.6,
-                                      ),
+                                      color:
+                                          widget.product.imageUrl != null
+                                              ? Colors.black.withValues(
+                                                alpha: 0.6,
+                                              )
+                                              : Theme.of(context)
+                                                  .colorScheme
+                                                  .primary
+                                                  .withValues(alpha: 0.8),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
@@ -260,15 +315,22 @@ class _ProductCardState extends State<ProductCard> {
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                        shadows: [
-                                          Shadow(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.8,
-                                            ),
-                                            blurRadius: 2,
-                                          ),
-                                        ],
+                                        color:
+                                            widget.product.imageUrl != null
+                                                ? Colors.white
+                                                : Theme.of(
+                                                  context,
+                                                ).colorScheme.onPrimary,
+                                        shadows:
+                                            widget.product.imageUrl != null
+                                                ? [
+                                                  Shadow(
+                                                    color: Colors.black
+                                                        .withValues(alpha: 0.8),
+                                                    blurRadius: 2,
+                                                  ),
+                                                ]
+                                                : null,
                                         decoration:
                                             widget.product.isDiscontinued
                                                 ? TextDecoration.lineThrough
@@ -279,10 +341,13 @@ class _ProductCardState extends State<ProductCard> {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                // Favorite button (moved to title row)
-                                if (widget.onFavoriteToggle != null)
-                                  Container(
+                              ),
+                              // Favorite button - positioned in top right corner
+                              if (widget.onFavoriteToggle != null)
+                                Positioned(
+                                  right: 0,
+                                  top: 0,
+                                  child: Container(
                                     decoration: BoxDecoration(
                                       color: Colors.white.withValues(
                                         alpha: 0.9,
@@ -316,8 +381,17 @@ class _ProductCardState extends State<ProductCard> {
                                       ),
                                     ),
                                   ),
-                              ],
-                            ),
+                                ),
+                            ],
+                          ),
+                        ),
+
+                        const Spacer(),
+
+                        // Bottom content overlay
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             const SizedBox(height: 8),
 
                             // Site and category row
