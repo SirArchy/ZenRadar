@@ -337,6 +337,8 @@ class UserSettings {
   final bool
   backgroundScanFavoritesOnly; // New setting for background scan mode
   final bool hasCompletedOnboarding; // Track if user has completed onboarding
+  final String?
+  fcmToken; // Firebase Cloud Messaging token for push notifications
   // Note: App now runs exclusively in server mode - no local mode support
 
   UserSettings({
@@ -366,6 +368,7 @@ class UserSettings {
     this.preferredCurrency = "EUR",
     this.backgroundScanFavoritesOnly = false, // Default: scan all products
     this.hasCompletedOnboarding = false, // Default: new user needs onboarding
+    this.fcmToken, // Firebase Cloud Messaging token
   });
 
   factory UserSettings.fromJson(Map<String, dynamic> json) {
@@ -404,6 +407,7 @@ class UserSettings {
       preferredCurrency: json['preferredCurrency'] ?? "EUR",
       backgroundScanFavoritesOnly: json['backgroundScanFavoritesOnly'] ?? false,
       hasCompletedOnboarding: json['hasCompletedOnboarding'] ?? false,
+      fcmToken: json['fcmToken'], // Firebase Cloud Messaging token
       // Note: appMode is no longer supported - app runs exclusively in server mode
     );
   }
@@ -425,6 +429,7 @@ class UserSettings {
       'preferredCurrency': preferredCurrency,
       'backgroundScanFavoritesOnly': backgroundScanFavoritesOnly,
       'hasCompletedOnboarding': hasCompletedOnboarding,
+      'fcmToken': fcmToken, // Firebase Cloud Messaging token
       // Note: appMode is no longer saved - app runs exclusively in server mode
     };
   }
@@ -445,6 +450,7 @@ class UserSettings {
     String? preferredCurrency,
     bool? backgroundScanFavoritesOnly,
     bool? hasCompletedOnboarding,
+    String? fcmToken, // Firebase Cloud Messaging token
   }) {
     return UserSettings(
       checkFrequencyMinutes:
@@ -466,6 +472,7 @@ class UserSettings {
           backgroundScanFavoritesOnly ?? this.backgroundScanFavoritesOnly,
       hasCompletedOnboarding:
           hasCompletedOnboarding ?? this.hasCompletedOnboarding,
+      fcmToken: fcmToken ?? this.fcmToken, // Firebase Cloud Messaging token
     );
   }
 }

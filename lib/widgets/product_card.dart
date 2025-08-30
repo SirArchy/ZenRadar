@@ -288,61 +288,63 @@ class _ProductCardState extends State<ProductCard> {
                               48, // Provide minimum height for Stack positioning
                           child: Stack(
                             children: [
-                              // Title with intrinsic width background - positioned on left
+                              // Title with proper padding to avoid favorite button
                               Positioned(
                                 left: 0,
                                 top: 0,
-                                child: IntrinsicWidth(
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
+                                right:
+                                    widget.onFavoriteToggle != null
+                                        ? 48
+                                        : 0, // Leave space for favorite button
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        widget.product.imageUrl != null
+                                            ? Colors.black.withValues(
+                                              alpha: 0.6,
+                                            )
+                                            : Theme.of(context)
+                                                .colorScheme
+                                                .primary
+                                                .withValues(alpha: 0.8),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    widget.product.name,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
                                       color:
                                           widget.product.imageUrl != null
-                                              ? Colors.black.withValues(
-                                                alpha: 0.6,
-                                              )
-                                              : Theme.of(context)
-                                                  .colorScheme
-                                                  .primary
-                                                  .withValues(alpha: 0.8),
-                                      borderRadius: BorderRadius.circular(8),
+                                              ? Colors.white
+                                              : Theme.of(
+                                                context,
+                                              ).colorScheme.onPrimary,
+                                      shadows:
+                                          widget.product.imageUrl != null
+                                              ? [
+                                                Shadow(
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.8),
+                                                  blurRadius: 2,
+                                                ),
+                                              ]
+                                              : null,
+                                      decoration:
+                                          widget.product.isDiscontinued
+                                              ? TextDecoration.lineThrough
+                                              : null,
                                     ),
-                                    child: Text(
-                                      widget.product.name,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color:
-                                            widget.product.imageUrl != null
-                                                ? Colors.white
-                                                : Theme.of(
-                                                  context,
-                                                ).colorScheme.onPrimary,
-                                        shadows:
-                                            widget.product.imageUrl != null
-                                                ? [
-                                                  Shadow(
-                                                    color: Colors.black
-                                                        .withValues(alpha: 0.8),
-                                                    blurRadius: 2,
-                                                  ),
-                                                ]
-                                                : null,
-                                        decoration:
-                                            widget.product.isDiscontinued
-                                                ? TextDecoration.lineThrough
-                                                : null,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ),
-                              // Favorite button - positioned in top right corner
+                              // Favorite button - always in top right corner
                               if (widget.onFavoriteToggle != null)
                                 Positioned(
                                   right: 0,

@@ -10,6 +10,7 @@ import 'services/firestore_service.dart';
 import 'services/theme_service.dart';
 import 'services/battery_optimization_service.dart';
 import 'services/favorite_notification_service.dart';
+import 'services/firebase_messaging_service.dart';
 import 'screens/app_initializer.dart';
 
 void main() async {
@@ -53,8 +54,11 @@ void main() async {
     // Initialize favorite product notification monitoring
     await FavoriteNotificationService.instance.initializeService();
 
-    // Request permissions (mobile only) - but exclude notification permission
-    // as it will be requested during onboarding
+    // Initialize Firebase Cloud Messaging for push notifications
+    await FirebaseMessagingService.instance.initialize();
+
+    // Request basic permissions (mobile only) - notification permission excluded
+    // as it will be requested during onboarding when user explicitly opts in
     await requestInitialPermissions();
   }
 
@@ -64,7 +68,7 @@ void main() async {
 Future<void> requestInitialPermissions() async {
   if (kIsWeb) return; // Skip permissions on web
 
-  // Request background app refresh permission (iOS)
+  // Request background app refresh permission (iOS) - but NOT notification permission
   await Permission.appTrackingTransparency.request();
 
   // Check and handle battery optimization
@@ -73,10 +77,12 @@ Future<void> requestInitialPermissions() async {
 }
 
 // Legacy function for requesting all permissions (including notifications)
+// This is kept for compatibility but notifications should be requested through
+// NotificationService.instance.requestNotificationPermission() instead
 Future<void> requestPermissions() async {
   if (kIsWeb) return; // Skip permissions on web
 
-  // Request notification permission
+  // Request notification permission (deprecated - use NotificationService instead)
   await Permission.notification.isDenied.then((value) {
     if (value) {
       Permission.notification.request();

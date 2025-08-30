@@ -4,6 +4,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'web_notification_service.dart';
 
 class NotificationService {
@@ -82,6 +83,28 @@ class NotificationService {
 
       await androidImplementation?.requestNotificationsPermission();
     }
+  }
+
+  /// Request notification permission explicitly (for onboarding)
+  /// Returns true if permission was granted, false otherwise
+  Future<bool> requestNotificationPermission() async {
+    if (kIsWeb) {
+      // For web, permissions are handled by the browser
+      // We'll assume success for now since web notifications work differently
+      if (kDebugMode) {
+        print('Web notification permission requested (handled by browser)');
+      }
+      return true;
+    }
+
+    // For mobile platforms, use permission_handler
+    final status = await Permission.notification.request();
+
+    if (kDebugMode) {
+      print('Notification permission status: $status');
+    }
+
+    return status.isGranted;
   }
 
   Future<void> _createNotificationChannels() async {

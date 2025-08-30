@@ -69,32 +69,32 @@ class CrawlerService {
         stockKeywords: ['add to cart', 'in stock', 'available'],
         outOfStockKeywords: ['out of stock', 'sold out', 'unavailable']
       },
-      // 'matcha-karu': {
-      //   name: 'Matcha Kāru',
-      //   baseUrl: 'https://matcha-karu.com',
-      //   categoryUrl: 'https://matcha-karu.com/collections/matcha-powder',
-      //   productSelector: '.grid__item .card',
-      //   nameSelector: '.card__heading a',
-      //   priceSelector: '.price',
-      //   stockSelector: '.card__badge',
-      //   linkSelector: '.card__heading a',
-      //   imageSelector: '.card__media img',
-      //   stockKeywords: ['add to cart', 'in den warenkorb', 'kaufen'],
-      //   outOfStockKeywords: ['ausverkauft', 'nicht verfügbar', 'sold out']
-      // },
-      // 'sho-cha': {
-      //   name: 'Sho-Cha',
-      //   baseUrl: 'https://global.sho-cha.jp',
-      //   categoryUrl: 'https://global.sho-cha.jp/collections/matcha',
-      //   productSelector: '.grid__item',
-      //   nameSelector: '.card__heading',
-      //   priceSelector: '.price',
-      //   stockSelector: '.card__badge',
-      //   linkSelector: '.card__heading a',
-      //   imageSelector: '.card__media img',
-      //   stockKeywords: ['add to cart', 'kaufen', 'in den warenkorb'],
-      //   outOfStockKeywords: ['ausverkauft', 'sold out', 'nicht verfügbar']
-      // },
+      'matcha-karu': {
+        name: 'Matcha Kāru',
+        baseUrl: 'https://matcha-karu.com',
+        categoryUrl: 'https://matcha-karu.com/collections/matcha-tee',
+        productSelector: '.product-item',
+        nameSelector: 'a[href*="/products/"] img[alt], a[href*="/products/"]:nth-of-type(2)', // Use image alt text or second link
+        priceSelector: '.price, .price__current, .price-item',
+        stockSelector: '.product-form, .add-to-cart:not(.disabled)', 
+        linkSelector: 'a[href*="/products/"]:first',
+        imageSelector: '.product-item__aspect-ratio img, .product-item__image img, img[src*="products/"]',
+        stockKeywords: ['add to cart', 'in den warenkorb', 'kaufen', 'angebotspreis'],
+        outOfStockKeywords: ['ausverkauft', 'nicht verfügbar', 'sold out']
+      },
+      'sho-cha': {
+        name: 'Sho-Cha',
+        baseUrl: 'https://www.sho-cha.com',
+        categoryUrl: 'https://www.sho-cha.com/teeshop',
+        productSelector: 'h1', // Use H1 elements as product containers
+        nameSelector: 'h1', // H1 contains the product name directly
+        priceSelector: '.price, .cost, .amount, .money',
+        stockSelector: '.add-to-cart, .cart-button, .shop-button',
+        linkSelector: 'a[href*="/teeshop/"]', // Look for teeshop links in the same section
+        imageSelector: '.product-image img, .item-image img, img[src*="product"], img[src*="tea"], img[src*="matcha"]',
+        stockKeywords: ['add to cart', 'kaufen', 'in den warenkorb', 'verfügbar'],
+        outOfStockKeywords: ['ausverkauft', 'sold out', 'nicht verfügbar']
+      },
       'sazentea': {
         name: 'Sazen Tea',
         baseUrl: 'https://www.sazentea.com',
@@ -121,35 +121,35 @@ class CrawlerService {
         stockKeywords: ['add to cart', 'buy now', 'purchase'],
         outOfStockKeywords: ['out of stock', 'sold out']
       },
-      // 'poppatea': {
-      //   name: 'Poppatea',
-      //   baseUrl: 'https://poppatea.com',
-      //   categoryUrl: 'https://poppatea.com/collections/matcha',
-      //   productSelector: '.grid__item .card',
-      //   nameSelector: '.card__heading',
-      //   priceSelector: '.price',
-      //   stockSelector: '.card__badge',
-      //   linkSelector: '.card__heading a',
-      //   imageSelector: '.card__media img',
-      //   stockKeywords: ['add to cart', 'in den warenkorb', 'kaufen'],
-      //   outOfStockKeywords: ['ausverkauft', 'nicht verfügbar', 'sold out', 'notify me']
-      // },
+      'poppatea': {
+        name: 'Poppatea',
+        baseUrl: 'https://poppatea.com',
+        categoryUrl: 'https://poppatea.com/collections/all',
+        productSelector: '.card, .product-card, .grid-item',
+        nameSelector: 'h3, .card-title, [data-product-title], .product-title',
+        priceSelector: '.price, .money',
+        stockSelector: '.add-to-cart, .cart-button',
+        linkSelector: 'a',
+        imageSelector: 'img, .card-image img, .product-image img, img[src*="product"], img[src*="cdn/shop"]', // Updated to catch all images
+        stockKeywords: ['add to cart', 'lägg i varukorg', 'köp'],
+        outOfStockKeywords: ['slutsåld', 'ej i lager', 'sold out', 'notify me']
+      },
       'horiishichimeien': {
         name: 'Horiishichimeien',
         baseUrl: 'https://horiishichimeien.com',
         categoryUrl: 'https://horiishichimeien.com/en/collections/all?selected=%E6%8A%B9%E8%8C%B6',
         productSelector: '.grid__item',
-        nameSelector: 'a[href*="/products/"] span.visually-hidden, .card__heading',
-        priceSelector: '.price, .price__regular, .money, .price-item',
+        nameSelector: 'a[href*="/products/"] span.visually-hidden, .card__heading, .product-title',
+        priceSelector: '.price__regular .money, .price .money, .price-item--regular',
         stockSelector: '.product-form__buttons, .product-form, form[action="/cart/add"], button[name="add"]',
         linkSelector: 'a[href*="/products/"]',
-        imageSelector: '.grid-view-item__image, .lazyload, img[src*="products/"]',
+        imageSelector: '.grid-view-item__image, .lazyload, img[src*="products/"], .product-image img',
         stockKeywords: ['add to cart', 'buy now', 'purchase', 'add to bag', 'カートに入れる'],
         outOfStockKeywords: ['sold out', 'unavailable', '売り切れ', 'out of stock'],
         currencyConversion: {
           from: 'JPY',
           to: 'EUR',
-          rate: 0.0062 // 1 JPY = 0.0062 EUR (approximate, should be updated regularly)
+          rate: 0.0067 // 1 JPY = 0.0067 EUR (approximate, should be updated regularly)
         }
       }
     };
@@ -280,6 +280,150 @@ class CrawlerService {
         const productElement = $(productElements[i]);
         
         try {
+          // Special handling for Sho-Cha site structure
+          if (siteKey === 'sho-cha') {
+            // For Sho-Cha, H1 elements contain product names, but links are separate
+            const name = productElement.text().trim();
+            
+            // Skip if no valid name
+            if (!name || name.length < 2) {
+              continue;
+            }
+            
+            // Find the corresponding teeshop link - improved strategy
+            let productUrl = null;
+            
+            // Strategy 1: Look in immediate parent containers
+            const immediateParent = productElement.parent();
+            let teeshopLink = immediateParent.find('a[href*="/teeshop/"]').first();
+            
+            // Strategy 2: Look in wider container (section, div, article)
+            if (!teeshopLink.length) {
+              const section = productElement.closest('section, div, article, .product-container, .item-container');
+              teeshopLink = section.find('a[href*="/teeshop/"]').first();
+            }
+            
+            // Strategy 3: Look for sibling elements with teeshop links
+            if (!teeshopLink.length) {
+              teeshopLink = productElement.siblings().find('a[href*="/teeshop/"]').first();
+            }
+            
+            // Strategy 4: Look in next/previous sibling containers
+            if (!teeshopLink.length) {
+              const nextElement = productElement.next();
+              teeshopLink = nextElement.find('a[href*="/teeshop/"]').first();
+              
+              if (!teeshopLink.length) {
+                const prevElement = productElement.prev();
+                teeshopLink = prevElement.find('a[href*="/teeshop/"]').first();
+              }
+            }
+            
+            // Strategy 5: Find by matching product name patterns (improved)
+            if (!teeshopLink.length) {
+              const nameSlug = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+              const allTeeshopLinks = $('a[href*="/teeshop/"]');
+              let bestMatch = null;
+              let bestScore = 0;
+              
+              allTeeshopLinks.each((idx, link) => {
+                const href = $(link).attr('href');
+                const linkSlug = href.replace('/teeshop/', '').replace(/[^a-z0-9]/g, '');
+                const linkText = $(link).text().toLowerCase().replace(/[^a-z0-9]/g, '');
+                
+                // Calculate match scores
+                let score = 0;
+                
+                // Direct slug matching (higher score)
+                const commonLength = Math.min(nameSlug.length, linkSlug.length);
+                let commonChars = 0;
+                for (let i = 0; i < commonLength; i++) {
+                  if (nameSlug[i] === linkSlug[i]) {
+                    commonChars++;
+                  } else {
+                    break;
+                  }
+                }
+                score += (commonChars / nameSlug.length) * 10;
+                
+                // Check for key word matches
+                const nameWords = name.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+                const linkWords = href.split(/[-_/]/).filter(w => w.length > 2);
+                
+                for (const nameWord of nameWords) {
+                  for (const linkWord of linkWords) {
+                    if (nameWord.includes(linkWord) || linkWord.includes(nameWord)) {
+                      score += 5;
+                    }
+                  }
+                }
+                
+                // Prefer shorter, more specific matches
+                if (linkSlug.length > 0) {
+                  score += (10 / linkSlug.length);
+                }
+                
+                if (score > bestScore && score > 3) { // Minimum threshold
+                  bestScore = score;
+                  bestMatch = $(link);
+                }
+              });
+              
+              if (bestMatch) {
+                teeshopLink = bestMatch;
+              }
+            }
+            
+            if (teeshopLink.length > 0) {
+              productUrl = config.baseUrl + teeshopLink.attr('href');
+            }
+            
+            if (productUrl) {
+              // Create product object for Sho-Cha
+              const productId = this.generateProductId(productUrl, name, siteKey);
+              
+              // Try to extract image from the product page
+              let imageUrl = null;
+              try {
+                imageUrl = await this.extractShoChaProductImage(productUrl, productId);
+              } catch (error) {
+                this.logger.warn('Failed to extract Sho-Cha product image', {
+                  productUrl,
+                  error: error.message
+                });
+              }
+              
+              const product = {
+                id: productId,
+                name: name,
+                normalizedName: this.normalizeName(name),
+                site: siteKey,
+                siteName: config.name,
+                price: '', // No price on listing page for Sho-Cha
+                originalPrice: '',
+                priceValue: 0,
+                currency: 'EUR',
+                url: productUrl,
+                imageUrl: imageUrl,
+                isInStock: true, // Assume in stock if listed
+                category: this.detectCategory(name, siteKey),
+                lastChecked: new Date(),
+                lastUpdated: new Date(),
+                firstSeen: new Date(),
+                isDiscontinued: false,
+                missedScans: 0,
+                crawlSource: 'cloud-run'
+              };
+              
+              products.push(product);
+              const wasUpdated = await this.saveProduct(product);
+              if (wasUpdated) stockUpdates++;
+            }
+            
+            continue; // Skip regular processing for Sho-Cha
+          }
+          
+          // Regular processing for other sites
           // Extract product name
           let name = this.extractText(productElement, config.nameSelector);
           if (!name) {
@@ -338,7 +482,20 @@ class CrawlerService {
           const convertedPrice = this.convertPrice(price, siteKey);
 
           // Determine stock status
-          const isInStock = this.determineStockStatusFromListing(productElement, config, siteKey);
+          let isInStock = this.determineStockStatusFromListing(productElement, config, siteKey);
+          
+          // For Horiishichimeien, check individual product page for accurate stock status
+          if (siteKey === 'horiishichimeien' && productUrl) {
+            try {
+              isInStock = await this.checkHoriishichimeienStock(productUrl);
+            } catch (error) {
+              this.logger.warn('Failed to check Horiishichimeien stock on product page', {
+                productUrl,
+                error: error.message
+              });
+              // Fall back to listing page detection
+            }
+          }
 
           // Generate product ID
           const productId = this.generateProductId(productUrl || config.categoryUrl, name, siteKey);
@@ -442,6 +599,13 @@ class CrawlerService {
     for (const selector of selectorList) {
       const found = element.find(selector).first();
       if (found.length > 0) {
+        // Check for image alt attribute first
+        if (found.is('img') && found.attr('alt')) {
+          const altText = found.attr('alt').trim();
+          if (altText) return altText;
+        }
+        
+        // Then check for text content
         let text = found.text().trim();
         if (text) return text;
       }
@@ -486,9 +650,22 @@ class CrawlerService {
     }
 
     // Extract numeric value from price
-    const numericValue = this.extractPriceValue(price);
+    let numericValue = this.extractPriceValue(price);
     if (numericValue === null) {
       return price;
+    }
+
+    // Special handling for Horiishichimeien JPY cents
+    if (siteKey === 'horiishichimeien' && config.currencyConversion.from === 'JPY') {
+      // Shopify stores JPY prices in cents, so ¥648 is stored as 64800
+      if (numericValue > 1000) {
+        numericValue = numericValue / 100; // Convert cents to actual JPY
+        this.logger.info('Converted JPY cents to JPY', { 
+          original: numericValue * 100, 
+          converted: numericValue,
+          siteKey 
+        });
+      }
     }
 
     // Convert currency
@@ -553,10 +730,13 @@ class CrawlerService {
         return priceAvailable && !elementText.includes('out of stock') && !elementText.includes('sold out');
 
       case 'poppatea':
-        // For Poppatea, check for German out-of-stock indicators
-        if (elementText.includes('ausverkauft') || elementText.includes('nicht verfügbar') || 
+        // For Poppatea, check for Swedish out-of-stock indicators
+        if (elementText.includes('slutsåld') || elementText.includes('ej i lager') || 
             elementText.includes('sold out') || elementText.includes('out of stock')) return false;
-        return true;
+        
+        // Check for price presence
+        const poppateaPriceElement = productElement.find(config.priceSelector);
+        return poppateaPriceElement.length > 0 && poppateaPriceElement.text().trim() !== '';
 
       case 'horiishichimeien':
         // For Horiishichimeien, check for Japanese and English out-of-stock indicators
@@ -575,11 +755,6 @@ class CrawlerService {
         const hpriceElement = productElement.find(config.priceSelector);
         const hpriceText = hpriceElement.text().trim();
         
-        // If no price element or price is empty/invalid, consider out of stock
-        if (!hpriceElement.length || !hpriceText || hpriceText.length < 2) {
-          return false;
-        }
-        
         // If price contains "¥" and a number, it's likely in stock
         if (hpriceText.includes('¥') && /\d/.test(hpriceText)) {
           return true;
@@ -588,8 +763,9 @@ class CrawlerService {
         // Check if there's a visible link to the product (products without links might be unavailable)
         const hasValidLink = productElement.find('a[href*="/products/"]').length > 0;
         
-        // Product is in stock if it has a valid price and a valid link
-        return hasValidLink && hpriceText.length > 0;
+        // Product is in stock if it has a valid link and some price indication
+        // Be more lenient - if there's a link and no explicit "sold out", consider it in stock
+        return hasValidLink;
 
       default:
         // Fallback: check for stock keywords vs out-of-stock keywords
@@ -665,8 +841,25 @@ class CrawlerService {
   extractPriceValue(priceString) {
     if (!priceString) return null;
 
+    // Handle multi-currency strings like "¥2,000$13.57€11.66£10.04¥97.06"
+    // Extract EUR price first if present
+    const eurMatch = priceString.match(/€(\d+[.,]?\d*)/);
+    if (eurMatch) {
+      const eurValue = parseFloat(eurMatch[1].replace(',', '.'));
+      return eurValue > 0 ? eurValue : null;
+    }
+
     // Handle Japanese Yen (no decimal places, may have comma thousands separator)
     if (priceString.includes('¥') || priceString.includes('￥')) {
+      // For multi-currency strings, extract only the first Yen value
+      const yenMatch = priceString.match(/[¥￥](\d+(?:,\d{3})*)/);
+      if (yenMatch) {
+        const cleaned = yenMatch[1].replace(/,/g, '');
+        const jpyValue = parseInt(cleaned);
+        return jpyValue > 0 ? jpyValue : null;
+      }
+      
+      // Fallback for simple Yen extraction
       const cleaned = priceString.replace(/[¥￥]/g, '').replace(/[^\d]/g, '');
       const jpyValue = parseInt(cleaned);
       return jpyValue > 0 ? jpyValue : null;
@@ -764,9 +957,14 @@ class CrawlerService {
 
       case 'ippodo':
         // Extract Yen price and convert to Euro
-        const jpyMatchIppodo = cleaned.match(/¥(\d+[.,]\d+)/);
+        // Enhanced to handle both comma-separated (¥1,000) and non-comma (¥100) prices
+        let jpyMatchIppodo = cleaned.match(/¥(\d{1,3}(?:,\d{3})*)/); // With comma separator
+        if (!jpyMatchIppodo) {
+          jpyMatchIppodo = cleaned.match(/¥(\d+)/); // Without comma separator for small amounts
+        }
+        
         if (jpyMatchIppodo) {
-          const jpyValue = parseFloat(jpyMatchIppodo[1].replace(',', ''));
+          const jpyValue = parseFloat(jpyMatchIppodo[1].replace(/,/g, ''));
           const euroValue = (jpyValue * 0.0067).toFixed(2);
           return `€${euroValue}`;
         }
@@ -797,6 +995,23 @@ class CrawlerService {
         }
         break;
 
+      case 'sho-cha':
+        // Handle German Euro formatting: "24,00 €"
+        cleaned = cleaned.replace(/\n/g, ' ').replace(/\s+/g, ' ');
+        const shoChaEuroMatch = cleaned.match(/(\d+(?:,\d{2})?)\s*€/);
+        if (shoChaEuroMatch) {
+          return shoChaEuroMatch[1] + ' €';
+        }
+        
+        // Try USD format and convert
+        const shoChaUsdMatch = cleaned.match(/\$(\d+(?:\.\d{2})?)/);
+        if (shoChaUsdMatch) {
+          const usdValue = parseFloat(shoChaUsdMatch[1]);
+          const euroValue = (usdValue * 0.92).toFixed(2);
+          return `€${euroValue}`;
+        }
+        break;
+
       case 'matcha-karu':
         // Handle German price formatting: "AngebotspreisAb 19,00 €"
         cleaned = cleaned.replace(/\n/g, ' ').replace(/\s+/g, ' ');
@@ -811,13 +1026,24 @@ class CrawlerService {
         break;
 
       case 'poppatea':
-        // Handle German price format (€XX,XX or XX,XX €)
+        // Handle Swedish Krona format (XXX kr)
         cleaned = cleaned.replace(/\n/g, ' ').replace(/\s+/g, ' ');
-        const poppateaMatch = cleaned.match(/€?\s*(\d+[,.]\d{2})\s*€?/);
-        if (poppateaMatch) {
-          const price = poppateaMatch[1].replace(',', '.');
+        cleaned = cleaned.replace(/Ordinarie pris|Försäljningspris|Från|Enhetspris|per/gi, '');
+        
+        const poppateaKrMatch = cleaned.match(/(\d+)\s*kr/i);
+        if (poppateaKrMatch) {
+          const sekValue = parseFloat(poppateaKrMatch[1]);
+          const euroValue = (sekValue * 0.085).toFixed(2); // 1 SEK = 0.085 EUR
+          return `€${euroValue}`;
+        }
+        
+        // Handle Euro format as fallback
+        const poppateaEurMatch = cleaned.match(/€?\s*(\d+[,.]\d{2})\s*€?/);
+        if (poppateaEurMatch) {
+          const price = poppateaEurMatch[1].replace(',', '.');
           return `€${price}`;
         }
+        
         // Also try to match prices without decimals
         const simpleMatch = cleaned.match(/€?\s*(\d+)\s*€?/);
         if (simpleMatch) {
@@ -826,11 +1052,27 @@ class CrawlerService {
         break;
 
       case 'yoshien':
-        // Clean up the text and extract price
+        // Handle multi-currency strings like "¥2,000$13.57€11.66£10.04¥97.06"
+        // Extract ONLY the EUR price to avoid confusion
+        const yoshienEurMatch = cleaned.match(/€(\d+[.,]\d*)/);
+        if (yoshienEurMatch) {
+          const priceText = yoshienEurMatch[1].replace(',', '.');
+          return `€${priceText}`;
+        }
+        
+        // If no EUR found, try extracting the first Yen price and convert
+        const yoshienYenMatch = cleaned.match(/¥(\d{1,3}(?:,\d{3})*)/);
+        if (yoshienYenMatch) {
+          const jpyValue = parseFloat(yoshienYenMatch[1].replace(/,/g, ''));
+          const euroValue = (jpyValue * 0.0067).toFixed(2);
+          return `€${euroValue}`;
+        }
+        
+        // Fallback: clean up and extract any price
         cleaned = cleaned.replace('Ab ', '').trim();
-        const yoshienMatch = cleaned.match(/(\d+[.,]\d+)\s*€/);
-        if (yoshienMatch) {
-          return yoshienMatch[1] + ' €';
+        const yoshienFallbackMatch = cleaned.match(/(\d+[.,]\d+)\s*€/);
+        if (yoshienFallbackMatch) {
+          return yoshienFallbackMatch[1] + ' €';
         }
         break;
 
@@ -846,14 +1088,44 @@ class CrawlerService {
         break;
 
       case 'enjoyemeri':
-      case 'horiishichimeien':
-        // For Horiishichimeien, handle Japanese Yen prices and avoid duplication
-        // Remove extra whitespace and normalize
+        // Basic EUR handling for Enjoyemeri
         cleaned = cleaned.replace(/\n/g, ' ').replace(/\s+/g, ' ');
-        // Extract only the first occurrence of Yen price to avoid duplication
-        const yenMatch = cleaned.match(/¥(\d+[.,]?\d*)/);
-        if (yenMatch) {
-          return yenMatch[0]; // Return the full match (¥XXX)
+        const enjoyEmeriMatch = cleaned.match(/€(\d+[.,]\d*)/);
+        if (enjoyEmeriMatch) {
+          const priceText = enjoyEmeriMatch[1].replace(',', '.');
+          return `€${priceText}`;
+        }
+        break;
+
+      case 'horiishichimeien':
+        // For Horiishichimeien, handle Japanese Yen prices and convert to Euro
+        // Remove duplicate prices and extra text
+        cleaned = cleaned.replace(/\n/g, ' ').replace(/\s+/g, ' ');
+        cleaned = cleaned.replace(/Regular price|Sale price|Unit price|per|Sale|Sold out|JPY/gi, '');
+        
+        // Extract only the first valid Yen price to avoid duplicates
+        // Fix: Handle comma-separated thousands properly (¥10,800 should be 10800, not 10)
+        let horiYenMatch = cleaned.match(/¥(\d{1,3}(?:,\d{3})+)/); // With comma separator for thousands
+        if (horiYenMatch) {
+          const jpyValue = parseFloat(horiYenMatch[1].replace(/,/g, '')); // Remove commas: "10,800" -> 10800
+          const euroValue = (jpyValue * 0.0067).toFixed(2);
+          return `€${euroValue}`;
+        }
+        
+        // Handle prices without comma separator (for amounts under 1000)
+        horiYenMatch = cleaned.match(/¥(\d+)(?!\d)/); // Ensure we don't partial match longer numbers
+        if (horiYenMatch) {
+          const jpyValue = parseFloat(horiYenMatch[1]);
+          const euroValue = (jpyValue * 0.0067).toFixed(2);
+          return `€${euroValue}`;
+        }
+        
+        // Handle format without currency symbol (assume JPY if Japanese site)
+        const horiNumMatch = cleaned.match(/(\d{1,3}(?:,\d{3})+|\d+)/);
+        if (horiNumMatch) {
+          const jpyValue = parseFloat(horiNumMatch[1].replace(/,/g, ''));
+          const euroValue = (jpyValue * 0.0067).toFixed(2);
+          return `€${euroValue}`;
         }
         break;
     }
@@ -1074,92 +1346,146 @@ class CrawlerService {
         }
       }
 
-      // Method 1: Look for Shopify product JSON (most reliable)
-      const scriptTags = $('script[type="application/json"], script:contains("variants"), script:contains("product")');
-      let foundInJson = false;
-      
-      scriptTags.each((_, script) => {
-        if (foundInJson) return;
-        
+      // Method 1: Look for window.ShopifyAnalytics meta (common in newer Shopify themes)
+      const shopifyAnalyticsScript = $('script:contains("window.ShopifyAnalytics")').html();
+      if (shopifyAnalyticsScript && shopifyAnalyticsScript.includes('product')) {
         try {
-          let jsonData;
-          const scriptContent = $(script).html();
-          
-          // Skip if this looks like window object or other non-JSON
-          if (scriptContent.trim().startsWith('window.') || 
-              scriptContent.includes('window.Shopify') ||
-              scriptContent.includes('function(')) {
-            return;
+          // Extract product data from ShopifyAnalytics
+          const productMatch = shopifyAnalyticsScript.match(/var meta = ({.*?});/s);
+          if (productMatch) {
+            const metaData = JSON.parse(productMatch[1]);
+            if (metaData.product && metaData.product.variants) {
+              this.logger.info('Found product variants in ShopifyAnalytics', { 
+                productUrl, 
+                variantCount: metaData.product.variants.length 
+              });
+              
+              for (const variant of metaData.product.variants) {
+                const sizeName = variant.name || variant.title || variant.option1 || '';
+                const variantName = sizeName ? `${baseName} - ${sizeName}` : baseName;
+                
+                // Calculate product ID for this variant
+                const variantId = this.generateProductId(productUrl, variantName, 'poppatea');
+                
+                const variantProduct = {
+                  id: variantId,
+                  name: variantName.trim(),
+                  normalizedName: this.normalizeName(variantName),
+                  site: 'poppatea',
+                  siteName: config.name,
+                  price: variant.price !== undefined && variant.price !== null ? `€${(variant.price / 100).toFixed(2).replace('.', ',')}` : '',
+                  originalPrice: variant.price !== undefined && variant.price !== null ? `€${(variant.price / 100).toFixed(2).replace('.', ',')}` : '',
+                  priceValue: variant.price !== undefined && variant.price !== null ? variant.price / 100 : 0,
+                  currency: 'EUR',
+                  url: productUrl,
+                  imageUrl: processedMainImageUrl,
+                  isInStock: true, // Default to true, will be checked individually
+                  category: this.detectCategory(baseName, 'poppatea'),
+                  lastChecked: new Date(),
+                  lastUpdated: new Date(),
+                  firstSeen: new Date(),
+                  isDiscontinued: false,
+                  missedScans: 0,
+                  crawlSource: 'cloud-run',
+                  variantId: variant.id
+                };
+                variants.push(variantProduct);
+              }
+              foundInJson = true;
+            }
           }
+        } catch (e) {
+          this.logger.warn('Failed to parse ShopifyAnalytics meta', { error: e.message });
+        }
+      }
+
+      // Method 2: Look for Shopify product JSON (most reliable)
+      if (!foundInJson) {
+        const scriptTags = $('script[type="application/json"], script:contains("variants"), script:contains("product")');
+        
+        scriptTags.each((_, script) => {
+          if (foundInJson) return;
           
-          // Try to parse as JSON
           try {
-            jsonData = JSON.parse(scriptContent);
-          } catch (e) {
-            // If direct parsing fails, look for JSON within the script
-            const jsonMatches = [
-              scriptContent.match(/product["\s]*:[^{]*({[^}]+variants[^}]+})/),
-              scriptContent.match(/variants["\s]*:\s*(\[[^\]]+\])/),
-              scriptContent.match(/"product":\s*({[^}]+variants[^}]+})/),
-            ];
+            let jsonData;
+            const scriptContent = $(script).html();
             
-            for (const match of jsonMatches) {
-              if (match) {
-                try {
-                  jsonData = JSON.parse(match[1]);
-                  break;
-                } catch (e2) {
-                  // Continue trying
+            // Skip if this looks like window object or other non-JSON
+            if (scriptContent.trim().startsWith('window.') || 
+                scriptContent.includes('window.Shopify') ||
+                scriptContent.includes('function(')) {
+              return;
+            }
+            
+            // Try to parse as JSON
+            try {
+              jsonData = JSON.parse(scriptContent);
+            } catch (e) {
+              // If direct parsing fails, look for JSON within the script
+              const jsonMatches = [
+                scriptContent.match(/product["\s]*:[^{]*({[^}]+variants[^}]+})/),
+                scriptContent.match(/variants["\s]*:\s*(\[[^\]]+\])/),
+                scriptContent.match(/"product":\s*({[^}]+variants[^}]+})/),
+              ];
+              
+              for (const match of jsonMatches) {
+                if (match) {
+                  try {
+                    jsonData = JSON.parse(match[1]);
+                    break;
+                  } catch (e2) {
+                    // Continue trying
+                  }
                 }
               }
             }
-          }
-          
-          if (jsonData && jsonData.variants) {
-            this.logger.info('Found Shopify product JSON with variants', { 
-              productUrl, 
-              variantCount: jsonData.variants.length 
-            });
             
-            for (const variant of jsonData.variants) {
-              const sizeName = variant.title || variant.option1 || variant.option2 || '';
-              const variantName = sizeName ? `${baseName} - ${sizeName}` : baseName;
+            if (jsonData && jsonData.variants) {
+              this.logger.info('Found Shopify product JSON with variants', { 
+                productUrl, 
+                variantCount: jsonData.variants.length 
+              });
               
-              // Calculate product ID for this variant
-              const variantId = this.generateProductId(productUrl, variantName, 'poppatea');
-              
-              const variantProduct = {
-                id: variantId,
-                name: variantName.trim(),
-                normalizedName: this.normalizeName(variantName),
-                site: 'poppatea',
-                siteName: config.name,
-                price: variant.price !== undefined && variant.price !== null ? `€${(variant.price / 100).toFixed(2).replace('.', ',')}` : '',
-                originalPrice: variant.price !== undefined && variant.price !== null ? `€${(variant.price / 100).toFixed(2).replace('.', ',')}` : '',
-                priceValue: variant.price !== undefined && variant.price !== null ? variant.price / 100 : 0,
-                currency: 'EUR',
-                url: productUrl,
-                imageUrl: processedMainImageUrl,
-                isInStock: variant.available || false,
-                category: this.detectCategory(baseName, 'poppatea'),
-                lastChecked: new Date(),
-                lastUpdated: new Date(),
-                firstSeen: new Date(),
-                isDiscontinued: false,
-                missedScans: 0,
-                crawlSource: 'cloud-run',
-                variantId: variant.id
-              };
-              variants.push(variantProduct);
+              for (const variant of jsonData.variants) {
+                const sizeName = variant.title || variant.option1 || variant.option2 || '';
+                const variantName = sizeName ? `${baseName} - ${sizeName}` : baseName;
+                
+                // Calculate product ID for this variant
+                const variantId = this.generateProductId(productUrl, variantName, 'poppatea');
+                
+                const variantProduct = {
+                  id: variantId,
+                  name: variantName.trim(),
+                  normalizedName: this.normalizeName(variantName),
+                  site: 'poppatea',
+                  siteName: config.name,
+                  price: variant.price !== undefined && variant.price !== null ? `€${(variant.price / 100).toFixed(2).replace('.', ',')}` : '',
+                  originalPrice: variant.price !== undefined && variant.price !== null ? `€${(variant.price / 100).toFixed(2).replace('.', ',')}` : '',
+                  priceValue: variant.price !== undefined && variant.price !== null ? variant.price / 100 : 0,
+                  currency: 'EUR',
+                  url: productUrl,
+                  imageUrl: processedMainImageUrl,
+                  isInStock: variant.available || false,
+                  category: this.detectCategory(baseName, 'poppatea'),
+                  lastChecked: new Date(),
+                  lastUpdated: new Date(),
+                  firstSeen: new Date(),
+                  isDiscontinued: false,
+                  missedScans: 0,
+                  crawlSource: 'cloud-run',
+                  variantId: variant.id
+                };
+                variants.push(variantProduct);
+              }
+              foundInJson = true;
             }
-            foundInJson = true;
+          } catch (e) {
+            // Continue if JSON parsing fails
           }
-        } catch (e) {
-          // Continue if JSON parsing fails
-        }
-      });
+        });
+      }
 
-      // Method 2: Look for variant selectors (HTML forms)
+      // Method 3: Look for variant selectors (HTML forms)
       if (!foundInJson) {
         const variantSelectors = $('select[name="id"], .product-form__option select, input[name="id"]');
         
@@ -1348,12 +1674,16 @@ class CrawlerService {
    * Parse variant text to extract size and price information
    */
   parseVariantText(text, baseName) {
-    // Common patterns for Poppatea variants: "50g - €12.50", "100g / €25.00"
+    // Common patterns for Poppatea variants: "50g - €12.50", "100g / €25.00", "50g - 160 kr"
     const patterns = [
-      /(\d+g)\s*[-\/]\s*€(\d+[,.]?\d*)/,  // "50g - €12.50"
-      /(\d+g)\s*\(\s*€(\d+[,.]?\d*)\)/,   // "50g (€12.50)"
-      /(\d+g)\s*€(\d+[,.]?\d*)/,          // "50g €12.50"
-      /(\d+\s*ml)\s*[-\/]\s*€(\d+[,.]?\d*)/, // For liquid products
+      /(\d+g)\s*[-\/]\s*€(\d+[,.]?\d*)/,        // "50g - €12.50"
+      /(\d+g)\s*\(\s*€(\d+[,.]?\d*)\)/,         // "50g (€12.50)"
+      /(\d+g)\s*€(\d+[,.]?\d*)/,                // "50g €12.50"
+      /(\d+g)\s*[-\/]\s*(\d+)\s*kr/i,           // "50g - 160 kr" (Swedish Krona)
+      /(\d+g)\s*\(\s*(\d+)\s*kr\)/i,           // "50g (160 kr)"
+      /(\d+g)\s*(\d+)\s*kr/i,                  // "50g 160 kr"
+      /(\d+\s*ml)\s*[-\/]\s*€(\d+[,.]?\d*)/,   // For liquid products
+      /(\d+\s*ml)\s*[-\/]\s*(\d+)\s*kr/i,      // For liquid products in SEK
     ];
 
     for (const pattern of patterns) {
@@ -1361,6 +1691,15 @@ class CrawlerService {
       if (match) {
         const size = match[1];
         let price = match[2].replace(',', '.');
+        let currency = 'EUR';
+        
+        // Check if this is Swedish Krona and convert to EUR
+        if (text.toLowerCase().includes('kr')) {
+          const sekValue = parseFloat(price);
+          const euroValue = (sekValue * 0.085).toFixed(2); // 1 SEK = 0.085 EUR
+          price = euroValue;
+          currency = 'EUR';
+        }
         
         return {
           name: `${baseName} (${size})`,
@@ -1368,7 +1707,7 @@ class CrawlerService {
           price: `€${price}`,
           originalPrice: `€${price}`,
           priceValue: parseFloat(price),
-          currency: 'EUR'
+          currency: currency
         };
       }
     }
@@ -1569,9 +1908,37 @@ class CrawlerService {
         }
 
         if (imageUrl) {
+          // Handle relative URLs
+          if (imageUrl.startsWith('//')) {
+            imageUrl = 'https:' + imageUrl;
+          } else if (imageUrl.startsWith('/')) {
+            imageUrl = config.baseUrl + imageUrl;
+          } else if (!imageUrl.startsWith('http')) {
+            // Relative path without leading slash
+            imageUrl = config.baseUrl + '/' + imageUrl;
+          }
+          
+          // Handle Shopify image templates
+          if (imageUrl.includes('{width}x')) {
+            imageUrl = imageUrl.replace(/_{width}x/, '');
+            this.logger.info('Fixed Shopify image template', { 
+              original: img.attr('src') || img.attr('data-src'), 
+              fixed: imageUrl,
+              siteKey 
+            });
+          }
+          
           // Remove query parameters for cleaner URLs
           imageUrl = imageUrl.split('?')[0];
-          return imageUrl;
+          
+          // Validate URL format
+          try {
+            new URL(imageUrl);
+            return imageUrl;
+          } catch (e) {
+            this.logger.warn('Invalid image URL format', { imageUrl, siteKey });
+            continue;
+          }
         }
       }
     }
@@ -1591,6 +1958,124 @@ class CrawlerService {
    */
   delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async extractShoChaProductImage(productUrl, productId) {
+    try {
+      const response = await axios.get(productUrl, this.requestConfig);
+      const $ = cheerio.load(response.data);
+      
+      // Look for product images on the individual product page
+      const imageSelectors = [
+        '.product-image img',
+        '.shop-image img',
+        '.main-image img',
+        'img[src*="product"]',
+        'img[src*="matcha"]',
+        'img[src*="tea"]',
+        '.gallery img',
+        '.product-photo img',
+        'img[alt*="matcha" i]',
+        'img[alt*="tea" i]'
+      ];
+      
+      for (const selector of imageSelectors) {
+        const img = $(selector).first();
+        if (img.length) {
+          let imgSrc = img.attr('src') || img.attr('data-src') || img.attr('data-original');
+          if (imgSrc) {
+            // Make absolute URL
+            if (imgSrc.startsWith('//')) {
+              imgSrc = 'https:' + imgSrc;
+            } else if (imgSrc.startsWith('/')) {
+              imgSrc = 'https://www.sho-cha.com' + imgSrc;
+            } else if (!imgSrc.startsWith('http')) {
+              imgSrc = 'https://www.sho-cha.com/' + imgSrc;
+            }
+            
+            // Download and store the image
+            const processedImageUrl = await this.downloadAndStoreImage(imgSrc, productId, 'sho-cha');
+            if (processedImageUrl) {
+              return processedImageUrl;
+            }
+          }
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      this.logger.warn('Failed to extract Sho-Cha product image from page', {
+        productUrl,
+        error: error.message
+      });
+      return null;
+    }
+  }
+
+  async checkHoriishichimeienStock(productUrl) {
+    try {
+      const response = await axios.get(productUrl, this.requestConfig);
+      const $ = cheerio.load(response.data);
+      
+      // Check for add to cart button or product form
+      const addToCartSelectors = [
+        '.product-form__buttons button:not([disabled])',
+        '.product-form button[name="add"]:not([disabled])',
+        'form[action="/cart/add"] button:not([disabled])',
+        '.btn--add-to-cart:not([disabled])',
+        'button:contains("Add to cart"):not([disabled])',
+        'button:contains("カートに入れる"):not([disabled])',
+        '.shopify-payment-button button:not([disabled])',
+        '.product-form__add-to-cart:not([disabled])'
+      ];
+      
+      for (const selector of addToCartSelectors) {
+        const button = $(selector);
+        if (button.length > 0) {
+          // Check if button is not disabled and doesn't contain out of stock text
+          const buttonText = button.text().toLowerCase();
+          if (!buttonText.includes('sold out') && 
+              !buttonText.includes('out of stock') && 
+              !buttonText.includes('unavailable') &&
+              !buttonText.includes('売り切れ')) {
+            return true;
+          }
+        }
+      }
+      
+      // Check for explicit out of stock indicators
+      const outOfStockSelectors = [
+        ':contains("Sold out")',
+        ':contains("Out of stock")',
+        ':contains("売り切れ")',
+        ':contains("Unavailable")',
+        '.sold-out',
+        '.out-of-stock',
+        '.product-form--disabled'
+      ];
+      
+      for (const selector of outOfStockSelectors) {
+        if ($(selector).length > 0) {
+          return false;
+        }
+      }
+      
+      // If no clear indicators, check for product variants
+      const variantSelector = $('select[name="id"] option[value]:not([disabled]), input[name="id"]:not([disabled])');
+      if (variantSelector.length > 0) {
+        return true; // Has available variants
+      }
+      
+      // Default to in stock if we can't determine otherwise
+      return true;
+      
+    } catch (error) {
+      this.logger.warn('Failed to check Horiishichimeien stock status', {
+        productUrl,
+        error: error.message
+      });
+      return true; // Default to in stock on error
+    }
   }
 }
 

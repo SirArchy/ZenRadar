@@ -335,21 +335,24 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       body:
           _isLoading
               ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildProductHeader(),
-                    const SizedBox(height: 24),
-                    _buildPriceOverview(),
-                    const SizedBox(height: 24),
-                    _buildPriceChart(),
-                    const SizedBox(height: 24),
-                    _buildStockChart(),
-                    const SizedBox(height: 24),
-                    _buildProductDetails(),
-                  ],
+              : SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildProductHeader(),
+                      const SizedBox(height: 24),
+                      _buildPriceOverview(),
+                      const SizedBox(height: 24),
+                      _buildPriceChart(),
+                      const SizedBox(height: 24),
+                      _buildStockChart(),
+                      const SizedBox(height: 24),
+                      _buildProductDetails(),
+                      const SizedBox(height: 48), // Extra bottom padding
+                    ],
+                  ),
                 ),
               ),
     );
@@ -361,16 +364,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         onTap: () => _launchUrl(widget.product.url),
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          height: 200,
+          constraints: const BoxConstraints(minHeight: 200),
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
           child: Stack(
             children: [
               // Background Image
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: double.infinity,
+                child: AspectRatio(
+                  aspectRatio:
+                      16 / 9, // Fixed aspect ratio instead of infinite height
                   child:
                       widget.product.imageUrl != null
                           ? Stack(
@@ -414,9 +417,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Top row with status chip
-                      Row(children: [const Spacer(), _buildStatusChip()]),
-
                       const Spacer(),
 
                       // Bottom content
@@ -448,31 +448,38 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                             : null,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 8),
+                                // Stock info below title
                                 Row(
                                   children: [
-                                    CategoryIcon(
-                                      category: widget.product.category,
-                                      size: 16,
-                                      color: Colors.white,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Icon(
-                                      Icons.store,
-                                      size: 16,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.9,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      widget.product.site,
-                                      style: TextStyle(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.9,
+                                    _buildStatusChip(),
+                                    const SizedBox(width: 12),
+                                    Row(
+                                      children: [
+                                        CategoryIcon(
+                                          category: widget.product.category,
+                                          size: 16,
+                                          color: Colors.white,
                                         ),
-                                        fontSize: 14,
-                                      ),
+                                        const SizedBox(width: 6),
+                                        Icon(
+                                          Icons.store,
+                                          size: 16,
+                                          color: Colors.white.withValues(
+                                            alpha: 0.9,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          widget.product.site,
+                                          style: TextStyle(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.9,
+                                            ),
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -505,7 +512,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                     ],
                                   ),
                                   child: Text(
-                                    'Current Price: ${_convertedPrice != null ? '${_convertedPrice!.toStringAsFixed(2)}$_currentCurrencySymbol' : (widget.product.price ?? 'N/A')}',
+                                    _convertedPrice != null
+                                        ? '${_convertedPrice!.toStringAsFixed(2)}$_currentCurrencySymbol'
+                                        : (widget.product.price ?? 'N/A'),
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white,

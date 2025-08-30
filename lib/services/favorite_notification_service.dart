@@ -5,6 +5,7 @@ import '../models/matcha_product.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
 import '../services/settings_service.dart';
+import '../services/firebase_messaging_service.dart';
 
 /// Service to handle notifications for favorite products
 /// Works in server mode by listening to Firestore changes
@@ -41,6 +42,9 @@ class FavoriteNotificationService {
 
       await _startMonitoring();
       _isListening = true;
+
+      // Update Firebase subscriptions for favorite products
+      await FirebaseMessagingService.instance.updateFavoriteSubscriptions();
 
       if (kDebugMode) {
         print('🔔 Favorite notification service initialized');

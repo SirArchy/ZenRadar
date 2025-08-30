@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'services/notification_service.dart';
 import 'services/background_service.dart';
-import 'services/database_service.dart';
 import 'screens/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize services
-  await DatabaseService.instance.initDatabase();
   await NotificationService.instance.init();
   await initializeService();
 

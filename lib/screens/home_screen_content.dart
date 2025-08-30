@@ -6,8 +6,10 @@ import '../models/matcha_product.dart';
 import '../services/database_service.dart';
 import '../services/search_history_service.dart';
 import '../services/recommendation_service.dart';
+import '../services/firebase_messaging_service.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_filters.dart';
+import '../widgets/mobile_filter_modal.dart';
 import '../widgets/matcha_icon.dart';
 import '../widgets/skeleton_loading.dart';
 import 'product_detail_page.dart';
@@ -292,11 +294,17 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         setState(() {
           _favoriteProductIds.remove(productId);
         });
+        // Unsubscribe from FCM notifications for this product
+        await FirebaseMessagingService.instance.unsubscribeFromProduct(
+          productId,
+        );
       } else {
         await DatabaseService.platformService.addFavorite(productId);
         setState(() {
           _favoriteProductIds.add(productId);
         });
+        // Subscribe to FCM notifications for this product
+        await FirebaseMessagingService.instance.subscribeToProduct(productId);
       }
     } catch (e) {
       print('Error toggling favorite: $e');
@@ -402,6 +410,35 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     _searchFocusNode.unfocus();
   }
 
+  /// Show mobile filter modal
+  void _showMobileFilterModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => DraggableScrollableSheet(
+            initialChildSize: 0.8,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            builder:
+                (context, scrollController) => MobileFilterModal(
+                  filter: _filter,
+                  availableSites: _availableSites,
+                  availableCategories: _availableCategories,
+                  priceRange: _priceRange,
+                  onFilterChanged: (newFilter) {
+                    setState(() {
+                      _showSearchSuggestions = false;
+                    });
+                    _onFilterChanged(newFilter);
+                  },
+                  onClose: () => Navigator.of(context).pop(),
+                ),
+          ),
+    );
+  }
+
   /// Save search term to history if it's meaningful
   Future<void> _saveSearchTermIfMeaningful() async {
     final query = _searchQuery.trim();
@@ -442,7 +479,10 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         Column(
           children: [
             _buildSearchBar(),
-            if (_showFilters && !_showSearchSuggestions)
+            // Site filter and category filters shown above all other content (desktop only)
+            if (_showFilters &&
+                !_showSearchSuggestions &&
+                MediaQuery.of(context).size.width >= 768)
               Flexible(
                 child: ProductFilters(
                   filter: _filter,
@@ -457,6 +497,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                   },
                 ),
               ),
+            // Stock status chips and sorting shown after filters
             _buildStockStatusChips(),
             _buildSortingOptions(),
             Expanded(child: _buildProductsList()),
@@ -523,13 +564,20 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                           : null,
                 ),
                 onPressed: () {
-                  setState(() {
-                    _showFilters = !_showFilters;
-                    if (_showFilters) {
-                      _showSearchSuggestions = false;
-                      _searchFocusNode.unfocus();
-                    }
-                  });
+                  final screenWidth = MediaQuery.of(context).size.width;
+                  final isMobile = screenWidth < 768;
+
+                  if (isMobile) {
+                    _showMobileFilterModal();
+                  } else {
+                    setState(() {
+                      _showFilters = !_showFilters;
+                      if (_showFilters) {
+                        _showSearchSuggestions = false;
+                        _searchFocusNode.unfocus();
+                      }
+                    });
+                  }
                 },
               ),
               if (_getActiveFilterCount() > 0)

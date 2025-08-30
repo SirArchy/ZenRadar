@@ -169,13 +169,18 @@ class ImprovedStockChart extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 14, color: color),
-            const SizedBox(width: 4),
-            Text(
-              text,
-              style: TextStyle(
-                fontSize: 10,
-                color: color,
-                fontWeight: FontWeight.w600,
+            const SizedBox(width: 2), // Reduced from 4 to 2
+            Flexible(
+              // Wrap Text with Flexible to prevent overflow
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 9, // Reduced from 10 to 9
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
           ],

@@ -2,9 +2,9 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../services/settings_service.dart';
 import '../services/background_service.dart';
+import '../services/notification_service.dart';
 import 'auth_screen.dart';
 import 'main_screen.dart';
 
@@ -17,6 +17,7 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _notificationPermissionAsked = false;
+  bool _notificationPermissionGranted = false;
   int _currentPage = 0;
   final PageController _pageController = PageController();
 
@@ -208,14 +209,35 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const SizedBox(height: 40),
           if (!kIsWeb) ...[
             ElevatedButton.icon(
-              onPressed: _requestNotificationPermission,
-              icon: const Icon(Icons.notifications),
-              label: const Text('Enable Notifications'),
+              onPressed:
+                  _notificationPermissionAsked
+                      ? null
+                      : _requestNotificationPermission,
+              icon: Icon(
+                _notificationPermissionAsked
+                    ? (_notificationPermissionGranted
+                        ? Icons.check
+                        : Icons.block)
+                    : Icons.notifications,
+              ),
+              label: Text(
+                _notificationPermissionAsked
+                    ? (_notificationPermissionGranted
+                        ? 'Notifications Enabled'
+                        : 'Permission Denied')
+                    : 'Enable Notifications',
+              ),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,
                   vertical: 16,
                 ),
+                backgroundColor:
+                    _notificationPermissionAsked
+                        ? (_notificationPermissionGranted
+                            ? Colors.green
+                            : Theme.of(context).colorScheme.error)
+                        : null,
               ),
             ),
             const SizedBox(height: 16),
@@ -224,7 +246,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             kIsWeb
                 ? 'Web notifications will be enabled automatically.'
                 : _notificationPermissionAsked
-                ? 'Notification permission requested!'
+                ? (_notificationPermissionGranted
+                    ? 'Great! You\'ll receive notifications when your favorite matcha is back in stock.'
+                    : 'You can enable notifications later in Settings if you change your mind.')
                 : 'We recommend enabling notifications for the best experience.',
             style: Theme.of(context).textTheme.bodyMedium,
             textAlign: TextAlign.center,
@@ -336,10 +360,43 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _requestNotificationPermission() async {
     if (!kIsWeb) {
-      await Permission.notification.request();
-      setState(() {
-        _notificationPermissionAsked = true;
-      });
+      try {
+        final granted =
+            await NotificationService.instance.requestNotificationPermission();
+        setState(() {
+          _notificationPermissionAsked = true;
+          _notificationPermissionGranted = granted;
+        });
+
+        // Show a brief feedback message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                granted
+                    ? 'Notifications enabled successfully!'
+                    : 'Notification permission denied. You can enable it later in Settings.',
+              ),
+              backgroundColor: granted ? Colors.green : Colors.orange,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      } catch (e) {
+        setState(() {
+          _notificationPermissionAsked = true;
+          _notificationPermissionGranted = false;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error requesting notification permission: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -391,7 +448,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       await SettingsService.instance.saveSettings(settings);
       await SettingsService.instance.markOnboardingCompleted();
 
-      // Request notification permission if not already asked
+      // Request notification permission if not already asked during onboarding
       if (!kIsWeb && !_notificationPermissionAsked) {
         await _requestNotificationPermission();
       }
