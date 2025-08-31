@@ -111,7 +111,7 @@ class CrawlerService {
       'enjoyemeri': {
         name: 'Emeri',
         baseUrl: 'https://enjoyemeri.com',
-        categoryUrl: 'https://enjoyemeri.com/collections/matcha',
+        categoryUrl: 'https://www.enjoyemeri.com/collections/shop-all',
         productSelector: '.product-card',
         nameSelector: 'h3, .product-title',
         priceSelector: '.price',
@@ -382,6 +382,24 @@ class CrawlerService {
               // Create product object for Sho-Cha
               const productId = this.generateProductId(productUrl, name, siteKey);
               
+              // Fetch price from individual product page
+              let price = '';
+              let priceValue = 0;
+              try {
+                const productResponse = await this.fetchWithRetry(productUrl);
+                const product$ = cheerio.load(productResponse.data);
+                
+                // Extract price from product page - try multiple selectors
+                const priceText = product$('.price, .product-price, .cost, .amount, [class*="price"], .currency, .money').first().text();
+                if (priceText) {
+                  price = this.cleanPriceBySite(priceText, siteKey);
+                  priceValue = this.extractPriceValue(price);
+                  this.logger.info('Extracted Sho-Cha price', { name, priceText, price, priceValue });
+                }
+              } catch (error) {
+                this.logger.warn('Failed to fetch Sho-Cha product page for price', { productUrl, error: error.message });
+              }
+              
               // Try to extract image from the product page
               let imageUrl = null;
               try {
@@ -399,13 +417,13 @@ class CrawlerService {
                 normalizedName: this.normalizeName(name),
                 site: siteKey,
                 siteName: config.name,
-                price: '', // No price on listing page for Sho-Cha
-                originalPrice: '',
-                priceValue: 0,
+                price: price,
+                originalPrice: price,
+                priceValue: priceValue,
                 currency: 'EUR',
                 url: productUrl,
                 imageUrl: imageUrl,
-                isInStock: true, // Assume in stock if listed
+                isInStock: price ? true : false, // In stock if we found a price
                 category: this.detectCategory(name, siteKey),
                 lastChecked: new Date(),
                 lastUpdated: new Date(),
@@ -632,6 +650,92 @@ class CrawlerService {
   /**
    * Get currency for site
    */
+  /**
+   * Get current exchange rates and convert to EUR
+   */
+  async convertToEUR(amount, fromCurrency) {
+    if (!amount || fromCurrency === 'EUR') {
+      return amount;
+    }
+
+    // Fixed exchange rates (should be updated regularly in production)
+    const exchangeRates = {
+      'USD': 0.85,    // 1 USD = 0.85 EUR
+      'CAD': 0.63,    // 1 CAD = 0.63 EUR  
+      'JPY': 0.0067,  // 1 JPY = 0.0067 EUR
+      'GBP': 1.17,    // 1 GBP = 1.17 EUR
+      'SEK': 0.086,   // 1 SEK = 0.086 EUR (for Poppatea)
+      'DKK': 0.134,   // 1 DKK = 0.134 EUR
+      'NOK': 0.085,   // 1 NOK = 0.085 EUR
+    };
+
+    const rate = exchangeRates[fromCurrency];
+    if (!rate) {
+      this.logger.warn('Unknown currency for conversion', { fromCurrency, amount });
+      return amount;
+    }
+
+    const convertedAmount = amount * rate;
+    this.logger.info('Currency conversion', { 
+      amount, 
+      fromCurrency, 
+      rate, 
+      convertedAmount: convertedAmount.toFixed(2) 
+    });
+    
+    return parseFloat(convertedAmount.toFixed(2));
+  }
+
+  /**
+   * Parse price text and extract currency and amount
+   */
+  parsePriceAndCurrency(priceText) {
+    if (!priceText) return { amount: null, currency: 'EUR' };
+
+    const cleaned = priceText.replace(/\s+/g, ' ').trim();
+    
+    // Currency patterns
+    const patterns = [
+      { regex: /€(\d+[.,]\d+)/, currency: 'EUR' },           // €12.50
+      { regex: /(\d+[.,]\d+)\s*€/, currency: 'EUR' },        // 12.50€ or 5,00€
+      { regex: /\$(\d+[.,]\d+)/, currency: 'USD' },          // $12.50
+      { regex: /(\d+[.,]\d+)\s*USD/, currency: 'USD' },      // 12.50 USD
+      { regex: /CAD\s*(\d+[.,]\d+)/, currency: 'CAD' },      // CAD 15.00
+      { regex: /(\d+[.,]\d+)\s*CAD/, currency: 'CAD' },      // 15.00 CAD
+      { regex: /¥(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/i, currency: 'JPY' }, // ¥10,800 or ¥648
+      { regex: /(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*¥/i, currency: 'JPY' }, // 10800 ¥
+      { regex: /(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*JPY/i, currency: 'JPY' }, // 10800 JPY
+      { regex: /£(\d+[.,]\d+)/, currency: 'GBP' },           // £12.50
+      { regex: /(\d+(?:[.,]\d+)?)\s*kr\b/i, currency: 'SEK' },       // 160 kr (Poppatea)
+      { regex: /(\d+[.,]\d+)\s*DKK/, currency: 'DKK' },      // 12.50 DKK
+      { regex: /(\d+[.,]\d+)\s*NOK/, currency: 'NOK' },      // 12.50 NOK
+    ];
+
+    for (const pattern of patterns) {
+      const match = cleaned.match(pattern.regex);
+      if (match) {
+        const amountStr = match[1].replace(',', '.');
+        const amount = parseFloat(amountStr);
+        
+        if (!isNaN(amount) && amount > 0) {
+          return { amount, currency: pattern.currency };
+        }
+      }
+    }
+
+    // Fallback: try to extract any number and assume EUR
+    const numberMatch = cleaned.match(/(\d+[.,]\d+)/);
+    if (numberMatch) {
+      const amountStr = numberMatch[1].replace(',', '.');
+      const amount = parseFloat(amountStr);
+      if (!isNaN(amount) && amount > 0) {
+        return { amount, currency: 'EUR' };
+      }
+    }
+
+    return { amount: null, currency: 'EUR' };
+  }
+
   getCurrencyForSite(siteKey) {
     const config = this.siteConfigs[siteKey];
     if (config && config.currencyConversion) {
@@ -803,7 +907,10 @@ class CrawlerService {
 
     // Check for accessories first (most specific)
     if (lower.includes('whisk') || lower.includes('chasen') || lower.includes('bowl') || 
-        lower.includes('chawan') || lower.includes('scoop') || lower.includes('chashaku')) {
+        lower.includes('chawan') || lower.includes('scoop') || lower.includes('chashaku') ||
+        lower.includes('schale') || lower.includes('becher') || lower.includes('tasse') || 
+        lower.includes('teebecher') || lower.includes('teeschale') || lower.includes('schüssel') || 
+        lower.includes('teeschüssel')) {
       return 'Accessories';
     }
 
@@ -979,35 +1086,19 @@ class CrawlerService {
         break;
 
       case 'sho-cha':
-        // Handle German Euro formatting: "24,00 €"
-        cleaned = cleaned.replace(/\n/g, ' ').replace(/\s+/g, ' ');
-        const euroPriceMatch = cleaned.match(/(\d+(?:,\d{2})?)\s*€/);
-        if (euroPriceMatch) {
-          return euroPriceMatch[1] + ' €';
-        }
-        
-        // Try USD format and convert
-        const usdPriceMatch = cleaned.match(/\$(\d+(?:\.\d{2})?)/);
-        if (usdPriceMatch) {
-          const usdValue = parseFloat(usdPriceMatch[1]);
-          const euroValue = (usdValue * 0.92).toFixed(2);
-          return `€${euroValue}`;
-        }
-        break;
-
-      case 'sho-cha':
-        // Handle German Euro formatting: "24,00 €"
+        // Handle German Euro formatting: "5,00€" or "24,00 €"
         cleaned = cleaned.replace(/\n/g, ' ').replace(/\s+/g, ' ');
         const shoChaEuroMatch = cleaned.match(/(\d+(?:,\d{2})?)\s*€/);
         if (shoChaEuroMatch) {
-          return shoChaEuroMatch[1] + ' €';
+          const price = parseFloat(shoChaEuroMatch[1].replace(',', '.'));
+          return `€${price.toFixed(2)}`;
         }
         
         // Try USD format and convert
         const shoChaUsdMatch = cleaned.match(/\$(\d+(?:\.\d{2})?)/);
         if (shoChaUsdMatch) {
           const usdValue = parseFloat(shoChaUsdMatch[1]);
-          const euroValue = (usdValue * 0.92).toFixed(2);
+          const euroValue = (usdValue * 0.85).toFixed(2); // Updated exchange rate
           return `€${euroValue}`;
         }
         break;
@@ -1108,7 +1199,7 @@ class CrawlerService {
         let horiYenMatch = cleaned.match(/¥(\d{1,3}(?:,\d{3})+)/); // With comma separator for thousands
         if (horiYenMatch) {
           const jpyValue = parseFloat(horiYenMatch[1].replace(/,/g, '')); // Remove commas: "10,800" -> 10800
-          const euroValue = (jpyValue * 0.0067).toFixed(2);
+          const euroValue = (jpyValue * 0.0065).toFixed(2); // Updated more accurate JPY to EUR rate
           return `€${euroValue}`;
         }
         
@@ -1116,7 +1207,7 @@ class CrawlerService {
         horiYenMatch = cleaned.match(/¥(\d+)(?!\d)/); // Ensure we don't partial match longer numbers
         if (horiYenMatch) {
           const jpyValue = parseFloat(horiYenMatch[1]);
-          const euroValue = (jpyValue * 0.0067).toFixed(2);
+          const euroValue = (jpyValue * 0.0065).toFixed(2);
           return `€${euroValue}`;
         }
         
@@ -1124,7 +1215,7 @@ class CrawlerService {
         const horiNumMatch = cleaned.match(/(\d{1,3}(?:,\d{3})+|\d+)/);
         if (horiNumMatch) {
           const jpyValue = parseFloat(horiNumMatch[1].replace(/,/g, ''));
-          const euroValue = (jpyValue * 0.0067).toFixed(2);
+          const euroValue = (jpyValue * 0.0065).toFixed(2);
           return `€${euroValue}`;
         }
         break;

@@ -7,9 +7,11 @@ import '../models/stock_history.dart';
 import '../services/database_service.dart';
 import '../services/currency_converter_service.dart';
 import '../services/settings_service.dart';
+import '../services/backend_service.dart';
 import '../widgets/category_icon.dart';
 import '../widgets/improved_price_chart.dart';
 import '../widgets/improved_stock_chart.dart';
+import '../widgets/platform_image.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final MatchaProduct product;
@@ -33,6 +35,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   double? _convertedLowestPrice;
   double? _convertedHighestPrice;
   double? _convertedAveragePrice;
+  bool _isFavorite = false;
 
   static const currencies = [
     {'code': 'EUR', 'name': 'Euro (€)', 'symbol': '€'},
@@ -61,6 +64,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       _hasInitialized = true;
       _loadUserSettings();
       _loadPriceHistory();
+      _loadFavoriteStatus();
     }
   }
 
@@ -223,6 +227,56 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
   }
 
+  Future<void> _loadFavoriteStatus() async {
+    try {
+      final favorites =
+          await DatabaseService.platformService.getFavoriteProductIds();
+      setState(() {
+        _isFavorite = favorites.contains(widget.product.id);
+      });
+    } catch (e) {
+      print('Error loading favorite status: $e');
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    try {
+      await BackendService.instance.updateFavorite(
+        productId: widget.product.id,
+        isFavorite: !_isFavorite,
+      );
+
+      setState(() {
+        _isFavorite = !_isFavorite;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isFavorite
+                  ? '📱 Added to favorites - you\'ll get notifications when it\'s back in stock!'
+                  : 'Removed from favorites',
+            ),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error toggling favorite: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating favorite: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
   List<PriceHistory> get _filteredHistory {
     if (_priceAnalytics == null) return [];
 
@@ -276,6 +330,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       appBar: AppBar(
         title: Text(widget.product.name, style: const TextStyle(fontSize: 18)),
         actions: [
+          // Favorite button
+          IconButton(
+            icon: Icon(
+              _isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: _isFavorite ? Colors.red : null,
+            ),
+            onPressed: _toggleFavorite,
+            tooltip: _isFavorite ? 'Remove from favorites' : 'Add to favorites',
+          ),
           PopupMenuButton<String>(
             icon: Row(
               mainAxisSize: MainAxisSize.min,
@@ -378,13 +441,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       widget.product.imageUrl != null
                           ? Stack(
                             children: [
-                              Image.network(
-                                widget.product.imageUrl!,
+                              PlatformImage.product(
+                                imageUrl: widget.product.imageUrl!,
                                 fit: BoxFit.cover,
                                 width: double.infinity,
                                 height: double.infinity,
-                                errorBuilder:
-                                    (context, error, stackTrace) =>
+                                loadingWidget:
+                                    (context) =>
+                                        _buildHeaderImageLoading(context),
+                                errorWidget:
+                                    (context) =>
                                         _buildHeaderPlaceholderBackground(
                                           context,
                                         ),
@@ -1246,6 +1312,24 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         _selectedDay = picked;
       });
     }
+  }
+
+  Widget _buildHeaderImageLoading(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(
+            Theme.of(context).colorScheme.primary,
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildHeaderPlaceholderBackground(BuildContext context) {

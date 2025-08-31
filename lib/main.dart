@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:zenradar/services/backend_service.dart';
 import 'firebase_options.dart';
 import 'services/notification_service.dart';
 import 'services/background_service.dart';
@@ -37,6 +38,7 @@ void main() async {
   // Initialize services
   await DatabaseService.platformService.initDatabase();
   await ThemeService.instance.init();
+  await BackendService.instance.initializeFCM();
 
   // Only initialize mobile-specific services on mobile platforms
   if (!kIsWeb) {

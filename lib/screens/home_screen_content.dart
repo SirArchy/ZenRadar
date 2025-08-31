@@ -6,7 +6,7 @@ import '../models/matcha_product.dart';
 import '../services/database_service.dart';
 import '../services/search_history_service.dart';
 import '../services/recommendation_service.dart';
-import '../services/firebase_messaging_service.dart';
+import '../services/backend_service.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_filters.dart';
 import '../widgets/mobile_filter_modal.dart';
@@ -70,6 +70,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   // Sorting state
   String _sortBy = 'name'; // 'name', 'price', 'category'
   bool _sortAscending = true;
+
+  // Collapsible filter section state
+  bool _isFilterSectionExpanded = true;
 
   // Public method to refresh products (can be called from parent)
   void refreshProducts() {
@@ -289,25 +292,49 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
   Future<void> _toggleFavorite(String productId) async {
     try {
-      if (_favoriteProductIds.contains(productId)) {
-        await DatabaseService.platformService.removeFavorite(productId);
-        setState(() {
-          _favoriteProductIds.remove(productId);
-        });
-        // Unsubscribe from FCM notifications for this product
-        await FirebaseMessagingService.instance.unsubscribeFromProduct(
-          productId,
-        );
-      } else {
-        await DatabaseService.platformService.addFavorite(productId);
-        setState(() {
+      bool wasFavorite = _favoriteProductIds.contains(productId);
+      bool newFavoriteState = !wasFavorite;
+
+      // Update the backend with FCM subscription management
+      await BackendService.instance.updateFavorite(
+        productId: productId,
+        isFavorite: newFavoriteState,
+      );
+
+      // Update local state
+      setState(() {
+        if (newFavoriteState) {
           _favoriteProductIds.add(productId);
-        });
-        // Subscribe to FCM notifications for this product
-        await FirebaseMessagingService.instance.subscribeToProduct(productId);
+        } else {
+          _favoriteProductIds.remove(productId);
+        }
+      });
+
+      // Show feedback to user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              newFavoriteState
+                  ? '📱 Added to favorites - you\'ll get notifications when it\'s back in stock!'
+                  : 'Removed from favorites',
+            ),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     } catch (e) {
       print('Error toggling favorite: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating favorite: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -498,8 +525,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                 ),
               ),
             // Stock status chips and sorting shown after filters
-            _buildStockStatusChips(),
-            _buildSortingOptions(),
+            _buildCollapsibleFilterSection(),
             Expanded(child: _buildProductsList()),
           ],
         ),
@@ -612,6 +638,92 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     );
   }
 
+  Widget _buildCollapsibleFilterSection() {
+    return Column(
+      children: [
+        // Header with toggle button
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              Icon(
+                Icons.tune,
+                size: 20,
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(179),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Filters & Sort',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onSurface.withAlpha(179),
+                ),
+              ),
+              const Spacer(),
+              if (_getActiveFilterCount() > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withAlpha(51),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${_getActiveFilterCount()} active',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _isFilterSectionExpanded = !_isFilterSectionExpanded;
+                  });
+                },
+                icon: AnimatedRotation(
+                  turns: _isFilterSectionExpanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(Icons.expand_more),
+                ),
+                tooltip:
+                    _isFilterSectionExpanded
+                        ? 'Collapse filters'
+                        : 'Expand filters',
+              ),
+            ],
+          ),
+        ),
+
+        // Collapsible content
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          height: _isFilterSectionExpanded ? null : 0,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 250),
+            opacity: _isFilterSectionExpanded ? 1.0 : 0.0,
+            child:
+                _isFilterSectionExpanded
+                    ? Column(
+                      children: [
+                        _buildStockStatusChips(),
+                        _buildSortingOptions(),
+                      ],
+                    )
+                    : const SizedBox.shrink(),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildStockStatusChips() {
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 400;
@@ -640,22 +752,11 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                       horizontal: isSmallScreen ? 6 : 8,
                       vertical: isSmallScreen ? 2 : 4,
                     ),
-                    selected:
-                        _filter.inStock == null &&
-                        !_filter.favoritesOnly &&
-                        (_filter.sites == null || _filter.sites!.isEmpty) &&
-                        _filter.category == null &&
-                        _filter.minPrice == null &&
-                        _filter.maxPrice == null &&
-                        (_filter.searchTerm == null ||
-                            _filter.searchTerm!.isEmpty),
+                    selected: _filter.inStock == null,
                     onSelected: (_) async {
-                      // Clear all filters to show all products
+                      // Only clear stock filter, keep other filters intact
                       setState(() {
-                        _filter =
-                            ProductFilter(); // Reset to default empty filter
-                        _searchQuery = '';
-                        _searchController.clear();
+                        _filter = _filter.copyWith(inStock: null);
                         _currentPage = 1;
                         _hasMoreProducts = true;
                       });

@@ -1,10 +1,10 @@
 // ignore_for_file: avoid_print
 
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../models/matcha_product.dart';
 import '../services/product_price_converter.dart';
 import 'category_icon.dart';
+import 'platform_image.dart';
 
 class ProductCard extends StatefulWidget {
   final MatchaProduct product;
@@ -203,56 +203,27 @@ class _ProductCardState extends State<ProductCard> {
                         widget.product.imageUrl != null
                             ? Stack(
                               children: [
-                                CachedNetworkImage(
+                                PlatformImage.product(
                                   imageUrl: widget.product.imageUrl!,
                                   fit: BoxFit.cover,
                                   width: double.infinity,
                                   height: double.infinity,
-                                  placeholder:
-                                      (context, url) =>
-                                          _buildImageLoading(context),
-                                  errorWidget: (context, url, error) {
+                                  loadingWidget:
+                                      (context) => _buildImageLoading(context),
+                                  errorWidget: (context) {
                                     // Enhanced error logging with deduplication
+                                    final url = widget.product.imageUrl!;
                                     if (!_loggedImageErrors.contains(url)) {
                                       _loggedImageErrors.add(url);
-                                      if (error.toString().contains(
-                                        'EncodingError',
-                                      )) {
-                                        print(
-                                          '🖼️ Image encoding error for $url: Image file appears to be corrupted or in unsupported format',
-                                        );
-                                      } else {
-                                        print(
-                                          '🖼️ Image load error for $url: $error',
-                                        );
-                                      }
-                                    }
-                                    return _buildPlaceholderBackground(context);
-                                  },
-                                  httpHeaders: const {
-                                    'User-Agent':
-                                        'Mozilla/5.0 (compatible; ZenRadar/1.0)',
-                                  },
-                                  // Add error retry configuration
-                                  errorListener: (exception) {
-                                    final errorKey =
-                                        'listener_${widget.product.imageUrl}';
-                                    if (!_loggedImageErrors.contains(
-                                      errorKey,
-                                    )) {
-                                      _loggedImageErrors.add(errorKey);
                                       print(
-                                        '🔍 CachedNetworkImage error listener: $exception',
+                                        'Platform image error for $url: Using fallback widget',
                                       );
                                     }
+                                    return _buildImageErrorFallback(
+                                      context,
+                                      url,
+                                    );
                                   },
-                                  // Increase timeout for better reliability
-                                  fadeInDuration: const Duration(
-                                    milliseconds: 300,
-                                  ),
-                                  fadeOutDuration: const Duration(
-                                    milliseconds: 100,
-                                  ),
                                 ),
                                 // Dark overlay for better text readability
                                 Container(
@@ -408,25 +379,14 @@ class _ProductCardState extends State<ProductCard> {
                                     color: Colors.black.withValues(alpha: 0.6),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      CategoryIcon(
-                                        category: widget.product.category,
-                                        size: 16,
-                                        color: Colors.white,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        widget.product.siteName ??
-                                            widget.product.site,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
+                                  child: Text(
+                                    widget.product.siteName ??
+                                        widget.product.site,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -443,16 +403,30 @@ class _ProductCardState extends State<ProductCard> {
                                           ).colorScheme.primaryContainer,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: Text(
-                                      widget.product.category!,
-                                      style: TextStyle(
-                                        color:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.onPrimaryContainer,
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 10,
-                                      ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        CategoryIcon(
+                                          category: widget.product.category,
+                                          size: 16,
+                                          color:
+                                              Theme.of(
+                                                context,
+                                              ).colorScheme.onPrimaryContainer,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          widget.product.category!,
+                                          style: TextStyle(
+                                            color:
+                                                Theme.of(context)
+                                                    .colorScheme
+                                                    .onPrimaryContainer,
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 10,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                               ],
@@ -646,5 +620,30 @@ class _ProductCardState extends State<ProductCard> {
     } else {
       return 'Just now';
     }
+  }
+
+  Widget _buildImageErrorFallback(BuildContext context, String url) {
+    // For web, show a special error indicator
+    return Stack(
+      children: [
+        _buildPlaceholderBackground(context),
+        Positioned(
+          bottom: 4,
+          right: 4,
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Icon(
+              Icons.broken_image,
+              size: 12,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

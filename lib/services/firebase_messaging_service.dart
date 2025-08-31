@@ -3,6 +3,8 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
 import '../services/notification_service.dart';
 import '../services/settings_service.dart';
 import '../services/database_service.dart';
@@ -173,17 +175,90 @@ class FirebaseMessagingService {
         settings.copyWith(fcmToken: _fcmToken),
       );
 
-      // TODO: Send token to your server to enable push notifications
-      // This would typically involve calling an API endpoint
-      // await _sendTokenToServer(_fcmToken!);
+      // Send token to Firebase backend
+      await _sendTokenToServer(_fcmToken!);
 
       if (kDebugMode) {
-        print('💾 FCM: Token saved locally');
+        print('💾 FCM: Token saved locally and sent to server');
       }
     } catch (e) {
       if (kDebugMode) {
         print('❌ FCM: Failed to save token: $e');
       }
+    }
+  }
+
+  /// Send FCM token to Firebase backend for push notification setup
+  Future<void> _sendTokenToServer(String token) async {
+    try {
+      // Get current user ID from Firebase Auth
+      final user = FirebaseAuth.instance.currentUser;
+      String userId;
+
+      if (user != null) {
+        userId = user.uid;
+      } else {
+        // Create anonymous user or use device-specific ID
+        final userCredential = await FirebaseAuth.instance.signInAnonymously();
+        userId = userCredential.user!.uid;
+      }
+
+      // Determine platform
+      String platform = 'unknown';
+      if (kIsWeb) {
+        platform = 'web';
+      } else if (defaultTargetPlatform == TargetPlatform.android) {
+        platform = 'android';
+      } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+        platform = 'ios';
+      }
+
+      // Prepare the request data
+      final requestData = {
+        'token': token,
+        'userId': userId,
+        'platform': platform,
+        'appVersion': '1.0.0', // You can make this dynamic later
+      };
+
+      // Get Firebase Functions endpoint
+      // Replace with your actual Firebase project region if different
+      final functionsUrl =
+          'https://europe-west3-zenradar-acb85.cloudfunctions.net';
+      final endpoint = '$functionsUrl/registerFCMToken';
+
+      if (kDebugMode) {
+        print('� FCM: Sending token to server: $endpoint');
+        print('📤 FCM: User ID: $userId, Platform: $platform');
+      }
+
+      final response = await http.post(
+        Uri.parse(endpoint),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(requestData),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        if (kDebugMode) {
+          print('✅ FCM: Token successfully registered on server');
+          print('✅ FCM: Response: ${responseData['message']}');
+        }
+      } else {
+        if (kDebugMode) {
+          print('❌ FCM: Failed to register token on server');
+          print('❌ FCM: Status: ${response.statusCode}');
+          print('❌ FCM: Response: ${response.body}');
+        }
+        throw Exception(
+          'Server returned ${response.statusCode}: ${response.body}',
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ FCM: Error sending token to server: $e');
+      }
+      // Don't rethrow - we want the app to continue working even if server registration fails
     }
   }
 
@@ -281,6 +356,11 @@ class FirebaseMessagingService {
         await subscribeToProduct(productId);
       }
 
+      // Also register/update the token on the server when favorites change
+      if (_fcmToken != null) {
+        await _sendTokenToServer(_fcmToken!);
+      }
+
       if (kDebugMode) {
         print(
           '✅ FCM: Updated subscriptions for ${favoriteIds.length} favorite products',
@@ -289,6 +369,33 @@ class FirebaseMessagingService {
     } catch (e) {
       if (kDebugMode) {
         print('❌ FCM: Failed to update favorite subscriptions: $e');
+      }
+    }
+  }
+
+  /// Call this method when a user adds/removes a favorite
+  Future<void> onFavoriteChanged(String productId, bool isFavorite) async {
+    if (!_isInitialized) return;
+
+    try {
+      if (isFavorite) {
+        await subscribeToProduct(productId);
+        if (kDebugMode) {
+          print('✅ FCM: Subscribed to notifications for product: $productId');
+        }
+      } else {
+        await unsubscribeFromProduct(productId);
+        if (kDebugMode) {
+          print(
+            '✅ FCM: Unsubscribed from notifications for product: $productId',
+          );
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print(
+          '❌ FCM: Failed to update subscription for product $productId: $e',
+        );
       }
     }
   }

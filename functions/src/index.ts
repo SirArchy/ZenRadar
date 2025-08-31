@@ -6,7 +6,12 @@
  * @throws Will throw an error if the Cloud Run request fails.
  */
 /**
- * ZenRadar Cloud Functions for Matcha Stock Monitoring
+ * ZenRadar Cloud Functions for Matcha         });
+
+        logger.info("User favorite removed", {
+          userId: userId,
+          productId: productId,
+        });Monitoring
  * Handles crawl requests and triggers Cloud Run crawler
  */
 
@@ -114,6 +119,257 @@ export const scheduledCrawl = onSchedule(
     } catch (error) {
       logger.error("Error creating scheduled crawl request", {error});
       throw error;
+    }
+  }
+);
+
+/**
+ * Function triggered when a product's stock status changes
+ * Sends push notifications to users who have favorited the product
+ */
+export const sendStockChangeNotification = onDocumentCreated(
+  "stock_history/{historyId}",
+  async (event) => {
+    const stockChange = event.data?.data();
+    if (!stockChange) {
+      logger.error("No stock change data found");
+      return;
+    }
+
+    // Only send notifications for products coming back in stock
+    if (!stockChange.isInStock) {
+      return;
+    }
+
+    try {
+      logger.info("Processing stock change notification", {
+        productId: stockChange.productId,
+        productName: stockChange.productName,
+        site: stockChange.site,
+      });
+
+      // Get all users who have favorited this product
+      const favoritesQuery = await db.collection("user_favorites")
+        .where("productId", "==", stockChange.productId)
+        .get();
+
+      if (favoritesQuery.empty) {
+        logger.info("No users have favorited this product", {
+          productId: stockChange.productId,
+        });
+        return;
+      }
+
+      // Get FCM tokens for all users who favorited this product
+      const userIds = favoritesQuery.docs.map((doc) => doc.data().userId);
+      const tokenPromises = userIds.map((userId) =>
+        db.collection("fcm_tokens").doc(userId).get()
+      );
+
+      const tokenDocs = await Promise.all(tokenPromises);
+      const validTokens = tokenDocs
+        .filter((doc) => doc.exists && doc.data()?.isActive)
+        .map((doc) => doc.data()?.token)
+        .filter((token) => token);
+
+      if (validTokens.length === 0) {
+        logger.info("No valid FCM tokens found for favorited product", {
+          productId: stockChange.productId,
+        });
+        return;
+      }
+
+      // Send push notification using FCM Admin SDK
+      const {getMessaging} = await import("firebase-admin/messaging");
+      const messaging = getMessaging();
+
+      const message = {
+        notification: {
+          title: "🎉 Back in Stock!",
+          body: `${stockChange.productName} is now available at ` +
+            `${stockChange.site}`,
+          imageUrl: stockChange.imageUrl || undefined,
+        },
+        data: {
+          type: "stock_change",
+          productId: stockChange.productId,
+          productName: stockChange.productName,
+          site: stockChange.site,
+          url: stockChange.url || "",
+        },
+        tokens: validTokens,
+      };
+
+      const response = await messaging.sendEachForMulticast(message);
+
+      logger.info("Stock change notifications sent", {
+        productId: stockChange.productId,
+        successCount: response.successCount,
+        failureCount: response.failureCount,
+        totalTokens: validTokens.length,
+      });
+
+      // Handle failed tokens (remove invalid ones)
+      if (response.failureCount > 0) {
+        const failedTokens: string[] = [];
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success) {
+            failedTokens.push(validTokens[idx]);
+            logger.warn("Failed to send notification", {
+              token: validTokens[idx].substring(0, 20) + "...",
+              error: resp.error?.message,
+            });
+          }
+        });
+
+        // Remove invalid tokens
+        await Promise.all(
+          failedTokens.map(async (token) => {
+            const tokenQuery = await db.collection("fcm_tokens")
+              .where("token", "==", token)
+              .get();
+
+            const batch = db.batch();
+            tokenQuery.docs.forEach((doc) => {
+              batch.update(doc.ref, {isActive: false});
+            });
+            await batch.commit();
+          })
+        );
+      }
+
+    } catch (error) {
+      logger.error("Error sending stock change notification", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+        productId: stockChange.productId,
+      });
+    }
+  }
+);
+
+/**
+ * HTTP endpoint for FCM token registration
+ */
+export const registerFCMToken = onRequest(
+  {cors: true},
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).send("Method not allowed");
+      return;
+    }
+
+    try {
+      const {token, userId, platform, appVersion} = req.body;
+
+      if (!token || !userId) {
+        res.status(400).json({
+          error: "token and userId are required",
+        });
+        return;
+      }
+
+      // Store/update FCM token in Firestore
+      const userTokenRef = db.collection("fcm_tokens").doc(userId);
+      
+      await userTokenRef.set({
+        token: token,
+        platform: platform || "unknown",
+        appVersion: appVersion || "unknown",
+        lastUpdated: new Date(),
+        createdAt: new Date(),
+        isActive: true,
+      }, {merge: true});
+
+      // Also update user document with latest token
+      const userRef = db.collection("users").doc(userId);
+      await userRef.set({
+        fcmToken: token,
+        lastTokenUpdate: new Date(),
+      }, {merge: true});
+
+      logger.info("FCM token registered successfully", {
+        userId: userId,
+        platform: platform,
+        tokenPreview: token.substring(0, 20) + "...",
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "FCM token registered successfully",
+      });
+    } catch (error) {
+      logger.error("Error registering FCM token", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      res.status(500).json({
+        error: "Failed to register FCM token",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+);
+
+/**
+ * HTTP endpoint for updating user favorites and FCM subscriptions
+ */
+export const updateUserFavorites = onRequest(
+  {cors: true},
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).send("Method not allowed");
+      return;
+    }
+
+    try {
+      const {userId, productId, isFavorite} = req.body;
+
+      if (!userId || !productId || typeof isFavorite !== "boolean") {
+        res.status(400).json({
+          error: "userId, productId, and isFavorite are required",
+        });
+        return;
+      }
+
+      const favoriteRef = db.collection("user_favorites").doc(`${userId}_${productId}`);
+
+      if (isFavorite) {
+        // Add favorite
+        await favoriteRef.set({
+          userId: userId,
+          productId: productId,
+          createdAt: new Date(),
+          isActive: true,
+        });
+
+        logger.info("User favorite added", {
+          userId: userId,
+          productId: productId,
+        });
+      } else {
+        // Remove favorite
+        await favoriteRef.delete();
+
+        logger.info("User favorite removed", {
+          userId: userId,
+          productId: productId,
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: `Favorite ${isFavorite ? "added" : "removed"} successfully`,
+      });
+    } catch (error) {
+      logger.error("Error updating user favorites", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+      });      res.status(500).json({
+        error: "Failed to update user favorites",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   }
 );

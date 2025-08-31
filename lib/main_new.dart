@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:zenradar/services/backend_service.dart';
 import 'services/notification_service.dart';
 import 'services/background_service.dart';
 import 'screens/main_screen.dart';
@@ -10,6 +11,7 @@ void main() async {
   // Initialize services
   await NotificationService.instance.init();
   await initializeService();
+  await BackendService.instance.initializeFCM();
 
   // Request permissions
   await requestPermissions();
