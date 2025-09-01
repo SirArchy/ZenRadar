@@ -207,7 +207,15 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
       // Add some padding to the range (5% on each side)
       double padding = (dynamicMax - dynamicMin) * 0.05;
       dynamicMin = math.max(dynamicMin - padding, widget.priceRange['min']!);
+      // Ensure dynamic range is valid
+      dynamicMin = math.max(dynamicMin - padding, widget.priceRange['min']!);
       dynamicMax = math.min(dynamicMax + padding, widget.priceRange['max']!);
+
+      // Safety check: ensure min <= max
+      if (dynamicMin >= dynamicMax) {
+        dynamicMin = widget.priceRange['min']!;
+        dynamicMax = widget.priceRange['max']!;
+      }
 
       setState(() {
         _productCount =
@@ -219,11 +227,16 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
         _isLoadingStatistics = false;
 
         // Update price range values if they're outside the new dynamic range
+        // Also ensure the range values are valid
+        final safeStart = math.max(_priceRangeValues.start, dynamicMin);
+        final safeEnd = math.min(_priceRangeValues.end, dynamicMax);
+
         if (_priceRangeValues.start < dynamicMin ||
-            _priceRangeValues.end > dynamicMax) {
+            _priceRangeValues.end > dynamicMax ||
+            safeStart > safeEnd) {
           _priceRangeValues = RangeValues(
-            math.max(_priceRangeValues.start, dynamicMin),
-            math.min(_priceRangeValues.end, dynamicMax),
+            math.min(safeStart, safeEnd), // Ensure start <= end
+            math.max(safeStart, safeEnd), // Ensure start <= end
           );
         }
       });
