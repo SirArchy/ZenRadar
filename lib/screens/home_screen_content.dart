@@ -715,6 +715,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                       children: [
                         _buildStockStatusChips(),
                         _buildSortingOptions(),
+                        _buildBulkActions(),
                       ],
                     )
                     : const SizedBox.shrink(),
@@ -1236,5 +1237,257 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         );
       },
     );
+  }
+
+  Widget _buildBulkActions() {
+    final filteredProductCount = _products.length;
+    final favoriteCount =
+        _products.where((p) => _favoriteProductIds.contains(p.id)).length;
+    final nonFavoriteCount = filteredProductCount - favoriteCount;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          // Add all visible products to favorites
+          if (nonFavoriteCount > 0)
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : () => _bulkAddToFavorites(),
+                icon: Icon(
+                  Icons.favorite_border,
+                  size: 18,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                label: Text(
+                  'Add $nonFavoriteCount to Favorites',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontSize: 13,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.1),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: BorderSide(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.3),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+          // Remove all visible products from favorites
+          if (favoriteCount > 0) ...[
+            if (nonFavoriteCount > 0) const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : () => _bulkRemoveFromFavorites(),
+                icon: Icon(Icons.favorite, size: 18, color: Colors.red),
+                label: Text(
+                  'Remove $favoriteCount from Favorites',
+                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.withValues(alpha: 0.1),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: BorderSide(color: Colors.red.withValues(alpha: 0.3)),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Add all currently filtered products to favorites
+  Future<void> _bulkAddToFavorites() async {
+    try {
+      final nonFavoriteProducts =
+          _products.where((p) => !_favoriteProductIds.contains(p.id)).toList();
+
+      if (nonFavoriteProducts.isEmpty) return;
+
+      // Show loading indicator
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  'Adding ${nonFavoriteProducts.length} products to favorites...',
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+
+      // Add all products to favorites
+      for (final product in nonFavoriteProducts) {
+        await BackendService.instance.updateFavorite(
+          productId: product.id,
+          isFavorite: true,
+        );
+      }
+
+      // Update local state
+      setState(() {
+        _favoriteProductIds.addAll(nonFavoriteProducts.map((p) => p.id));
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '✅ Added ${nonFavoriteProducts.length} products to favorites!',
+            ),
+            duration: const Duration(seconds: 2),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error bulk adding to favorites: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error adding products to favorites: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Remove all currently filtered products from favorites
+  Future<void> _bulkRemoveFromFavorites() async {
+    try {
+      final favoriteProducts =
+          _products.where((p) => _favoriteProductIds.contains(p.id)).toList();
+
+      if (favoriteProducts.isEmpty) return;
+
+      // Show confirmation dialog
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: const Text('Remove from Favorites'),
+              content: Text(
+                'Are you sure you want to remove ${favoriteProducts.length} products from your favorites?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: const Text('Remove'),
+                ),
+              ],
+            ),
+      );
+
+      if (confirmed != true) return;
+
+      // Show loading indicator
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  'Removing ${favoriteProducts.length} products from favorites...',
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+
+      // Remove all products from favorites
+      for (final product in favoriteProducts) {
+        await BackendService.instance.updateFavorite(
+          productId: product.id,
+          isFavorite: false,
+        );
+      }
+
+      // Update local state
+      setState(() {
+        _favoriteProductIds.removeWhere(
+          (id) => favoriteProducts.any((p) => p.id == id),
+        );
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '✅ Removed ${favoriteProducts.length} products from favorites!',
+            ),
+            duration: const Duration(seconds: 2),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error bulk removing from favorites: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error removing products from favorites: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 }

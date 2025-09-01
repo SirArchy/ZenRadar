@@ -4,7 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 /// A platform-aware image widget that handles web compatibility issues
 /// while maintaining performance on mobile platforms
-class PlatformImage extends StatelessWidget {
+class PlatformImage extends StatefulWidget {
   final String imageUrl;
   final BoxFit? fit;
   final double? width;
@@ -25,38 +25,86 @@ class PlatformImage extends StatelessWidget {
   });
 
   @override
+  State<PlatformImage> createState() => _PlatformImageState();
+}
+
+class _PlatformImageState extends State<PlatformImage> {
+  int _retryCount = 0;
+  static const int _maxRetries = 2;
+  late String _currentUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentUrl = widget.imageUrl;
+  }
+
+  void _retry() {
+    if (_retryCount < _maxRetries) {
+      setState(() {
+        _retryCount++;
+        // Add a cache-busting parameter to force retry
+        _currentUrl = '${widget.imageUrl}?retry=$_retryCount';
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // On web, use Image.network with enhanced error handling
+    // On web, use Image.network with enhanced error handling and CORS headers
     // This avoids the CachedNetworkImage encoding issues on web
     if (kIsWeb) {
       return Image.network(
-        imageUrl,
-        fit: fit,
-        width: width,
-        height: height,
-        headers: httpHeaders,
+        _currentUrl,
+        fit: widget.fit,
+        width: widget.width,
+        height: widget.height,
+        headers:
+            widget.httpHeaders ??
+            {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET',
+              'User-Agent': 'Mozilla/5.0 (compatible; ZenRadar/1.0)',
+              'Accept': 'image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+            },
         loadingBuilder:
-            placeholder != null
+            widget.placeholder != null
                 ? (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
-                  return placeholder!(context, imageUrl);
+                  return widget.placeholder!(context, widget.imageUrl);
                 }
                 : null,
         errorBuilder:
-            errorWidget != null
+            widget.errorWidget != null
                 ? (context, error, stackTrace) {
-                  // Enhanced error handling for web
+                  // Enhanced error handling for web with CORS detection and retry
                   if (kDebugMode) {
-                    if (error.toString().contains('EncodingError') ||
+                    if (error.toString().contains('CORS') ||
+                        error.toString().contains('statusCode: 0')) {
+                      print(
+                        '🖼️ Web image CORS error for ${widget.imageUrl}: Cross-origin request blocked. Retry attempt: $_retryCount',
+                      );
+                    } else if (error.toString().contains('EncodingError') ||
                         error.toString().contains('decode')) {
                       print(
-                        '🖼️ Web image encoding error for $imageUrl: Image file appears to be corrupted or in unsupported format',
+                        '🖼️ Web image encoding error for ${widget.imageUrl}: Image file appears to be corrupted or in unsupported format',
                       );
                     } else {
-                      print('🖼️ Web image load error for $imageUrl: $error');
+                      print(
+                        '🖼️ Web image load error for ${widget.imageUrl}: $error',
+                      );
                     }
                   }
-                  return errorWidget!(context, imageUrl, error);
+
+                  // Attempt retry for CORS issues
+                  if ((error.toString().contains('CORS') ||
+                          error.toString().contains('statusCode: 0')) &&
+                      _retryCount < _maxRetries) {
+                    // Delay retry to allow CORS settings to propagate
+                    Future.delayed(const Duration(seconds: 2), _retry);
+                  }
+
+                  return widget.errorWidget!(context, widget.imageUrl, error);
                 }
                 : null,
       );
@@ -64,31 +112,36 @@ class PlatformImage extends StatelessWidget {
 
     // On mobile platforms, use CachedNetworkImage for better performance
     return CachedNetworkImage(
-      imageUrl: imageUrl,
-      fit: fit,
-      width: width,
-      height: height,
-      placeholder: placeholder,
-      errorWidget: errorWidget,
+      imageUrl: widget.imageUrl,
+      fit: widget.fit,
+      width: widget.width,
+      height: widget.height,
+      placeholder: widget.placeholder,
+      errorWidget: widget.errorWidget,
       httpHeaders:
-          httpHeaders ??
+          widget.httpHeaders ??
           const {'User-Agent': 'Mozilla/5.0 (compatible; ZenRadar/1.0)'},
       // Enhanced error handling for mobile
       errorListener: (exception) {
         if (kDebugMode) {
           if (exception.toString().contains('EncodingError') ||
               exception.toString().contains('decode')) {
-            print('🖼️ Mobile image encoding error for $imageUrl: $exception');
+            print(
+              '🖼️ Mobile image encoding error for ${widget.imageUrl}: $exception',
+            );
           } else {
-            print('🖼️ Mobile image error for $imageUrl: $exception');
+            print('🖼️ Mobile image error for ${widget.imageUrl}: $exception');
           }
         }
       },
     );
   }
+}
 
+/// Extension for PlatformImage factory constructors
+extension PlatformImageFactory on PlatformImage {
   /// Factory constructor for common use case with standard error handling
-  factory PlatformImage.product({
+  static PlatformImage product({
     required String imageUrl,
     BoxFit fit = BoxFit.cover,
     double? width,

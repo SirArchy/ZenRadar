@@ -8,10 +8,9 @@ import '../services/database_service.dart';
 import '../services/currency_converter_service.dart';
 import '../services/settings_service.dart';
 import '../services/backend_service.dart';
-import '../widgets/category_icon.dart';
 import '../widgets/improved_price_chart.dart';
 import '../widgets/improved_stock_chart.dart';
-import '../widgets/platform_image.dart';
+import '../widgets/product_card.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final MatchaProduct product;
@@ -330,15 +329,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       appBar: AppBar(
         title: Text(widget.product.name, style: const TextStyle(fontSize: 18)),
         actions: [
-          // Favorite button
-          IconButton(
-            icon: Icon(
-              _isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: _isFavorite ? Colors.red : null,
-            ),
-            onPressed: _toggleFavorite,
-            tooltip: _isFavorite ? 'Remove from favorites' : 'Add to favorites',
-          ),
           PopupMenuButton<String>(
             icon: Row(
               mainAxisSize: MainAxisSize.min,
@@ -422,256 +412,51 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Widget _buildProductHeader() {
-    return Card(
-      child: InkWell(
-        onTap: () => _launchUrl(widget.product.url),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 200),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
-          child: Stack(
-            children: [
-              // Background Image
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: AspectRatio(
-                  aspectRatio:
-                      16 / 9, // Fixed aspect ratio instead of infinite height
-                  child:
-                      widget.product.imageUrl != null
-                          ? Stack(
-                            children: [
-                              PlatformImage.product(
-                                imageUrl: widget.product.imageUrl!,
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                                height: double.infinity,
-                                loadingWidget:
-                                    (context) =>
-                                        _buildHeaderImageLoading(context),
-                                errorWidget:
-                                    (context) =>
-                                        _buildHeaderPlaceholderBackground(
-                                          context,
-                                        ),
-                              ),
-                              // Dark overlay for better text readability
-                              Container(
-                                width: double.infinity,
-                                height: double.infinity,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Colors.black.withValues(alpha: 0.4),
-                                      Colors.black.withValues(alpha: 0.8),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                          : _buildHeaderPlaceholderBackground(context),
-                ),
-              ),
-
-              // Content Overlay
-              Positioned.fill(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Spacer(),
-
-                      // Bottom content
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Product name with background
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.7),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  widget.product.name,
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    decoration:
-                                        widget.product.isDiscontinued
-                                            ? TextDecoration.lineThrough
-                                            : null,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                // Stock info below title
-                                Row(
-                                  children: [
-                                    _buildStatusChip(),
-                                    const SizedBox(width: 12),
-                                    Row(
-                                      children: [
-                                        CategoryIcon(
-                                          category: widget.product.category,
-                                          size: 16,
-                                          color: Colors.white,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Icon(
-                                          Icons.store,
-                                          size: 16,
-                                          color: Colors.white.withValues(
-                                            alpha: 0.9,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          widget.product.site,
-                                          style: TextStyle(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.9,
-                                            ),
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          if (widget.product.price != null) ...[
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                    borderRadius: BorderRadius.circular(8),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.3,
-                                        ),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Text(
-                                    _convertedPrice != null
-                                        ? '${_convertedPrice!.toStringAsFixed(2)}$_currentCurrencySymbol'
-                                        : (widget.product.price ?? 'N/A'),
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.9),
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.25,
-                                        ),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: IconButton(
-                                    icon: Icon(
-                                      Icons.open_in_new,
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
-                                    ),
-                                    onPressed:
-                                        () => _launchUrl(widget.product.url),
-                                    tooltip: 'Open product URL',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+    return Stack(
+      children: [
+        ProductCard(
+          product: widget.product,
+          onTap: () => _launchUrl(widget.product.url),
+          preferredCurrency: _selectedCurrency,
+          isFavorite: _isFavorite,
+          onFavoriteToggle: _toggleFavorite,
+          hideLastChecked:
+              true, // Hide last checked to prevent overlap with open URL button
         ),
-      ),
+        // Overlay the open URL button in the bottom right corner
+        Positioned(
+          right: 16,
+          bottom: 28, // Position to replace the "last checked" section
+          child: _buildOpenUrlButton(),
+        ),
+      ],
     );
   }
 
-  Widget _buildStatusChip() {
-    Color chipColor;
-    IconData chipIcon;
-    String chipText;
-
-    if (widget.product.isDiscontinued) {
-      chipColor = Theme.of(context).colorScheme.outline;
-      chipIcon = Icons.not_interested;
-      chipText = 'Discontinued';
-    } else if (widget.product.isInStock) {
-      chipColor = Theme.of(context).colorScheme.primary;
-      chipIcon = Icons.check_circle;
-      chipText = 'In Stock';
-    } else {
-      chipColor = Theme.of(context).colorScheme.error;
-      chipIcon = Icons.cancel;
-      chipText = 'Out of Stock';
-    }
-
+  Widget _buildOpenUrlButton() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: chipColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            chipIcon,
-            size: 16,
-            color: Theme.of(context).colorScheme.onPrimary,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            chipText,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onPrimary,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
+        color: Colors.white.withValues(alpha: 0.9),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
+      ),
+      child: InkWell(
+        onTap: () => _launchUrl(widget.product.url),
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Icon(
+            Icons.open_in_new,
+            color: Theme.of(context).colorScheme.primary,
+            size: 20,
+          ),
+        ),
       ),
     );
   }
@@ -1312,78 +1097,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         _selectedDay = picked;
       });
     }
-  }
-
-  Widget _buildHeaderImageLoading(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(
-            Theme.of(context).colorScheme.primary,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeaderPlaceholderBackground(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Stack(
-        children: [
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.local_cafe,
-                  size: 64,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.3),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Matcha Product',
-                  style: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.4),
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Dark overlay for consistency
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withValues(alpha: 0.3),
-                  Colors.black.withValues(alpha: 0.6),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   /// Launches a URL in the default browser

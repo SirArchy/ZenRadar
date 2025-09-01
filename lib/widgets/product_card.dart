@@ -13,6 +13,7 @@ class ProductCard extends StatefulWidget {
   final bool isFavorite;
   final VoidCallback? onFavoriteToggle;
   final Widget? extraInfo;
+  final bool hideLastChecked;
 
   const ProductCard({
     super.key,
@@ -22,6 +23,7 @@ class ProductCard extends StatefulWidget {
     this.isFavorite = false,
     this.onFavoriteToggle,
     this.extraInfo,
+    this.hideLastChecked = false,
   });
 
   @override
@@ -203,7 +205,7 @@ class _ProductCardState extends State<ProductCard> {
                         widget.product.imageUrl != null
                             ? Stack(
                               children: [
-                                PlatformImage.product(
+                                PlatformImageFactory.product(
                                   imageUrl: widget.product.imageUrl!,
                                   fit: BoxFit.cover,
                                   width: double.infinity,
@@ -499,43 +501,47 @@ class _ProductCardState extends State<ProductCard> {
 
                                 const Spacer(),
 
-                                // Last checked info
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.6),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.access_time,
-                                        size: 12,
-                                        color: Colors.white.withValues(
-                                          alpha: 0.9,
-                                        ),
+                                // Last checked info (conditionally shown)
+                                if (!widget.hideLastChecked)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.6,
                                       ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        _formatDateTime(
-                                          widget.product.lastChecked,
-                                        ),
-                                        style: TextStyle(
-                                          fontSize: 9,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.access_time,
+                                          size: 12,
                                           color: Colors.white.withValues(
                                             alpha: 0.9,
                                           ),
                                         ),
-                                        textAlign: TextAlign.end,
-                                      ),
-                                    ],
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          _formatDateTime(
+                                            widget.product.lastChecked,
+                                          ),
+                                          style: TextStyle(
+                                            fontSize: 9,
+                                            color: Colors.white.withValues(
+                                              alpha: 0.9,
+                                            ),
+                                          ),
+                                          textAlign: TextAlign.end,
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
                               ],
                             ),
 
