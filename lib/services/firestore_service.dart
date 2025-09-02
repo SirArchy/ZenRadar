@@ -746,10 +746,15 @@ class FirestoreService {
   }
 
   /// Get price history for a product
-  Future<List<PriceHistory>> getPriceHistoryForProduct(String productId) async {
+  Future<List<PriceHistory>> getPriceHistoryForProduct(
+    String productId, {
+    int? limitDays,
+  }) async {
     try {
       if (kDebugMode) {
-        print('🔍 Loading price history for product: $productId');
+        print(
+          '🔍 Loading price history for product: $productId (limitDays: $limitDays)',
+        );
 
         // Check authentication status
         final user = FirebaseAuth.instance.currentUser;
@@ -761,57 +766,73 @@ class FirestoreService {
         }
       }
 
-      final snapshot =
-          await firestore
-              .collection('price_history')
-              .where('productId', isEqualTo: productId)
-              .orderBy('date', descending: false)
-              .get();
+      Query query = firestore
+          .collection('price_history')
+          .where('productId', isEqualTo: productId);
+
+      // Apply date limitation if specified
+      if (limitDays != null) {
+        final cutoffDate = DateTime.now().subtract(Duration(days: limitDays));
+        query = query.where(
+          'date',
+          isGreaterThanOrEqualTo: cutoffDate.toIso8601String().split('T')[0],
+        );
+      }
+
+      final snapshot = await query.orderBy('date', descending: false).get();
 
       if (kDebugMode) {
         print('📊 Found ${snapshot.docs.length} price history entries');
       }
 
       final priceHistory =
-          snapshot.docs.map((doc) {
-            final data = doc.data();
+          snapshot.docs
+              .map((doc) {
+                final data = doc.data() as Map<String, dynamic>?;
 
-            if (kDebugMode) {
-              print(
-                '💰 Price entry: ${data['date']} - ${data['price']} ${data['currency']}',
-              );
-            }
+                if (data == null) return null;
 
-            // Handle the price field which might be a large number that needs conversion
-            double priceValue = 0.0;
-            final rawPrice = data['price'];
-            if (rawPrice is num) {
-              priceValue = rawPrice.toDouble();
-              // Check if this looks like it needs to be converted based on currency
-              final currency = data['currency'] ?? 'EUR';
+                if (kDebugMode) {
+                  print(
+                    '💰 Price entry: ${data['date']} - ${data['price']} ${data['currency']}',
+                  );
+                }
 
-              if (currency == 'EUR' && priceValue > 10000) {
-                // Large EUR values are likely in cents, convert to euros
-                priceValue = priceValue / 100.0;
-              } else if (currency == 'JPY' && priceValue > 100000) {
-                // Very large JPY values might be incorrectly stored
-                priceValue = priceValue / 100.0;
-              }
+                // Handle the price field which might be a large number that needs conversion
+                double priceValue = 0.0;
+                final rawPrice = data['price'];
+                if (rawPrice is num) {
+                  priceValue = rawPrice.toDouble();
+                  // Check if this looks like it needs to be converted based on currency
+                  final currency = data['currency'] ?? 'EUR';
 
-              if (kDebugMode) {
-                print('💰 Price converted: $rawPrice -> $priceValue $currency');
-              }
-            }
+                  if (currency == 'EUR' && priceValue > 10000) {
+                    // Large EUR values are likely in cents, convert to euros
+                    priceValue = priceValue / 100.0;
+                  } else if (currency == 'JPY' && priceValue > 100000) {
+                    // Very large JPY values might be incorrectly stored
+                    priceValue = priceValue / 100.0;
+                  }
 
-            return PriceHistory(
-              id: doc.id,
-              productId: data['productId'] ?? '',
-              date: (data['date'] as Timestamp).toDate(),
-              price: priceValue,
-              currency: data['currency'] ?? 'EUR',
-              isInStock: data['isInStock'] ?? false,
-            );
-          }).toList();
+                  if (kDebugMode) {
+                    print(
+                      '💰 Price converted: $rawPrice -> $priceValue $currency',
+                    );
+                  }
+                }
+
+                return PriceHistory(
+                  id: doc.id,
+                  productId: data['productId'] ?? '',
+                  date: (data['date'] as Timestamp).toDate(),
+                  price: priceValue,
+                  currency: data['currency'] ?? 'EUR',
+                  isInStock: data['isInStock'] ?? false,
+                );
+              })
+              .where((item) => item != null)
+              .cast<PriceHistory>()
+              .toList();
 
       if (kDebugMode) {
         print('✅ Processed ${priceHistory.length} price history entries');

@@ -11,8 +11,10 @@ import '../services/settings_service.dart';
 import '../services/theme_service.dart';
 import '../services/favorite_notification_service.dart';
 import '../services/notification_service.dart';
+import '../services/subscription_service.dart';
 import '../widgets/matcha_icon.dart';
 import 'auth_screen.dart';
+import 'subscription_upgrade_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -27,6 +29,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isLoggedIn = false;
   String? _userEmail;
   Map<String, int> _siteProductCounts = {};
+  SubscriptionTier _currentTier = SubscriptionTier.free;
+  bool _isPremium = false;
 
   @override
   void initState() {
@@ -34,6 +38,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _loadSettings();
     _checkAuthStatus();
     _loadSiteProductCounts();
+    _loadSubscriptionStatus();
   }
 
   Future<void> _loadSettings() async {
@@ -86,6 +91,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _loadSubscriptionStatus() async {
+    try {
+      final tier = await SubscriptionService.instance.getCurrentTier();
+      final isPremium = await SubscriptionService.instance.isPremiumUser();
+
+      setState(() {
+        _currentTier = tier;
+        _isPremium = isPremium;
+      });
+    } catch (e) {
+      print('Error loading subscription status: $e');
+    }
+  }
+
   Future<void> _saveSettings() async {
     try {
       await SettingsService.instance.saveSettings(_userSettings);
@@ -134,6 +153,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     // Authentication Card
                     _buildAuthCard(),
+                    const SizedBox(height: 16),
+
+                    // Subscription Settings
+                    _buildSubscriptionCard(),
                     const SizedBox(height: 16),
 
                     // Notification Settings
@@ -481,10 +504,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Monitored Sites (Server)',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                const Text(
+                  'Monitored Sites',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                _buildTierBadge(),
+              ],
             ),
+            const SizedBox(height: 8),
+
+            // Subscription limits info
+            _buildSubscriptionLimitsInfo(),
             const SizedBox(height: 16),
 
             // Server mode: Show available sites info
@@ -1400,5 +1433,428 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
     }
+  }
+
+  /// Build subscription settings card
+  Widget _buildSubscriptionCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text(
+                  'Subscription',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                _buildTierBadge(),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Current plan info
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _isPremium ? Colors.amber.shade50 : Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color:
+                      _isPremium ? Colors.amber.shade200 : Colors.grey.shade200,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        _isPremium ? Icons.star : Icons.person,
+                        color:
+                            _isPremium
+                                ? Colors.amber.shade700
+                                : Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${_currentTier.displayName} Plan',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color:
+                              _isPremium
+                                  ? Colors.amber.shade800
+                                  : Colors.grey.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Plan features
+                  _buildPlanFeatures(),
+
+                  if (!_isPremium) ...[
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _showUpgradeDialog,
+                        icon: const Icon(Icons.upgrade),
+                        label: const Text('Upgrade to Premium'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.amber,
+                          foregroundColor: Colors.amber.shade900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // Check frequency settings
+            const SizedBox(height: 16),
+            _buildCheckFrequencySettings(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build plan features list
+  Widget _buildPlanFeatures() {
+    final features = [
+      _buildFeatureRow(
+        'Favorites',
+        _isPremium ? 'Unlimited' : '${_currentTier.maxFavorites} maximum',
+        _isPremium,
+      ),
+      _buildFeatureRow(
+        'Vendor Sites',
+        _isPremium ? 'All sites' : '${_currentTier.maxVendors} sites',
+        _isPremium,
+      ),
+      _buildFeatureRow(
+        'Check Frequency',
+        _isPremium ? 'Every hour' : 'Every 6 hours',
+        _isPremium,
+      ),
+      _buildFeatureRow(
+        'History Access',
+        _isPremium ? 'Full history' : '${_currentTier.historyLimitDays} days',
+        _isPremium,
+      ),
+    ];
+
+    return Column(children: features);
+  }
+
+  /// Build individual feature row
+  Widget _buildFeatureRow(String feature, String value, bool isPremium) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(
+            isPremium ? Icons.check_circle : Icons.info,
+            size: 16,
+            color: isPremium ? Colors.green : Colors.orange,
+          ),
+          const SizedBox(width: 8),
+          Text(feature, style: const TextStyle(fontWeight: FontWeight.w500)),
+          const Spacer(),
+          Text(
+            value,
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build check frequency settings
+  Widget _buildCheckFrequencySettings() {
+    final minFrequencyHours = _currentTier.minCheckFrequencyMinutes ~/ 60;
+    final currentFrequencyHours = _userSettings.checkFrequencyMinutes ~/ 60;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Check Frequency',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    'Current: Every $currentFrequencyHours hours',
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const Spacer(),
+                  if (!_isPremium && currentFrequencyHours < minFrequencyHours)
+                    Icon(
+                      Icons.warning,
+                      size: 16,
+                      color: Colors.orange.shade700,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _isPremium
+                    ? 'Premium: Check as frequently as every hour'
+                    : 'Free: Minimum $minFrequencyHours hour intervals',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+              if (!_isPremium) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Upgrade to Premium for hourly checks',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.orange.shade700,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Build tier badge showing current subscription status
+  Widget _buildTierBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: _isPremium ? Colors.amber : Colors.grey.shade300,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _isPremium ? Colors.amber.shade700 : Colors.grey.shade500,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            _isPremium ? Icons.star : Icons.person,
+            size: 16,
+            color: _isPremium ? Colors.amber.shade800 : Colors.grey.shade600,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            _currentTier.displayName,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: _isPremium ? Colors.amber.shade800 : Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build subscription limits information widget
+  Widget _buildSubscriptionLimitsInfo() {
+    final maxVendors = _currentTier.maxVendors;
+    final enabledSitesCount = _userSettings.enabledSites.length;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _isPremium ? Colors.green.shade50 : Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: _isPremium ? Colors.green.shade200 : Colors.orange.shade200,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _isPremium ? Icons.check_circle : Icons.info,
+                size: 16,
+                color:
+                    _isPremium ? Colors.green.shade700 : Colors.orange.shade700,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _isPremium
+                    ? 'Premium - Unlimited Sites'
+                    : 'Free Tier - Limited Sites',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color:
+                      _isPremium
+                          ? Colors.green.shade700
+                          : Colors.orange.shade700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (!_isPremium) ...[
+            Text(
+              'Sites enabled: $enabledSitesCount / $maxVendors',
+              style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+            ),
+            const SizedBox(height: 4),
+          ],
+          Text(
+            _isPremium
+                ? 'Monitor all supported matcha websites simultaneously'
+                : 'Upgrade to Premium to monitor unlimited sites',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+          ),
+          if (!_isPremium) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: _showUpgradeDialog,
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.orange.shade100,
+                  foregroundColor: Colors.orange.shade800,
+                ),
+                child: const Text('Upgrade to Premium'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Show upgrade dialog
+  void _showUpgradeDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.star, color: Colors.amber.shade700),
+              const SizedBox(width: 8),
+              const Text('Upgrade to Premium'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Unlock the full potential of ZenRadar with Premium:',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 16),
+              _buildUpgradeFeature('Unlimited favorite products', '15 → ∞'),
+              _buildUpgradeFeature('Monitor all vendor websites', '4 → All'),
+              _buildUpgradeFeature('Hourly check frequency', '6h → 1h'),
+              _buildUpgradeFeature('Full price & stock history', '7d → ∞'),
+              _buildUpgradeFeature('Priority notifications', 'Coming soon'),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.amber.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info, color: Colors.amber.shade700, size: 16),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Payment integration coming soon! Follow development for updates.',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Maybe Later'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder:
+                        (context) => const SubscriptionUpgradeScreen(
+                          sourceScreen: 'settings',
+                        ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.upgrade),
+              label: const Text('Get Premium'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber,
+                foregroundColor: Colors.amber.shade900,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Build upgrade feature row
+  Widget _buildUpgradeFeature(String feature, String comparison) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Icon(Icons.check_circle, color: Colors.green, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              feature,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          Text(
+            comparison,
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

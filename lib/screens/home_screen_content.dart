@@ -8,6 +8,7 @@ import '../services/search_history_service.dart';
 import '../services/recommendation_service.dart';
 import '../services/backend_service.dart';
 import '../services/settings_service.dart';
+import '../services/subscription_service.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_filters.dart';
 import '../widgets/mobile_filter_modal.dart';
@@ -15,6 +16,7 @@ import '../widgets/matcha_icon.dart';
 import '../widgets/skeleton_loading.dart';
 import '../widgets/swipe_tutorial_overlay.dart';
 import 'product_detail_page.dart';
+import 'subscription_upgrade_screen.dart';
 
 class HomeScreenContent extends StatefulWidget {
   final VoidCallback? onRefreshRequested;
@@ -332,13 +334,23 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       bool wasFavorite = _favoriteProductIds.contains(productId);
       bool newFavoriteState = !wasFavorite;
 
-      // Update the backend with FCM subscription management
-      await BackendService.instance.updateFavorite(
+      // Update the backend with FCM subscription management and subscription validation
+      final result = await BackendService.instance.updateFavorite(
         productId: productId,
         isFavorite: newFavoriteState,
       );
 
-      // Update local state
+      if (!result.success) {
+        // Handle subscription limit or other errors
+        if (result.limitReached && result.validationResult != null) {
+          _showUpgradeDialog(result.validationResult!);
+        } else {
+          _showErrorSnackBar(result.error ?? 'Failed to update favorite');
+        }
+        return;
+      }
+
+      // Update local state only if backend update was successful
       setState(() {
         if (newFavoriteState) {
           _favoriteProductIds.add(productId);
@@ -1371,6 +1383,23 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
       if (nonFavoriteProducts.isEmpty) return;
 
+      // Check subscription limits before starting bulk operation
+      final validationResult =
+          await SubscriptionService.instance.canAddMoreFavorites();
+      final availableSlots =
+          validationResult.maxAllowed - validationResult.currentCount;
+
+      if (!validationResult.canAdd) {
+        _showUpgradeDialog(validationResult);
+        return;
+      }
+
+      // Limit products to add based on available slots
+      final productsToAdd =
+          availableSlots < nonFavoriteProducts.length
+              ? nonFavoriteProducts.take(availableSlots).toList()
+              : nonFavoriteProducts;
+
       // Show loading indicator
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1386,9 +1415,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                   ),
                 ),
                 const SizedBox(width: 16),
-                Text(
-                  'Adding ${nonFavoriteProducts.length} products to favorites...',
-                ),
+                Text('Adding ${productsToAdd.length} products to favorites...'),
               ],
             ),
             duration: const Duration(seconds: 3),
@@ -1396,30 +1423,53 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         );
       }
 
-      // Add all products to favorites
-      for (final product in nonFavoriteProducts) {
-        await BackendService.instance.updateFavorite(
+      // Add products to favorites with individual limit checking
+      int successCount = 0;
+      for (final product in productsToAdd) {
+        final result = await BackendService.instance.updateFavorite(
           productId: product.id,
           isFavorite: true,
         );
+
+        if (result.success) {
+          successCount++;
+        } else if (result.limitReached) {
+          // Stop adding if we hit the limit
+          if (result.validationResult != null) {
+            _showUpgradeDialog(result.validationResult!);
+          }
+          break;
+        }
       }
 
-      // Update local state
+      // Update local state only for successfully added products
       setState(() {
-        _favoriteProductIds.addAll(nonFavoriteProducts.map((p) => p.id));
+        _favoriteProductIds.addAll(
+          productsToAdd.take(successCount).map((p) => p.id),
+        );
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '✅ Added ${nonFavoriteProducts.length} products to favorites!',
+
+        if (successCount > 0) {
+          String message = '✅ Added $successCount products to favorites!';
+          if (successCount < productsToAdd.length) {
+            message +=
+                ' (${productsToAdd.length - successCount} reached subscription limit)';
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              duration: const Duration(seconds: 3),
+              backgroundColor:
+                  successCount == productsToAdd.length
+                      ? Colors.green
+                      : Colors.orange,
             ),
-            duration: const Duration(seconds: 2),
-            backgroundColor: Colors.green,
-          ),
-        );
+          );
+        }
       }
     } catch (e) {
       print('Error bulk adding to favorites: $e');
@@ -1496,10 +1546,14 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
       // Remove all products from favorites
       for (final product in favoriteProducts) {
-        await BackendService.instance.updateFavorite(
+        final result = await BackendService.instance.updateFavorite(
           productId: product.id,
           isFavorite: false,
         );
+        // Note: Removal shouldn't hit subscription limits, but we could log errors if needed
+        if (!result.success) {
+          print('Failed to remove favorite ${product.id}: ${result.error}');
+        }
       }
 
       // Update local state
@@ -1534,5 +1588,73 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         );
       }
     }
+  }
+
+  /// Show upgrade dialog when subscription limits are reached
+  void _showUpgradeDialog(FavoriteValidationResult validationResult) {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('${validationResult.tier.displayName} Limit Reached'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(validationResult.message),
+              const SizedBox(height: 16),
+              Text(
+                'Upgrade to Premium for:',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text('• Unlimited favorites'),
+              const Text('• Monitor all vendors'),
+              const Text('• Hourly check frequency'),
+              const Text('• Full history access'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Maybe Later'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder:
+                        (context) => SubscriptionUpgradeScreen(
+                          validationResult: validationResult,
+                          sourceScreen: 'home_favorites',
+                        ),
+                  ),
+                );
+              },
+              child: const Text('Upgrade Now'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Show error message in a snack bar
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 }

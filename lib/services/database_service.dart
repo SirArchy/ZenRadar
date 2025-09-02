@@ -9,6 +9,7 @@ import '../models/price_history.dart';
 import '../models/stock_history.dart';
 import 'web_database_service.dart';
 import 'firestore_service.dart';
+import 'subscription_service.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -635,11 +636,23 @@ class DatabaseService {
   }) async {
     final db = await database;
 
+    // Apply subscription-based day limits if not explicitly specified
+    int? effectiveLimitDays = limitDays;
+    if (limitDays == null) {
+      final subscriptionService = SubscriptionService.instance;
+      final tier = await subscriptionService.getCurrentTier();
+      // Use null for unlimited premium access (very high day limit treated as unlimited)
+      effectiveLimitDays =
+          tier.historyLimitDays >= 3650 ? null : tier.historyLimitDays;
+    }
+
     String whereClause = 'productId = ?';
     List<dynamic> whereArgs = [productId];
 
-    if (limitDays != null) {
-      final cutoffDate = DateTime.now().subtract(Duration(days: limitDays));
+    if (effectiveLimitDays != null) {
+      final cutoffDate = DateTime.now().subtract(
+        Duration(days: effectiveLimitDays),
+      );
       whereClause += ' AND timestamp >= ?';
       whereArgs.add(cutoffDate.toIso8601String());
     }
@@ -1047,10 +1060,28 @@ class DatabaseService {
 
   Future<List<PriceHistory>> getPriceHistoryForProduct(String productId) async {
     final db = await database;
+
+    // Apply subscription-based day limits
+    final subscriptionService = SubscriptionService.instance;
+    final tier = await subscriptionService.getCurrentTier();
+
+    String whereClause = 'productId = ?';
+    List<dynamic> whereArgs = [productId];
+
+    // Add date limitation for non-premium users
+    if (tier.historyLimitDays < 3650) {
+      // Less than 10 years is considered limited
+      final cutoffDate = DateTime.now().subtract(
+        Duration(days: tier.historyLimitDays),
+      );
+      whereClause += ' AND date >= ?';
+      whereArgs.add(cutoffDate.toIso8601String().split('T')[0]); // Date only
+    }
+
     final maps = await db.query(
       'price_history',
-      where: 'productId = ?',
-      whereArgs: [productId],
+      where: whereClause,
+      whereArgs: whereArgs,
       orderBy: 'date ASC',
     );
     return maps.map((map) => PriceHistory.fromJson(map)).toList();
@@ -1458,12 +1489,19 @@ class _PlatformDatabaseService {
       );
     }
 
+    // Apply subscription-based history limits to Firestore queries
+    final subscriptionService = SubscriptionService.instance;
+    final tier = await subscriptionService.getCurrentTier();
+    final limitDays =
+        tier.historyLimitDays >= 3650 ? null : tier.historyLimitDays;
+
     if (await _isServerMode()) {
       if (kDebugMode) {
         print('📊 Using Firestore for price history');
       }
       return await FirestoreService.instance.getPriceHistoryForProduct(
         productId,
+        limitDays: limitDays,
       );
     } else if (kIsWeb) {
       if (kDebugMode) {
@@ -1565,13 +1603,22 @@ class _PlatformDatabaseService {
       );
     }
 
+    // Apply subscription-based day limits if not explicitly specified
+    int? effectiveLimitDays = limitDays;
+    if (limitDays == null) {
+      final subscriptionService = SubscriptionService.instance;
+      final tier = await subscriptionService.getCurrentTier();
+      effectiveLimitDays =
+          tier.historyLimitDays >= 3650 ? null : tier.historyLimitDays;
+    }
+
     if (await _isServerMode()) {
       if (kDebugMode) {
         print('📊 Using Firestore for stock history');
       }
       return await FirestoreService.instance.getStockHistoryForProduct(
         productId,
-        limitDays: limitDays,
+        limitDays: effectiveLimitDays,
       );
     } else if (kIsWeb) {
       if (kDebugMode) {

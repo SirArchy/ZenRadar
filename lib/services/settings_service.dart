@@ -1,6 +1,18 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/matcha_product.dart';
+import 'subscription_service.dart';
+
+/// Exception thrown when subscription limits prevent an operation
+class SubscriptionLimitException implements Exception {
+  final String message;
+  final dynamic validationResult;
+
+  SubscriptionLimitException(this.message, this.validationResult);
+
+  @override
+  String toString() => 'SubscriptionLimitException: $message';
+}
 
 class SettingsService {
   static final SettingsService _instance = SettingsService._internal();
@@ -103,8 +115,63 @@ class SettingsService {
   }
 
   Future<void> setCheckFrequencyMinutes(int minutes) async {
+    // Validate frequency against subscription limits
+    final validationResult = await _validateCheckFrequency(minutes);
+    if (!validationResult.canSet) {
+      throw SubscriptionLimitException(
+        validationResult.message,
+        validationResult,
+      );
+    }
+
     await updateSettings(
       (settings) => settings.copyWith(checkFrequencyMinutes: minutes),
+    );
+  }
+
+  /// Validate and update enabled sites with subscription limits
+  Future<void> setEnabledSites(List<String> sites) async {
+    // Validate site count against subscription limits
+    final validationResult = await _validateEnabledSites(sites);
+    if (!validationResult.canEnable) {
+      throw SubscriptionLimitException(
+        validationResult.message,
+        validationResult,
+      );
+    }
+
+    await updateSettings((settings) => settings.copyWith(enabledSites: sites));
+  }
+
+  /// Validate check frequency against subscription tier limits
+  Future<FrequencyValidationResult> _validateCheckFrequency(int minutes) async {
+    final settings = await getSettings();
+    final tier = settings.subscriptionTier;
+    final minAllowed = tier.minCheckFrequencyMinutes;
+
+    return FrequencyValidationResult(
+      canSet: minutes >= minAllowed,
+      requestedMinutes: minutes,
+      minAllowed: minAllowed,
+      tier: tier,
+    );
+  }
+
+  /// Validate enabled sites against subscription tier limits
+  Future<VendorValidationResult> _validateEnabledSites(
+    List<String> sites,
+  ) async {
+    final settings = await getSettings();
+    final tier = settings.subscriptionTier;
+    final maxAllowed = tier.maxVendors;
+
+    return VendorValidationResult(
+      canEnable: maxAllowed == -1 || sites.length <= maxAllowed,
+      requestedCount: sites.length,
+      maxAllowed: maxAllowed,
+      tier: tier,
+      recommendedSites:
+          sites.take(maxAllowed == -1 ? sites.length : maxAllowed).toList(),
     );
   }
 
@@ -214,5 +281,43 @@ class SettingsService {
     await updateSettings(
       (settings) => settings.copyWith(hasSeenHomeScreenTutorial: false),
     );
+  }
+
+  // Convenience methods for subscription management
+  Future<SubscriptionTier> getSubscriptionTier() async {
+    final settings = await getSettings();
+    return settings.subscriptionTier;
+  }
+
+  Future<bool> isPremiumUser() async {
+    final settings = await getSettings();
+    return settings.isPremium;
+  }
+
+  Future<void> updateSubscription({
+    required SubscriptionTier tier,
+    DateTime? expiresAt,
+    String? subscriptionId,
+    bool? trialUsed,
+  }) async {
+    await updateSettings(
+      (settings) => settings.copyWith(
+        subscriptionTier: tier,
+        subscriptionExpiresAt: expiresAt,
+        subscriptionId: subscriptionId,
+        lastTierCheck: DateTime.now(),
+        trialUsed: trialUsed,
+      ),
+    );
+  }
+
+  Future<DateTime?> getSubscriptionExpiresAt() async {
+    final settings = await getSettings();
+    return settings.subscriptionExpiresAt;
+  }
+
+  Future<bool> hasTrialBeenUsed() async {
+    final settings = await getSettings();
+    return settings.trialUsed;
   }
 }

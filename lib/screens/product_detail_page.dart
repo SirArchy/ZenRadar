@@ -10,9 +10,11 @@ import '../services/database_service.dart';
 import '../services/currency_converter_service.dart';
 import '../services/settings_service.dart';
 import '../services/backend_service.dart';
+import '../services/subscription_service.dart';
 import '../widgets/improved_price_chart.dart';
 import '../widgets/improved_stock_chart.dart';
 import '../widgets/product_card.dart';
+import 'subscription_upgrade_screen.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final MatchaProduct product;
@@ -37,6 +39,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   double? _convertedHighestPrice;
   double? _convertedAveragePrice;
   bool _isFavorite = false;
+  SubscriptionTier _currentTier = SubscriptionTier.free;
+  bool _isPremium = false;
 
   static const currencies = [
     {'code': 'EUR', 'name': 'Euro (€)', 'symbol': '€'},
@@ -66,6 +70,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       _loadUserSettings();
       _loadPriceHistory();
       _loadFavoriteStatus();
+      _loadSubscriptionStatus();
     }
   }
 
@@ -143,6 +148,20 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           context,
         ).showSnackBar(SnackBar(content: Text('Error loading analytics: $e')));
       }
+    }
+  }
+
+  Future<void> _loadSubscriptionStatus() async {
+    try {
+      final tier = await SubscriptionService.instance.getCurrentTier();
+      final isPremium = await SubscriptionService.instance.isPremiumUser();
+
+      setState(() {
+        _currentTier = tier;
+        _isPremium = isPremium;
+      });
+    } catch (e) {
+      debugPrint('Error loading subscription status: $e');
     }
   }
 
@@ -242,10 +261,20 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Future<void> _toggleFavorite() async {
     try {
-      await BackendService.instance.updateFavorite(
+      final result = await BackendService.instance.updateFavorite(
         productId: widget.product.id,
         isFavorite: !_isFavorite,
       );
+
+      if (!result.success) {
+        // Handle subscription limit or other errors
+        if (result.limitReached && result.validationResult != null) {
+          _showUpgradeDialog(result.validationResult!);
+        } else {
+          _showErrorSnackBar(result.error ?? 'Failed to update favorite');
+        }
+        return;
+      }
 
       setState(() {
         _isFavorite = !_isFavorite;
@@ -403,6 +432,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       _buildPriceChart(),
                       const SizedBox(height: 24),
                       _buildStockChart(),
+                      const SizedBox(height: 16),
+                      _buildSubscriptionInfoBanner(),
                       const SizedBox(height: 24),
                       _buildProductDetails(),
                       const SizedBox(height: 48), // Extra bottom padding
@@ -629,6 +660,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   'Price History',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
+                const SizedBox(width: 8),
+                _buildHistoryAccessBadge(),
                 const Spacer(),
                 PopupMenuButton<String>(
                   initialValue: _selectedTimeRange,
@@ -1109,5 +1142,261 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     } else {
       throw 'Could not launch $url';
     }
+  }
+
+  /// Show upgrade dialog when subscription limits are reached
+  void _showUpgradeDialog(FavoriteValidationResult validationResult) {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('${validationResult.tier.displayName} Limit Reached'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(validationResult.message),
+              const SizedBox(height: 16),
+              Text(
+                'Upgrade to Premium for:',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text('• Unlimited favorites'),
+              const Text('• Monitor all vendors'),
+              const Text('• Hourly check frequency'),
+              const Text('• Full history access'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Maybe Later'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder:
+                        (context) => SubscriptionUpgradeScreen(
+                          validationResult: validationResult,
+                          sourceScreen: 'product_detail',
+                        ),
+                  ),
+                );
+              },
+              child: const Text('Upgrade Now'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Build history access badge showing subscription limitations
+  Widget _buildHistoryAccessBadge() {
+    if (_isPremium) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.green.shade100,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.green.shade300),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle, size: 12, color: Colors.green.shade700),
+            const SizedBox(width: 4),
+            Text(
+              'Full Access',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: Colors.green.shade700,
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade100,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.shade300),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.schedule, size: 12, color: Colors.orange.shade700),
+            const SizedBox(width: 4),
+            Text(
+              '${_currentTier.historyLimitDays} days',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: Colors.orange.shade700,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  /// Build subscription information banner
+  Widget _buildSubscriptionInfoBanner() {
+    if (_isPremium) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.green.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.green.shade200),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.star, color: Colors.amber.shade700, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Premium Access',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green.shade700,
+                    ),
+                  ),
+                  Text(
+                    'Viewing full price & stock history with unlimited access',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.green.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.shade200),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info, color: Colors.orange.shade700, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Limited History Access',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.orange.shade700,
+                    ),
+                  ),
+                  Text(
+                    'Free tier shows last ${_currentTier.historyLimitDays} days. Upgrade for full history access.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.orange.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: _showSimpleUpgradeDialog,
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.orange.shade100,
+                foregroundColor: Colors.orange.shade800,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+              ),
+              child: const Text('Upgrade', style: TextStyle(fontSize: 12)),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  /// Show simple upgrade dialog
+  void _showSimpleUpgradeDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Upgrade to Premium'),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Get unlimited access to price and stock history:'),
+              SizedBox(height: 16),
+              Text('• Full price & stock history'),
+              Text('• Unlimited favorite products'),
+              Text('• Monitor all vendor sites'),
+              Text('• Hourly check frequency'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Maybe Later'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder:
+                        (context) => const SubscriptionUpgradeScreen(
+                          sourceScreen: 'product_detail_history',
+                        ),
+                  ),
+                );
+              },
+              child: const Text('Upgrade Now'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Show error message in a snack bar
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 }

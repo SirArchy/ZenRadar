@@ -4,6 +4,10 @@ const { v4: uuidv4 } = require('uuid');
 const sharp = require('sharp');
 const { getStorage } = require('firebase-admin/storage');
 
+// Import specialized crawlers
+const HoriishichimeienSpecializedCrawler = require('./crawlers/horiishichimeien-crawler');
+const PoppateaSpecializedCrawler = require('./crawlers/poppatea-crawler');
+
 /**
  * Cloud-based crawler service for matcha websites
  * Optimized for parallel processing and delta crawling
@@ -14,6 +18,10 @@ class CrawlerService {
     this.logger = logger;
     this.userAgent = 'ZenRadar Bot 1.0 (+https://zenradar.app)';
     this.storage = getStorage();
+    
+    // Initialize specialized crawlers
+    this.horiishichimeienCrawler = new HoriishichimeienSpecializedCrawler(logger);
+    this.poppateaCrawler = new PoppateaSpecializedCrawler(logger);
     
     // Site configurations - complete list matching Flutter app
     this.siteConfigs = {
@@ -259,7 +267,62 @@ class CrawlerService {
     this.logger.info('Starting site crawl', { site: siteKey, url: config.categoryUrl });
 
     try {
-      // Fetch the category page
+      // Use specialized crawlers for specific sites
+      if (siteKey === 'horiishichimeien') {
+        this.logger.info('Using Horiishichimeien specialized crawler');
+        const crawlResult = await this.horiishichimeienCrawler.crawl(config.categoryUrl, config);
+        
+        let stockUpdates = 0;
+        for (const product of crawlResult.products) {
+          const wasUpdated = await this.saveProduct(product);
+          if (wasUpdated) stockUpdates++;
+        }
+        
+        const duration = Date.now() - startTime;
+        this.logger.info('Horiishichimeien specialized crawl completed', {
+          site: siteKey,
+          productsFound: crawlResult.products.length,
+          stockUpdates,
+          duration: `${duration}ms`
+        });
+        
+        return {
+          site: siteKey,
+          products: crawlResult.products,
+          stockUpdates,
+          duration,
+          timestamp: new Date().toISOString()
+        };
+      }
+      
+      if (siteKey === 'poppatea') {
+        this.logger.info('Using Poppatea specialized crawler');
+        const crawlResult = await this.poppateaCrawler.crawl(config.categoryUrl, config);
+        
+        let stockUpdates = 0;
+        for (const product of crawlResult.products) {
+          const wasUpdated = await this.saveProduct(product);
+          if (wasUpdated) stockUpdates++;
+        }
+        
+        const duration = Date.now() - startTime;
+        this.logger.info('Poppatea specialized crawl completed', {
+          site: siteKey,
+          productsFound: crawlResult.products.length,
+          stockUpdates,
+          duration: `${duration}ms`
+        });
+        
+        return {
+          site: siteKey,
+          products: crawlResult.products,
+          stockUpdates,
+          duration,
+          timestamp: new Date().toISOString()
+        };
+      }
+
+      // Fetch the category page for standard crawling
       const response = await axios.get(config.categoryUrl, this.requestConfig);
       const $ = cheerio.load(response.data);
 
@@ -533,15 +596,19 @@ class CrawlerService {
             });
           }
 
+          // For sites with currency conversion, use the converted price as both price and originalPrice
+          const finalPrice = convertedPrice || price;
+          const finalOriginalPrice = (siteKey === 'horiishichimeien' && convertedPrice) ? convertedPrice : price;
+          
           const product = {
             id: productId,
             name: name,
             normalizedName: this.normalizeName(name),
             site: siteKey,
             siteName: config.name,
-            price: convertedPrice || price,
-            originalPrice: price, // Keep original price
-            priceValue: this.extractPriceValue(convertedPrice || price),
+            price: finalPrice,
+            originalPrice: finalOriginalPrice, // Use converted price for display consistency
+            priceValue: this.extractPriceValue(finalPrice),
             currency: this.getCurrencyForSite(siteKey),
             url: productUrl || config.categoryUrl,
             imageUrl: imageUrl,

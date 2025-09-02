@@ -331,6 +331,80 @@ class MatchaProduct {
   }
 }
 
+/// Subscription tier enumeration for freemium model
+enum SubscriptionTier { free, premium }
+
+/// Extension to add utility methods to SubscriptionTier
+extension SubscriptionTierExtension on SubscriptionTier {
+  String get displayName {
+    switch (this) {
+      case SubscriptionTier.free:
+        return 'Free';
+      case SubscriptionTier.premium:
+        return 'Premium';
+    }
+  }
+
+  /// Free tier limits
+  static const int maxFavoritesForFree = 15;
+  static const int maxVendorsForFree = 4;
+  static const int minCheckFrequencyMinutesForFree = 360; // 6 hours
+  static const int historyLimitDaysForFree = 7;
+
+  /// Premium tier limits (effectively unlimited)
+  static const int maxFavoritesForPremium = 999;
+  static const int maxVendorsForPremium = 999;
+  static const int minCheckFrequencyMinutesForPremium = 60; // 1 hour
+  static const int historyLimitDaysForPremium = 365 * 10; // 10 years
+
+  /// Default enabled sites for free tier
+  static const List<String> freeEnabledSites = [
+    "tokichi",
+    "marukyu",
+    "ippodo",
+    "yoshien",
+  ];
+
+  int get maxFavorites {
+    switch (this) {
+      case SubscriptionTier.free:
+        return maxFavoritesForFree;
+      case SubscriptionTier.premium:
+        return maxFavoritesForPremium;
+    }
+  }
+
+  int get maxVendors {
+    switch (this) {
+      case SubscriptionTier.free:
+        return maxVendorsForFree;
+      case SubscriptionTier.premium:
+        return maxVendorsForPremium;
+    }
+  }
+
+  int get minCheckFrequencyMinutes {
+    switch (this) {
+      case SubscriptionTier.free:
+        return minCheckFrequencyMinutesForFree;
+      case SubscriptionTier.premium:
+        return minCheckFrequencyMinutesForPremium;
+    }
+  }
+
+  int get historyLimitDays {
+    switch (this) {
+      case SubscriptionTier.free:
+        return historyLimitDaysForFree;
+      case SubscriptionTier.premium:
+        return historyLimitDaysForPremium;
+    }
+  }
+
+  bool get isPremium => this == SubscriptionTier.premium;
+  bool get isFree => this == SubscriptionTier.free;
+}
+
 class UserSettings {
   final int checkFrequencyMinutes; // Changed from hours to minutes
   final String startTime; // "08:00"
@@ -353,6 +427,14 @@ class UserSettings {
   hasSeenHomeScreenTutorial; // Track if user has seen the swipe tutorial
   final String?
   fcmToken; // Firebase Cloud Messaging token for push notifications
+
+  // Subscription-related fields for freemium model
+  final SubscriptionTier subscriptionTier; // User's current subscription tier
+  final DateTime? subscriptionExpiresAt; // When premium subscription expires
+  final String? subscriptionId; // RevenueCat/Stripe subscription ID
+  final DateTime? lastTierCheck; // Last time we verified subscription status
+  final bool trialUsed; // Whether user has used their free trial
+
   // Note: App now runs exclusively in server mode - no local mode support
 
   UserSettings({
@@ -384,6 +466,12 @@ class UserSettings {
     this.hasCompletedOnboarding = false, // Default: new user needs onboarding
     this.hasSeenHomeScreenTutorial = false, // Default: new user needs tutorial
     this.fcmToken, // Firebase Cloud Messaging token
+    // Subscription fields - defaults to free tier
+    this.subscriptionTier = SubscriptionTier.free,
+    this.subscriptionExpiresAt,
+    this.subscriptionId,
+    this.lastTierCheck,
+    this.trialUsed = false,
   });
 
   factory UserSettings.fromJson(Map<String, dynamic> json) {
@@ -424,6 +512,21 @@ class UserSettings {
       hasCompletedOnboarding: json['hasCompletedOnboarding'] ?? false,
       hasSeenHomeScreenTutorial: json['hasSeenHomeScreenTutorial'] ?? false,
       fcmToken: json['fcmToken'], // Firebase Cloud Messaging token
+      // Subscription fields with backwards compatibility
+      subscriptionTier: SubscriptionTier.values.firstWhere(
+        (tier) => tier.name == json['subscriptionTier'],
+        orElse: () => SubscriptionTier.free,
+      ),
+      subscriptionExpiresAt:
+          json['subscriptionExpiresAt'] != null
+              ? DateTime.parse(json['subscriptionExpiresAt'])
+              : null,
+      subscriptionId: json['subscriptionId'],
+      lastTierCheck:
+          json['lastTierCheck'] != null
+              ? DateTime.parse(json['lastTierCheck'])
+              : null,
+      trialUsed: json['trialUsed'] ?? false,
       // Note: appMode is no longer supported - app runs exclusively in server mode
     );
   }
@@ -447,6 +550,12 @@ class UserSettings {
       'hasCompletedOnboarding': hasCompletedOnboarding,
       'hasSeenHomeScreenTutorial': hasSeenHomeScreenTutorial,
       'fcmToken': fcmToken, // Firebase Cloud Messaging token
+      // Subscription fields
+      'subscriptionTier': subscriptionTier.name,
+      'subscriptionExpiresAt': subscriptionExpiresAt?.toIso8601String(),
+      'subscriptionId': subscriptionId,
+      'lastTierCheck': lastTierCheck?.toIso8601String(),
+      'trialUsed': trialUsed,
       // Note: appMode is no longer saved - app runs exclusively in server mode
     };
   }
@@ -469,6 +578,12 @@ class UserSettings {
     bool? hasCompletedOnboarding,
     bool? hasSeenHomeScreenTutorial,
     String? fcmToken, // Firebase Cloud Messaging token
+    // Subscription parameters
+    SubscriptionTier? subscriptionTier,
+    DateTime? subscriptionExpiresAt,
+    String? subscriptionId,
+    DateTime? lastTierCheck,
+    bool? trialUsed,
   }) {
     return UserSettings(
       checkFrequencyMinutes:
@@ -493,7 +608,83 @@ class UserSettings {
       hasSeenHomeScreenTutorial:
           hasSeenHomeScreenTutorial ?? this.hasSeenHomeScreenTutorial,
       fcmToken: fcmToken ?? this.fcmToken, // Firebase Cloud Messaging token
+      // Subscription fields
+      subscriptionTier: subscriptionTier ?? this.subscriptionTier,
+      subscriptionExpiresAt:
+          subscriptionExpiresAt ?? this.subscriptionExpiresAt,
+      subscriptionId: subscriptionId ?? this.subscriptionId,
+      lastTierCheck: lastTierCheck ?? this.lastTierCheck,
+      trialUsed: trialUsed ?? this.trialUsed,
     );
+  }
+
+  /// Utility methods for subscription management
+
+  /// Check if user has premium access (active subscription)
+  bool get isPremium {
+    if (subscriptionTier == SubscriptionTier.free) return false;
+    if (subscriptionExpiresAt == null) return true; // Lifetime premium
+    return subscriptionExpiresAt!.isAfter(DateTime.now());
+  }
+
+  /// Check if subscription has expired
+  bool get isSubscriptionExpired {
+    if (subscriptionTier == SubscriptionTier.free) return false;
+    if (subscriptionExpiresAt == null) return false; // Lifetime premium
+    return subscriptionExpiresAt!.isBefore(DateTime.now());
+  }
+
+  /// Get maximum allowed favorites for current tier
+  int get maxAllowedFavorites => subscriptionTier.maxFavorites;
+
+  /// Get maximum allowed vendors for current tier
+  int get maxAllowedVendors => subscriptionTier.maxVendors;
+
+  /// Get minimum allowed check frequency for current tier
+  int get minAllowedCheckFrequency => subscriptionTier.minCheckFrequencyMinutes;
+
+  /// Get history limit days for current tier
+  int get historyLimitDays => subscriptionTier.historyLimitDays;
+
+  /// Check if user can add more favorites
+  bool canAddFavorites(int currentFavoriteCount) {
+    return currentFavoriteCount < maxAllowedFavorites;
+  }
+
+  /// Check if user can enable more vendors
+  bool canEnableVendors(int currentVendorCount) {
+    return currentVendorCount < maxAllowedVendors;
+  }
+
+  /// Check if user can set faster check frequency
+  bool canSetCheckFrequency(int requestedMinutes) {
+    return requestedMinutes >= minAllowedCheckFrequency;
+  }
+
+  /// Check if user needs subscription verification
+  bool get needsSubscriptionCheck {
+    if (lastTierCheck == null) return true;
+    return DateTime.now().difference(lastTierCheck!).inDays > 1;
+  }
+
+  /// Get default enabled sites for new users based on tier
+  List<String> get defaultEnabledSites {
+    if (isPremium) {
+      return const [
+        "tokichi",
+        "marukyu",
+        "ippodo",
+        "yoshien",
+        "matcha-karu",
+        "sho-cha",
+        "sazentea",
+        "enjoyemeri",
+        "poppatea",
+        "horiishichimeien",
+      ];
+    } else {
+      return SubscriptionTierExtension.freeEnabledSites;
+    }
   }
 }
 

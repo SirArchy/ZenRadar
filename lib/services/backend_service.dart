@@ -5,6 +5,23 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'firebase_messaging_service.dart';
+import 'subscription_service.dart';
+import '../models/matcha_product.dart';
+
+/// Result class for favorite update operations including subscription validation
+class FavoriteUpdateResult {
+  final bool success;
+  final String? error;
+  final bool limitReached;
+  final FavoriteValidationResult? validationResult;
+
+  const FavoriteUpdateResult({
+    required this.success,
+    required this.error,
+    required this.limitReached,
+    this.validationResult,
+  });
+}
 
 /// Service to handle communication with Firebase backend for FCM and favorites
 class BackendService {
@@ -19,7 +36,8 @@ class BackendService {
       'https://europe-west3-zenradar-acb85.cloudfunctions.net';
 
   /// Update user's favorite status and sync with backend
-  Future<bool> updateFavorite({
+  /// Now includes subscription tier validation for freemium model
+  Future<FavoriteUpdateResult> updateFavorite({
     required String productId,
     required bool isFavorite,
   }) async {
@@ -30,7 +48,30 @@ class BackendService {
         if (kDebugMode) {
           print('❌ Backend: No authenticated user found');
         }
-        return false;
+        return FavoriteUpdateResult(
+          success: false,
+          error: 'No authenticated user found',
+          limitReached: false,
+        );
+      }
+
+      // Check subscription limits when adding favorites
+      if (isFavorite) {
+        final favoriteValidation =
+            await SubscriptionService.instance.canAddMoreFavorites();
+        if (!favoriteValidation.canAdd) {
+          if (kDebugMode) {
+            print(
+              '❌ Backend: Favorite limit reached for ${favoriteValidation.tier.displayName} tier',
+            );
+          }
+          return FavoriteUpdateResult(
+            success: false,
+            error: favoriteValidation.message,
+            limitReached: true,
+            validationResult: favoriteValidation,
+          );
+        }
       }
 
       final requestData = {
@@ -55,20 +96,32 @@ class BackendService {
         if (kDebugMode) {
           print('✅ Backend: Favorite updated successfully');
         }
-        return true;
+        return FavoriteUpdateResult(
+          success: true,
+          error: null,
+          limitReached: false,
+        );
       } else {
         if (kDebugMode) {
           print('❌ Backend: Failed to update favorite');
           print('❌ Backend: Status: ${response.statusCode}');
           print('❌ Backend: Response: ${response.body}');
         }
-        return false;
+        return FavoriteUpdateResult(
+          success: false,
+          error: 'Server error: ${response.statusCode}',
+          limitReached: false,
+        );
       }
     } catch (e) {
       if (kDebugMode) {
         print('❌ Backend: Error updating favorite: $e');
       }
-      return false;
+      return FavoriteUpdateResult(
+        success: false,
+        error: 'Network error: $e',
+        limitReached: false,
+      );
     }
   }
 
