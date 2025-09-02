@@ -122,8 +122,8 @@ app.post('/crawl', authenticateToken, async (req, res) => {
       cloudRunJobId: `job_${requestId}_${Date.now()}`
     });
 
-    // Initialize crawler service
-    const crawler = new CrawlerService(db, logger);
+    // Initialize crawler service with request ID for detailed tracking
+    const crawler = new CrawlerService(db, logger, requestId);
     
     // Perform the crawl
     const results = await crawler.crawlSites(sites || []);

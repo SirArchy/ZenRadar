@@ -18,6 +18,7 @@ class _AppInitializerState extends State<AppInitializer> {
   bool _isLoading = true;
   bool _needsOnboarding = false;
   bool _needsAuth = false;
+  String _loadingText = 'Starting ZenRadar...';
 
   @override
   void initState() {
@@ -27,9 +28,13 @@ class _AppInitializerState extends State<AppInitializer> {
 
   Future<void> _checkInitialSetup() async {
     try {
+      setState(() {
+        _loadingText = 'Checking setup...';
+      });
+
       final settingsService = SettingsService.instance;
 
-      // Check if this is a first-time user
+      // Check if this is a first-time user - use faster check if possible
       final hasCompletedOnboarding =
           await settingsService.hasCompletedOnboarding();
 
@@ -41,6 +46,10 @@ class _AppInitializerState extends State<AppInitializer> {
         return;
       }
 
+      setState(() {
+        _loadingText = 'Verifying authentication...';
+      });
+
       // Check authentication status
       final authService = AuthService.instance;
       if (!authService.isSignedIn) {
@@ -50,6 +59,13 @@ class _AppInitializerState extends State<AppInitializer> {
         });
         return;
       }
+
+      setState(() {
+        _loadingText = 'Almost ready...';
+      });
+
+      // Add small delay to prevent flash
+      await Future.delayed(const Duration(milliseconds: 200));
 
       setState(() {
         _isLoading = false;
@@ -66,14 +82,33 @@ class _AppInitializerState extends State<AppInitializer> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Initializing ZenRadar...'),
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Theme.of(context).primaryColor,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                _loadingText,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Please wait...',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+              ),
             ],
           ),
         ),

@@ -195,17 +195,29 @@ class SazenteaSpecializedCrawler {
 
     // Generate product ID
     const productId = this.generateProductId(productUrl, name);
+    const currentTimestamp = new Date();
 
     return {
       id: productId,
       name: this.cleanProductName(name),
+      normalizedName: this.normalizeName(this.cleanProductName(name)),
+      site: 'sazentea',
+      siteName: 'Sazen Tea',
       price: cleanedPrice,
+      originalPrice: cleanedPrice,
       priceValue: priceValue,
+      currency: 'EUR',
       url: productUrl,
       imageUrl: imageUrl,
       isInStock: isInStock,
+      isDiscontinued: false,
+      missedScans: 0,
       category: this.detectCategory(name),
-      lastUpdated: new Date().toISOString()
+      crawlSource: 'cloud-run',
+      firstSeen: currentTimestamp,
+      lastChecked: currentTimestamp,
+      lastUpdated: currentTimestamp,
+      lastPriceHistoryUpdate: currentTimestamp
     };
   }
 
@@ -349,6 +361,14 @@ class SazenteaSpecializedCrawler {
     }
 
     return 'Matcha'; // Default fallback
+  }
+
+  normalizeName(name) {
+    return name
+      .toLowerCase()
+      .replace(/[^\w\s]/g, '') // Remove special characters
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
   }
 
   generateProductId(url, name) {

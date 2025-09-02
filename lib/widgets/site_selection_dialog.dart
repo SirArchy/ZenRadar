@@ -166,6 +166,7 @@ class _SiteSelectionDialogState extends State<SiteSelectionDialog> {
       'tokichi': 'Traditional Japanese matcha',
       'ippodo': 'Premium tea house',
       'marukyu': 'Historic Kyoto tea company',
+      'nakamura': 'Authentic Japanese matcha',
       'horiishichimeien': 'Modern matcha experience',
       'yoshien': 'German matcha retailer',
       'matcha-karu': 'Organic matcha specialist',

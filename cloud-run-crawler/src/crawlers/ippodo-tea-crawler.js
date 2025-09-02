@@ -195,17 +195,29 @@ class IppodoTeaSpecializedCrawler {
 
     // Generate product ID
     const productId = this.generateProductId(productUrl, name);
+    const currentTimestamp = new Date();
 
     return {
       id: productId,
       name: this.cleanProductName(name),
+      normalizedName: this.normalizeName(this.cleanProductName(name)),
+      site: 'ippodo',
+      siteName: 'Ippodo Tea',
       price: cleanedPrice,
+      originalPrice: cleanedPrice,
       priceValue: priceValue,
+      currency: 'JPY',
       url: productUrl,
       imageUrl: imageUrl,
       isInStock: isInStock,
+      isDiscontinued: false,
+      missedScans: 0,
       category: this.detectCategory(name),
-      lastUpdated: new Date().toISOString()
+      crawlSource: 'cloud-run',
+      firstSeen: currentTimestamp,
+      lastChecked: currentTimestamp,
+      lastUpdated: currentTimestamp,
+      lastPriceHistoryUpdate: currentTimestamp
     };
   }
 
@@ -253,11 +265,10 @@ class IppodoTeaSpecializedCrawler {
       const priceText = (jpyMatch[1] || jpyMatch[2]).replace(/,/g, '');
       const jpyValue = parseInt(priceText);
       if (!isNaN(jpyValue)) {
-        // Convert JPY to EUR using corrected rate
-        const eurValue = jpyValue * 0.0058;
+        // Keep price in original JPY format
         return {
-          cleanedPrice: `€${eurValue.toFixed(2)} (¥${jpyValue.toLocaleString()})`,
-          priceValue: eurValue
+          cleanedPrice: `¥${jpyValue.toLocaleString('ja-JP')}`,
+          priceValue: jpyValue
         };
       }
     }
@@ -371,6 +382,14 @@ class IppodoTeaSpecializedCrawler {
     }
 
     return 'Matcha'; // Default fallback
+  }
+
+  normalizeName(name) {
+    return name
+      .toLowerCase()
+      .replace(/[^\w\s]/g, '') // Remove special characters
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
   }
 
   generateProductId(url, name) {

@@ -78,11 +78,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     try {
       final settings = await SettingsService.instance.getSettings();
       setState(() {
-        // Use user's preferred currency, fallback to product currency, then EUR
-        _selectedCurrency =
-            settings.preferredCurrency.isNotEmpty
-                ? settings.preferredCurrency
-                : (widget.product.currency ?? 'EUR');
+        // Handle "Original" currency preference
+        if (settings.preferredCurrency == 'Original') {
+          _selectedCurrency = widget.product.currency ?? 'EUR';
+        } else {
+          // Use user's preferred currency, fallback to product currency, then EUR
+          _selectedCurrency =
+              settings.preferredCurrency.isNotEmpty
+                  ? settings.preferredCurrency
+                  : (widget.product.currency ?? 'EUR');
+        }
       });
 
       // Debug info
@@ -159,6 +164,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       setState(() {
         _currentTier = tier;
         _isPremium = isPremium;
+        // For free users, default to 'day' since it's the only available option
+        if (!isPremium && _selectedTimeRange != 'day') {
+          _selectedTimeRange = 'day';
+        }
       });
     } catch (e) {
       debugPrint('Error loading subscription status: $e');
@@ -671,24 +680,32 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     });
                   },
                   itemBuilder:
-                      (context) => [
-                        const PopupMenuItem(
-                          value: 'day',
-                          child: Text('7 Days'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'week',
-                          child: Text('1 Month'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'month',
-                          child: Text('1 Year'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'all',
-                          child: Text('All Time'),
-                        ),
-                      ],
+                      (context) =>
+                          _isPremium
+                              ? [
+                                const PopupMenuItem(
+                                  value: 'day',
+                                  child: Text('7 Days'),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'week',
+                                  child: Text('1 Month'),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'month',
+                                  child: Text('1 Year'),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'all',
+                                  child: Text('All Time'),
+                                ),
+                              ]
+                              : [
+                                const PopupMenuItem(
+                                  value: 'day',
+                                  child: Text('7 Days'),
+                                ),
+                              ],
                   child: Chip(
                     label: Text(_getTimeRangeLabel()),
                     avatar: const Icon(Icons.access_time, size: 16),
@@ -865,24 +882,32 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       });
                     },
                     itemBuilder:
-                        (context) => [
-                          const PopupMenuItem(
-                            value: 'day',
-                            child: Text('Today'),
-                          ),
-                          const PopupMenuItem(
-                            value: 'week',
-                            child: Text('This Week'),
-                          ),
-                          const PopupMenuItem(
-                            value: 'month',
-                            child: Text('This Month'),
-                          ),
-                          const PopupMenuItem(
-                            value: 'all',
-                            child: Text('All Time'),
-                          ),
-                        ],
+                        (context) =>
+                            _isPremium
+                                ? [
+                                  const PopupMenuItem(
+                                    value: 'day',
+                                    child: Text('Today'),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'week',
+                                    child: Text('This Week'),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'month',
+                                    child: Text('This Month'),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'all',
+                                    child: Text('All Time'),
+                                  ),
+                                ]
+                                : [
+                                  const PopupMenuItem(
+                                    value: 'day',
+                                    child: Text('Last 7 Days'),
+                                  ),
+                                ],
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6,
@@ -1073,7 +1098,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   String _getTimeRangeLabel() {
     switch (_selectedTimeRange) {
       case 'day':
-        return 'Today';
+        return _isPremium ? 'Today' : 'Last 7 Days';
       case 'week':
         return 'This Week';
       case 'month':
@@ -1094,7 +1119,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
     switch (_selectedTimeRange) {
       case 'day':
-        cutoffDate = now.subtract(const Duration(days: 1));
+        cutoffDate =
+            _isPremium
+                ? now.subtract(const Duration(days: 1))
+                : now.subtract(
+                  const Duration(days: 7),
+                ); // Show 7 days for free users
         break;
       case 'week':
         cutoffDate = now.subtract(const Duration(days: 7));

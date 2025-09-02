@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_print, use_build_context_synchronously
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/matcha_product.dart';
@@ -75,6 +76,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   String _sortBy = 'name'; // 'name', 'price', 'category'
   bool _sortAscending = true;
 
+  // User preferences
+  String _preferredCurrency = 'EUR';
+
   // Collapsible filter section state
   bool _isFilterSectionExpanded = true;
 
@@ -84,6 +88,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   // Public method to refresh products (can be called from parent)
   void refreshProducts() {
     _loadProducts();
+    _loadSettings(); // Reload settings to get updated currency preference
   }
 
   // Helper to persist filter to shared_preferences
@@ -173,12 +178,25 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       }
     });
 
-    _loadSettings();
-    _loadFavorites();
-    _loadFilterOptions();
+    // Load critical data first, then load everything else asynchronously
+    _initializeFastData();
+  }
+
+  /// Load only essential data for initial render, defer heavy operations
+  Future<void> _initializeFastData() async {
+    // Load settings first (usually cached)
+    await _loadSettings();
+
+    // Start loading products immediately with cached filter
     _restoreFilterAndLoadProducts();
-    _loadSearchEnhancements();
-    _checkTutorialStatus();
+
+    // Load other data in background without blocking UI
+    Future.microtask(() async {
+      await _loadFavorites();
+      await _loadFilterOptions();
+      _loadSearchEnhancements();
+      _checkTutorialStatus();
+    });
   }
 
   Future<void> _loadSearchEnhancements() async {
@@ -314,7 +332,14 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   }
 
   Future<void> _loadSettings() async {
-    setState(() {});
+    try {
+      final settings = await SettingsService.instance.getSettings();
+      setState(() {
+        _preferredCurrency = settings.preferredCurrency;
+      });
+    } catch (e) {
+      print('Error loading settings: $e');
+    }
   }
 
   Future<void> _loadFavorites() async {
@@ -389,22 +414,73 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
   Future<void> _loadFilterOptions() async {
     try {
-      final sites = await DatabaseService.platformService.getUniqueSites();
-      final categories =
-          await DatabaseService.platformService.getAvailableCategories();
-      final priceRange = await DatabaseService.platformService.getPriceRange();
+      // Use cached data if available, otherwise load fresh
+      final results = await Future.wait<dynamic>([
+        DatabaseService.platformService.getUniqueSites(),
+        DatabaseService.platformService.getAvailableCategories(),
+        DatabaseService.platformService.getPriceRange(),
+        SubscriptionService.instance.isPremiumUser(),
+      ]);
 
-      print('Loaded sites: $sites');
-      print('Loaded categories: $categories');
-      print('Loaded price range: $priceRange');
+      final sites = results[0] as List<String>;
+      final categories = results[1] as List<String>;
+      final priceRange = results[2] as Map<String, double>;
+      final isPremium = results[3] as bool;
 
-      setState(() {
-        _availableSites = ['All', ...sites];
-        _availableCategories = categories;
-        _priceRange = priceRange;
-      });
+      // Filter sites based on subscription tier
+      List<String> availableSites;
+      if (isPremium) {
+        availableSites = sites;
+      } else {
+        // For free users, only show allowed sites
+        final freeSites = SubscriptionTierExtension.freeEnabledSites;
+
+        // Map site display names back to keys to check against free sites
+        final siteNameToKey = <String, String>{
+          'Nakamura Tokichi': 'tokichi',
+          'Marukyu-Koyamaen': 'marukyu',
+          'Ippodo Tea': 'ippodo',
+          'Yoshi En': 'yoshien',
+          'Matcha Kāru': 'matcha-karu',
+          'Sho-Cha': 'sho-cha',
+          'Sazen Tea': 'sazentea',
+          'Emeri': 'enjoyemeri',
+          'Poppatea': 'poppatea',
+          'Horiishichimeien': 'horiishichimeien',
+        };
+
+        availableSites =
+            sites.where((siteName) {
+              final siteKey = siteNameToKey[siteName] ?? siteName.toLowerCase();
+              return freeSites.contains(siteKey);
+            }).toList();
+
+        if (kDebugMode) {
+          print(
+            '🔒 Free mode sites filter: ${availableSites.length} of ${sites.length} sites available',
+          );
+          print('   Available: $availableSites');
+          print('   All sites: $sites');
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _availableSites = ['All', ...availableSites];
+          _availableCategories = categories;
+          _priceRange = priceRange;
+        });
+      }
     } catch (e) {
       print('Error loading filter options: $e');
+      // Set sensible defaults
+      if (mounted) {
+        setState(() {
+          _availableSites = ['All'];
+          _availableCategories = [];
+          _priceRange = {'min': 0.0, 'max': 1000.0};
+        });
+      }
     }
   }
 
@@ -1281,6 +1357,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         final product = _products[index];
         return ProductCard(
           product: product,
+          preferredCurrency: _preferredCurrency,
           isFavorite: _favoriteProductIds.contains(product.id),
           onFavoriteToggle: () => _toggleFavorite(product.id),
           onTap: () {

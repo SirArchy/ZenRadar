@@ -6,7 +6,9 @@ class ScanActivity {
   final int duration; // Duration in seconds
   final bool hasStockUpdates;
   final String? details; // Optional additional details
-  final String scanType; // 'background', 'manual', or 'favorites'
+  final String scanType; // 'background', 'manual', 'favorites', or 'server'
+  final List<Map<String, dynamic>>? stockUpdates; // Detailed stock update items
+  final String? crawlRequestId; // Reference to the original crawl request
 
   ScanActivity({
     required this.id,
@@ -16,6 +18,8 @@ class ScanActivity {
     required this.hasStockUpdates,
     this.details,
     this.scanType = 'background',
+    this.stockUpdates,
+    this.crawlRequestId,
   });
 
   factory ScanActivity.fromJson(Map<String, dynamic> json) {
@@ -27,6 +31,11 @@ class ScanActivity {
       hasStockUpdates: json['hasStockUpdates'] == 1,
       details: json['details'],
       scanType: json['scanType'] ?? 'background',
+      stockUpdates:
+          json['stockUpdates'] != null
+              ? List<Map<String, dynamic>>.from(json['stockUpdates'])
+              : null,
+      crawlRequestId: json['crawlRequestId'],
     );
   }
 
@@ -39,6 +48,8 @@ class ScanActivity {
       'hasStockUpdates': hasStockUpdates ? 1 : 0,
       'details': details,
       'scanType': scanType,
+      'stockUpdates': stockUpdates,
+      'crawlRequestId': crawlRequestId,
     };
   }
 

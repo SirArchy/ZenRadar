@@ -31,6 +31,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Map<String, int> _siteProductCounts = {};
   SubscriptionTier _currentTier = SubscriptionTier.free;
   bool _isPremium = false;
+  bool _debugPremiumMode = false;
 
   @override
   void initState() {
@@ -96,9 +97,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final tier = await SubscriptionService.instance.getCurrentTier();
       final isPremium = await SubscriptionService.instance.isPremiumUser();
 
+      // Load debug premium mode status
+      final debugMode = SubscriptionService.instance.isDebugPremiumMode;
+
       setState(() {
         _currentTier = tier;
         _isPremium = isPremium;
+        _debugPremiumMode = debugMode;
       });
     } catch (e) {
       print('Error loading subscription status: $e');
@@ -704,7 +709,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               title: const Text('Preferred Currency'),
               subtitle: Text(
-                'Show prices in ${_userSettings.preferredCurrency}',
+                _userSettings.preferredCurrency == 'Original'
+                    ? 'Show prices in original site currency'
+                    : 'Show prices in ${_userSettings.preferredCurrency}',
               ),
               trailing: const Icon(Icons.edit),
               onTap: () => _showCurrencyDialog(),
@@ -906,18 +913,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // Helper methods
   List<Map<String, String>> _getBuiltInSites() {
-    return [
-      {'key': 'tokichi', 'name': 'Tokichi'},
-      {'key': 'marukyu', 'name': 'Marukyu-Koyamaen'},
+    final allSites = [
       {'key': 'ippodo', 'name': 'Ippodo Tea'},
-      {'key': 'yoshien', 'name': 'Yoshien'},
+      {'key': 'marukyu', 'name': 'Marukyu-Koyamaen'},
+      {'key': 'nakamura', 'name': 'Nakamura'},
       {'key': 'matcha-karu', 'name': 'Matcha-Karu'},
+      {'key': 'yoshien', 'name': 'YOSHI En'},
+      {'key': 'tokichi', 'name': 'Tokichi'},
       {'key': 'sho-cha', 'name': 'Sho-Cha'},
       {'key': 'sazentea', 'name': 'Sazen Tea'},
       {'key': 'enjoyemeri', 'name': 'Enjoy Emeri'},
       {'key': 'poppatea', 'name': 'Poppa Tea'},
       {'key': 'horiishichimeien', 'name': 'Horiishichimeien'},
     ];
+
+    // Filter sites based on subscription tier for free users
+    if (!_isPremium) {
+      final freeSites = SubscriptionTierExtension.freeEnabledSites;
+      return allSites.where((site) => freeSites.contains(site['key'])).toList();
+    }
+
+    return allSites;
   }
 
   Widget _buildSectionTitle(String title) {
@@ -1138,7 +1154,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showCurrencyDialog() {
-    final currencies = ['EUR', 'USD', 'JPY', 'GBP'];
+    final currencies = ['Original', 'EUR', 'USD', 'JPY', 'GBP'];
     showDialog(
       context: context,
       builder:
@@ -1148,8 +1164,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               mainAxisSize: MainAxisSize.min,
               children:
                   currencies.map((currency) {
+                    String displayName =
+                        currency == 'Original'
+                            ? 'Original (native site currency)'
+                            : currency;
                     return RadioListTile<String>(
-                      title: Text(currency),
+                      title: Text(displayName),
                       value: currency,
                       groupValue: _userSettings.preferredCurrency,
                       onChanged: (value) {
@@ -1234,6 +1254,84 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 16),
 
+            // Debug subscription mode toggle
+            Card(
+              color: Theme.of(context).colorScheme.errorContainer.withAlpha(25),
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.verified_user,
+                          color: Theme.of(context).colorScheme.error,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Debug Subscription Mode',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const Spacer(),
+                        Switch(
+                          value: _debugPremiumMode,
+                          onChanged: (value) {
+                            setState(() {
+                              _debugPremiumMode = value;
+                            });
+                            _toggleDebugPremiumMode(value);
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Override subscription status for testing. When enabled, the app will behave as if you have a premium subscription.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    if (_debugPremiumMode)
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.error.withAlpha(25),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.warning,
+                              color: Theme.of(context).colorScheme.error,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'DEBUG MODE ACTIVE - Premium features unlocked for testing',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Theme.of(context).colorScheme.error,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
             // Test notification button
             SizedBox(
               width: double.infinity,
@@ -1288,6 +1386,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to send test notification: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _toggleDebugPremiumMode(bool enabled) async {
+    try {
+      // Override the subscription service for debug purposes
+      await SubscriptionService.instance.setDebugPremiumMode(enabled);
+
+      if (mounted) {
+        setState(() {
+          _isPremium = enabled;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              enabled
+                  ? 'Debug premium mode enabled - All features unlocked'
+                  : 'Debug premium mode disabled - Back to normal subscription status',
+            ),
+            backgroundColor: enabled ? Colors.orange : Colors.blue,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error toggling debug premium mode: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to toggle debug mode: $e'),
             backgroundColor: Colors.red,
           ),
         );

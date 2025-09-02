@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../models/website_stock_analytics.dart';
 import '../services/website_analytics_service.dart';
+import '../services/subscription_service.dart';
 import '../widgets/website_stock_chart.dart';
 import '../widgets/skeleton_loading.dart';
 
@@ -22,13 +23,30 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
   bool _isLoading = true;
   String _selectedTimeRange = 'month';
   String? _error;
+  bool _isPremium = false;
 
   final List<String> _timeRanges = ['day', 'week', 'month', 'all'];
 
   @override
   void initState() {
     super.initState();
+    _loadSubscriptionStatus();
     _loadAnalytics();
+  }
+
+  Future<void> _loadSubscriptionStatus() async {
+    try {
+      final isPremium = await SubscriptionService.instance.isPremiumUser();
+      setState(() {
+        _isPremium = isPremium;
+        // For free users, default to 'day' since it's the only available option
+        if (!isPremium && _selectedTimeRange != 'day') {
+          _selectedTimeRange = 'day';
+        }
+      });
+    } catch (e) {
+      print('Error loading subscription status: $e');
+    }
   }
 
   Future<void> _loadAnalytics() async {
@@ -92,6 +110,12 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
   }
 
   void _showTimeRangePicker() {
+    // Filter time ranges based on subscription tier
+    final availableTimeRanges =
+        _isPremium
+            ? _timeRanges
+            : ['day']; // Only show 7 days option for free users
+
     showDialog<String>(
       context: context,
       builder: (BuildContext context) {
@@ -100,7 +124,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children:
-                _timeRanges.map((String timeRange) {
+                availableTimeRanges.map((String timeRange) {
                   return RadioListTile<String>(
                     title: Text(_getTimeRangeLabel(timeRange)),
                     value: timeRange,
@@ -581,7 +605,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
   String _getTimeRangeLabel(String timeRange) {
     switch (timeRange) {
       case 'day':
-        return 'Last 24 hours';
+        return _isPremium ? 'Last 24 hours' : 'Last 7 days';
       case 'week':
         return 'Last 7 days';
       case 'month':

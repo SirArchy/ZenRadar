@@ -7,6 +7,7 @@ import '../services/database_service.dart';
 import '../services/firestore_service.dart';
 import '../services/cache_service.dart';
 import '../widgets/skeleton_loading.dart';
+import 'stock_updates_screen.dart';
 // ignore_for_file: avoid_print
 
 class BackgroundActivityScreen extends StatefulWidget {
@@ -74,9 +75,13 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         print(
           'Loaded ${serverActivities.length} server activities from Firestore',
         );
+
+        // Apply free mode limitation - only last 24 scans
+        final limitedActivities = serverActivities.take(24).toList();
+
         setState(() {
-          _activities = serverActivities;
-          _totalActivities = serverActivities.length;
+          _activities = limitedActivities;
+          _totalActivities = limitedActivities.length;
           _hasMoreData = false; // No pagination for server mode yet
           _isLoading = false;
         });
@@ -126,9 +131,13 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       print(
         'Force refreshed ${serverActivities.length} server activities from Firestore',
       );
+
+      // Apply free mode limitation - only last 24 scans
+      final limitedActivities = serverActivities.take(24).toList();
+
       setState(() {
-        _activities = serverActivities;
-        _totalActivities = serverActivities.length;
+        _activities = limitedActivities;
+        _totalActivities = limitedActivities.length;
         _hasMoreData = false;
         _isLoading = false;
       });
@@ -355,7 +364,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildStatItem(
-                'Total Scans',
+                'Recent Scans',
                 _totalActivities.toString(),
                 Icons.history,
               ),
@@ -370,6 +379,23 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                 Icons.notifications_active,
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          // Free mode notice
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              'Free Mode: Showing last 24 scans',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ],
       ),
@@ -417,7 +443,8 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     final timeFormat = isToday ? DateFormat('HH:mm') : dateFormat;
 
     return GestureDetector(
-      onTap: null, // Stock updates not available in server mode
+      onTap:
+          activity.hasStockUpdates ? () => _showStockUpdates(activity) : null,
       child: Card(
         margin: const EdgeInsets.only(bottom: 8),
         child: Padding(
@@ -497,7 +524,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'Stock updates found',
+                            'Stock updates found - Tap to view',
                             style: TextStyle(
                               color: Colors.green.shade600,
                               fontSize: 14,
@@ -541,11 +568,88 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                   ],
                 ),
               ),
+
+              // Arrow indicator for clickable items
+              if (activity.hasStockUpdates) ...[
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: Colors.grey.shade400,
+                ),
+              ],
             ],
           ),
         ),
       ),
     );
+  }
+
+  /// Show stock updates for a specific scan activity
+  Future<void> _showStockUpdates(ScanActivity activity) async {
+    if (activity.crawlRequestId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No stock update details available for this scan'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Get detailed stock updates for this crawl request
+      final stockUpdates = await FirestoreService.instance
+          .getStockUpdatesForCrawlRequest(activity.crawlRequestId!);
+
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+
+      if (stockUpdates.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No detailed stock updates found for this scan'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Navigate to stock updates screen
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder:
+                (context) => StockUpdatesScreen(
+                  updates: stockUpdates,
+                  scanActivity: activity,
+                ),
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading stock updates: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   /// Load server scan activities from Firestore via FirestoreService
@@ -740,6 +844,8 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       itemsScanned: totalProducts,
       hasStockUpdates: hasStockUpdates,
       details: details,
+      crawlRequestId:
+          requestId, // Add the crawl request ID for detailed stock updates
     );
   }
 }

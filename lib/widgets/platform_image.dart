@@ -36,7 +36,22 @@ class _PlatformImageState extends State<PlatformImage> {
   @override
   void initState() {
     super.initState();
-    _currentUrl = widget.imageUrl;
+    _currentUrl = _processImageUrl(widget.imageUrl);
+  }
+
+  String _processImageUrl(String url) {
+    // Replace common placeholder patterns in image URLs
+    String processedUrl = url;
+
+    // Replace {width} patterns with a reasonable default width
+    processedUrl = processedUrl.replaceAll('{width}', '400');
+    processedUrl = processedUrl.replaceAll('%7Bwidth%7D', '400');
+
+    // Replace {height} patterns with a reasonable default height
+    processedUrl = processedUrl.replaceAll('{height}', '400');
+    processedUrl = processedUrl.replaceAll('%7Bheight%7D', '400');
+
+    return processedUrl;
   }
 
   void _retry() {
@@ -44,7 +59,8 @@ class _PlatformImageState extends State<PlatformImage> {
       setState(() {
         _retryCount++;
         // Add a cache-busting parameter to force retry
-        _currentUrl = '${widget.imageUrl}?retry=$_retryCount';
+        final processedUrl = _processImageUrl(widget.imageUrl);
+        _currentUrl = '$processedUrl?retry=$_retryCount';
       });
     }
   }

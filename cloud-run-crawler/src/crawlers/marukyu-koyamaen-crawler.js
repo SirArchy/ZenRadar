@@ -194,17 +194,29 @@ class MarukyuKoyamaenSpecializedCrawler {
 
     // Generate product ID
     const productId = this.generateProductId(productUrl, name);
+    const currentTimestamp = new Date();
 
     return {
       id: productId,
       name: this.cleanProductName(name),
+      normalizedName: this.normalizeName(this.cleanProductName(name)),
+      site: 'marukyu',
+      siteName: 'Marukyu-Koyamaen',
       price: cleanedPrice,
+      originalPrice: cleanedPrice,
       priceValue: priceValue,
+      currency: 'JPY',
       url: productUrl,
       imageUrl: imageUrl,
       isInStock: isInStock,
+      isDiscontinued: false,
+      missedScans: 0,
       category: this.detectCategory(name),
-      lastUpdated: new Date().toISOString()
+      crawlSource: 'cloud-run',
+      firstSeen: currentTimestamp,
+      lastChecked: currentTimestamp,
+      lastUpdated: currentTimestamp,
+      lastPriceHistoryUpdate: currentTimestamp
     };
   }
 
@@ -245,12 +257,10 @@ class MarukyuKoyamaenSpecializedCrawler {
         const yenValue = parseInt(priceText);
         
         if (!isNaN(yenValue) && yenValue > 0) {
-          // Convert JPY to EUR using the corrected exchange rate
-          const eurValue = yenValue * 0.0058; // Updated exchange rate
-          
+          // Keep price in original JPY format
           return {
-            cleanedPrice: `€${eurValue.toFixed(2)} (¥${yenValue.toLocaleString()})`,
-            priceValue: eurValue
+            cleanedPrice: `¥${yenValue.toLocaleString('ja-JP')}`,
+            priceValue: yenValue
           };
         }
       }
@@ -261,10 +271,9 @@ class MarukyuKoyamaenSpecializedCrawler {
     if (numericMatch) {
       const numericValue = parseInt(numericMatch[1]);
       if (numericValue > 100) { // Likely JPY if large number
-        const eurValue = numericValue * 0.0058;
         return {
-          cleanedPrice: `€${eurValue.toFixed(2)} (¥${numericValue.toLocaleString()})`,
-          priceValue: eurValue
+          cleanedPrice: `¥${numericValue.toLocaleString('ja-JP')}`,
+          priceValue: numericValue
         };
       }
     }
@@ -342,6 +351,14 @@ class MarukyuKoyamaenSpecializedCrawler {
     }
 
     return 'Matcha'; // Default fallback
+  }
+
+  normalizeName(name) {
+    return name
+      .toLowerCase()
+      .replace(/[^\w\s]/g, '') // Remove special characters
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
   }
 
   generateProductId(url, name) {

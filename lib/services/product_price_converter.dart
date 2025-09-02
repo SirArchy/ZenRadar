@@ -25,6 +25,11 @@ class ProductPriceConverter {
   }) async {
     if (rawPrice == null || rawPrice.isEmpty) return null;
 
+    // If preferred currency is "Original", return the raw price as-is
+    if (preferredCurrency == 'Original') {
+      return rawPrice;
+    }
+
     try {
       // First, try to use the priceValue if available (more accurate)
       if (priceValue != null && productCurrency != null) {

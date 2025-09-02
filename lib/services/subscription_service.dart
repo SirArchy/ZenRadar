@@ -12,6 +12,9 @@ class SubscriptionService {
 
   static SubscriptionService get instance => _instance;
 
+  // Debug mode override
+  bool _debugPremiumMode = false;
+
   /// Get current subscription tier from settings
   Future<SubscriptionTier> getCurrentTier() async {
     final settings = await SettingsService.instance.getSettings();
@@ -20,9 +23,27 @@ class SubscriptionService {
 
   /// Check if user has premium access
   Future<bool> isPremiumUser() async {
+    // Debug mode override
+    if (kDebugMode && _debugPremiumMode) {
+      return true;
+    }
+
     final settings = await SettingsService.instance.getSettings();
     return settings.isPremium;
   }
+
+  /// Set debug premium mode (only available in debug builds)
+  Future<void> setDebugPremiumMode(bool enabled) async {
+    if (kDebugMode) {
+      _debugPremiumMode = enabled;
+      if (kDebugMode) {
+        print('🐛 Debug premium mode ${enabled ? 'enabled' : 'disabled'}');
+      }
+    }
+  }
+
+  /// Get debug premium mode status
+  bool get isDebugPremiumMode => kDebugMode && _debugPremiumMode;
 
   /// Check if subscription has expired
   Future<bool> isSubscriptionExpired() async {

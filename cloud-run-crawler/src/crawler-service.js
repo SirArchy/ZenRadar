@@ -13,9 +13,10 @@ const PoppateaSpecializedCrawler = require('./crawlers/poppatea-crawler');
  * Optimized for parallel processing and delta crawling
  */
 class CrawlerService {
-  constructor(firestore, logger) {
+  constructor(firestore, logger, crawlRequestId = null) {
     this.db = firestore;
     this.logger = logger;
+    this.crawlRequestId = crawlRequestId; // Store the crawl request ID for tracking
     this.userAgent = 'ZenRadar Bot 1.0 (+https://zenradar.app)';
     this.storage = getStorage();
     
@@ -1345,7 +1346,8 @@ class CrawlerService {
             isInStock: product.isInStock,
             previousStatus: existingData.isInStock,
             timestamp: new Date(),
-            crawlSource: 'cloud-run'
+            crawlSource: 'cloud-run',
+            crawlRequestId: this.crawlRequestId // Add crawl request ID for detailed tracking
           });
         }
 
@@ -1419,7 +1421,8 @@ class CrawlerService {
           isInStock: product.isInStock,
           previousStatus: null,
           timestamp: new Date(),
-          crawlSource: 'cloud-run'
+          crawlSource: 'cloud-run',
+          crawlRequestId: this.crawlRequestId // Add crawl request ID for detailed tracking
         });
 
         // Add initial price history entry for new product (if price is available)

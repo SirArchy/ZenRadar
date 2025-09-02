@@ -347,7 +347,7 @@ extension SubscriptionTierExtension on SubscriptionTier {
 
   /// Free tier limits
   static const int maxFavoritesForFree = 15;
-  static const int maxVendorsForFree = 4;
+  static const int maxVendorsForFree = 5;
   static const int minCheckFrequencyMinutesForFree = 360; // 6 hours
   static const int historyLimitDaysForFree = 7;
 
@@ -359,9 +359,10 @@ extension SubscriptionTierExtension on SubscriptionTier {
 
   /// Default enabled sites for free tier
   static const List<String> freeEnabledSites = [
-    "tokichi",
-    "marukyu",
     "ippodo",
+    "marukyu",
+    "nakamura",
+    "matcha-karu",
     "yoshien",
   ];
 
@@ -491,11 +492,12 @@ class UserSettings {
       enabledSites: List<String>.from(
         json['enabledSites'] ??
             [
-              "tokichi",
-              "marukyu",
               "ippodo",
-              "yoshien",
+              "marukyu",
+              "nakamura",
               "matcha-karu",
+              "yoshien",
+              "tokichi",
               "sho-cha",
               "sazentea",
               "enjoyemeri",
@@ -671,11 +673,12 @@ class UserSettings {
   List<String> get defaultEnabledSites {
     if (isPremium) {
       return const [
-        "tokichi",
-        "marukyu",
         "ippodo",
-        "yoshien",
+        "marukyu",
+        "nakamura",
         "matcha-karu",
+        "yoshien",
+        "tokichi",
         "sho-cha",
         "sazentea",
         "enjoyemeri",

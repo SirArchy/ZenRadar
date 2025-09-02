@@ -360,6 +360,7 @@ class PoppateaSpecializedCrawler {
       const eurPrice = price;
 
       const productId = this.generateProductId(productUrl, fullName);
+      const currentTimestamp = new Date();
 
       return {
         id: productId,
@@ -375,9 +376,10 @@ class PoppateaSpecializedCrawler {
         imageUrl: mainImageUrl,
         isInStock: available,
         category: this.detectCategory(baseName),
-        lastChecked: new Date(),
-        lastUpdated: new Date(),
-        firstSeen: new Date(),
+        lastChecked: currentTimestamp,
+        lastUpdated: currentTimestamp,
+        lastPriceHistoryUpdate: currentTimestamp,
+        firstSeen: currentTimestamp,
         isDiscontinued: false,
         missedScans: 0,
         crawlSource: 'cloud-run',
@@ -400,6 +402,7 @@ class PoppateaSpecializedCrawler {
       if (!parsed) return null;
 
       const productId = this.generateProductId(productUrl, parsed.name);
+      const currentTimestamp = new Date();
 
       return {
         id: productId,
@@ -415,9 +418,10 @@ class PoppateaSpecializedCrawler {
         imageUrl: mainImageUrl,
         isInStock: true, // Assume in stock if variant is selectable
         category: this.detectCategory(baseName),
-        lastChecked: new Date(),
-        lastUpdated: new Date(),
-        firstSeen: new Date(),
+        lastChecked: currentTimestamp,
+        lastUpdated: currentTimestamp,
+        lastPriceHistoryUpdate: currentTimestamp,
+        firstSeen: currentTimestamp,
         isDiscontinued: false,
         missedScans: 0,
         crawlSource: 'cloud-run',

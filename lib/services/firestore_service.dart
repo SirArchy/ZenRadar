@@ -687,6 +687,69 @@ class FirestoreService {
     }
   }
 
+  /// Get detailed stock updates for a specific crawl request
+  Future<List<Map<String, dynamic>>> getStockUpdatesForCrawlRequest(
+    String crawlRequestId,
+  ) async {
+    try {
+      // Get stock history entries created during this crawl request
+      final querySnapshot =
+          await firestore
+              .collection('stock_history')
+              .where('crawlRequestId', isEqualTo: crawlRequestId)
+              .orderBy('timestamp', descending: true)
+              .get();
+
+      final stockUpdates = <Map<String, dynamic>>[];
+
+      for (final doc in querySnapshot.docs) {
+        final data = doc.data();
+
+        // Get the product details for this stock update
+        final productId = data['productId'] as String;
+        final productDoc =
+            await firestore.collection('products').doc(productId).get();
+
+        if (productDoc.exists) {
+          final productData = productDoc.data()!;
+
+          // Only include products that had stock status changes (not just price changes)
+          final previousStatus = data['previousStatus'];
+          final currentStatus = data['isInStock'] ?? false;
+
+          // Include if product went from out of stock to in stock, or is a new product in stock
+          if ((previousStatus == false && currentStatus == true) ||
+              (previousStatus == null && currentStatus == true)) {
+            stockUpdates.add({
+              'productId': productId,
+              'name': productData['name'] ?? 'Unknown',
+              'site': productData['site'] ?? '',
+              'siteName': productData['siteName'] ?? '',
+              'price': productData['price'] ?? '',
+              'priceValue': productData['priceValue'],
+              'currency': productData['currency'] ?? 'EUR',
+              'url': productData['url'] ?? '',
+              'imageUrl': productData['imageUrl'],
+              'isInStock': currentStatus,
+              'previousIsInStock': previousStatus,
+              'timestamp': data['timestamp'],
+              'category': productData['category'] ?? 'Matcha',
+            });
+          }
+        }
+      }
+
+      return stockUpdates;
+    } catch (e) {
+      if (kDebugMode) {
+        print(
+          'Error fetching stock updates for crawl request $crawlRequestId: $e',
+        );
+      }
+      return [];
+    }
+  }
+
   /// Get price range from all products
   Future<Map<String, double>> getPriceRange() async {
     try {

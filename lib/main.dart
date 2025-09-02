@@ -16,55 +16,77 @@ import 'screens/app_initializer.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase for Firestore support (server mode)
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    if (kDebugMode) {
-      print('Firebase initialized successfully');
-    }
+    // Initialize only critical services synchronously
+    await _initializeCriticalServices();
 
-    // Initialize Firestore service
-    await FirestoreService.instance.initDatabase();
+    // Start the app immediately
+    runApp(const ZenRadarApp());
+
+    // Initialize remaining services in background
+    _initializeBackgroundServices();
   } catch (e) {
     if (kDebugMode) {
-      print('Firebase initialization failed: $e');
-      print('Continuing without Firebase - server mode will not work');
+      print('Critical initialization failed: $e');
     }
+    // Still start the app, but with degraded functionality
+    runApp(const ZenRadarApp());
   }
+}
 
-  // Initialize services
-  await DatabaseService.platformService.initDatabase();
+/// Initialize only the most critical services needed for app startup
+Future<void> _initializeCriticalServices() async {
+  // Firebase is needed for core functionality
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Theme service for UI rendering
   await ThemeService.instance.init();
 
-  // Only initialize mobile-specific services on mobile platforms
-  if (!kIsWeb) {
-    await NotificationService.instance.init();
-    // Small delay to ensure notification channels are created
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    // Check and handle battery optimization BEFORE starting background service
-    final batteryService = BatteryOptimizationService();
-    await batteryService.checkAndHandleBatteryOptimization();
-
-    // Initialize background service (server mode only)
-    await BackgroundServiceController.initializeService();
-
-    // Initialize FCM and favorite notification services
-    // FCM initialization includes favorite subscriptions, so we do it first
-    await BackendService.instance.initializeFCM();
-
-    // Initialize favorite product notification monitoring
-    // This will not re-subscribe to FCM topics since FCM is already initialized
-    await FavoriteNotificationService.instance.initializeService();
-
-    // Request basic permissions (mobile only) - notification permission excluded
-    // as it will be requested during onboarding when user explicitly opts in
-    await requestInitialPermissions();
+  if (kDebugMode) {
+    print('Critical services initialized');
   }
+}
 
-  runApp(const ZenRadarApp());
+/// Initialize remaining services in background without blocking UI
+Future<void> _initializeBackgroundServices() async {
+  try {
+    // Initialize Firestore service
+    await FirestoreService.instance.initDatabase();
+
+    // Initialize database service
+    await DatabaseService.platformService.initDatabase();
+
+    // Only initialize mobile-specific services on mobile platforms
+    if (!kIsWeb) {
+      // Initialize notification service
+      await NotificationService.instance.init();
+
+      // Small delay to ensure notification channels are created
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // Check and handle battery optimization in background
+      final batteryService = BatteryOptimizationService();
+      batteryService.checkAndHandleBatteryOptimization();
+
+      // Initialize background service (server mode only)
+      BackgroundServiceController.initializeService();
+
+      // Initialize FCM and favorite notification services
+      BackendService.instance.initializeFCM();
+      FavoriteNotificationService.instance.initializeService();
+
+      // Request basic permissions
+      requestInitialPermissions();
+    }
+
+    if (kDebugMode) {
+      print('Background services initialized');
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print('Background service initialization failed: $e');
+    }
+  }
 }
 
 Future<void> requestInitialPermissions() async {

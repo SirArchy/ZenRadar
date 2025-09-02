@@ -156,17 +156,31 @@ class HoriishichimeienSpecializedCrawler {
 
     // Generate product ID
     const productId = this.generateProductId(productUrl, name);
+    const cleanedName = this.cleanProductName(name);
+    const category = this.detectCategory(name);
+    const currentTimestamp = new Date();
 
     return {
       id: productId,
-      name: this.cleanProductName(name),
+      name: cleanedName,
+      normalizedName: this.normalizeName(cleanedName),
+      site: 'horiishichimeien',
+      siteName: 'Horiishichimeien',
       price: cleanedPrice,
+      originalPrice: cleanedPrice, // Same as price for consistency
       priceValue: priceValue,
+      currency: 'JPY', // Native currency for Horiishichimeien
       url: productUrl,
       imageUrl: imageUrl,
       isInStock: isInStock,
-      category: this.detectCategory(name),
-      lastUpdated: new Date().toISOString()
+      isDiscontinued: false,
+      missedScans: 0,
+      category: category,
+      crawlSource: 'cloud-run',
+      firstSeen: currentTimestamp,
+      lastChecked: currentTimestamp,
+      lastUpdated: currentTimestamp,
+      lastPriceHistoryUpdate: currentTimestamp
     };
   }
 
@@ -234,15 +248,14 @@ class HoriishichimeienSpecializedCrawler {
     let cleaned = rawPrice.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
     cleaned = cleaned.replace(/Regular price|Sale price|Unit price|per|Sale|Sold out|JPY|from/gi, '');
     
-    // Extract JPY price
+    // Extract JPY price and keep it in original currency
     const yenMatch = cleaned.match(/¥(\d{1,3}(?:,\d{3})*)/);
     if (yenMatch) {
       const jpyValue = parseFloat(yenMatch[1].replace(/,/g, ''));
-      const euroValue = jpyValue * this.jpyToEurRate;
       
       return {
-        cleanedPrice: `€${euroValue.toFixed(2)}`,
-        priceValue: parseFloat(euroValue.toFixed(2))
+        cleanedPrice: `¥${jpyValue.toLocaleString('ja-JP')}`, // Keep original JPY format
+        priceValue: jpyValue // Store original JPY value
       };
     }
     
@@ -262,12 +275,58 @@ class HoriishichimeienSpecializedCrawler {
   }
 
   determineStockStatus($, productElement) {
-    const elementText = productElement.text().toLowerCase();
+    // Check for Shopify CSS class indicators first (more reliable)
+    if (productElement.hasClass('grid-view-item--sold-out') || 
+        productElement.hasClass('product-card--sold-out') ||
+        productElement.find('.sold-out').length > 0) {
+      
+      // Double-check by looking for actual product page to confirm
+      // Sometimes CSS classes are present but product is actually available
+      const linkElement = productElement.find('a[href*="/products/"]').first();
+      if (linkElement.length > 0) {
+        // If there's a product link, we should check the product page
+        // For now, we'll use a more conservative approach
+        
+        // Look for explicit sold out text in visible content (not CSS classes)
+        const visibleText = productElement.find('.card__heading, .product-title, .card__information').text().toLowerCase();
+        const outOfStockKeywords = ['sold out', 'unavailable', '売り切れ', 'out of stock'];
+        
+        for (const keyword of outOfStockKeywords) {
+          if (visibleText.includes(keyword)) {
+            return false;
+          }
+        }
+        
+        // If no explicit text says out of stock, check for add to cart buttons
+        const stockSelectors = [
+          '.product-form__buttons',
+          '.product-form',
+          'form[action="/cart/add"]',
+          'button[name="add"]',
+          'button[type="submit"]'
+        ];
+        
+        for (const selector of stockSelectors) {
+          if (productElement.find(selector).length > 0) {
+            return true;
+          }
+        }
+        
+        // If CSS says sold out but no explicit text confirmation, 
+        // and we have a price, assume available (conservative approach)
+        const hasPrice = productElement.find('.money, .price').length > 0;
+        return hasPrice;
+      }
+      
+      return false;
+    }
     
-    // Check for out of stock indicators
+    // Check for explicit out of stock text in visible content only
+    const visibleText = productElement.find('.card__heading, .product-title, .card__information, .card__content').text().toLowerCase();
     const outOfStockKeywords = ['sold out', 'unavailable', '売り切れ', 'out of stock'];
+    
     for (const keyword of outOfStockKeywords) {
-      if (elementText.includes(keyword)) {
+      if (visibleText.includes(keyword)) {
         return false;
       }
     }
@@ -277,7 +336,8 @@ class HoriishichimeienSpecializedCrawler {
       '.product-form__buttons',
       '.product-form',
       'form[action="/cart/add"]',
-      'button[name="add"]'
+      'button[name="add"]',
+      'button[type="submit"]'
     ];
     
     for (const selector of stockSelectors) {
@@ -296,6 +356,14 @@ class HoriishichimeienSpecializedCrawler {
       .replace(/\s+/g, ' ')
       .trim()
       .replace(/^(Matcha|Tea)\s+/i, '')  // Remove leading Matcha/Tea
+      .trim();
+  }
+
+  normalizeName(name) {
+    return name
+      .toLowerCase()
+      .replace(/[^\w\s]/g, ' ')  // Replace non-word characters with spaces
+      .replace(/\s+/g, ' ')      // Collapse multiple spaces
       .trim();
   }
 
