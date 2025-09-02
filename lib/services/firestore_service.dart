@@ -598,6 +598,12 @@ class FirestoreService {
           priceValue: (data['priceValue'] as num?)?.toDouble() ?? 0.0,
           currency: data['currency'] ?? 'EUR',
           category: data['category'] ?? 'Matcha',
+          weight:
+              data['weight'] is int
+                  ? data['weight']
+                  : (data['weight'] as num?)?.toInt(),
+          imageUrl: data['imageUrl'],
+          description: data['description'],
         );
       }).toList();
     } catch (e) {

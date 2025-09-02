@@ -61,12 +61,18 @@ class MatchaProduct {
                 json['lastChecked'],
               ), // Fallback for existing data
       price: json['price'],
-      priceValue: json['priceValue']?.toDouble(),
+      priceValue:
+          json['priceValue'] is double
+              ? json['priceValue']
+              : (json['priceValue'] as num?)?.toDouble(),
       currency: json['currency'],
       imageUrl: json['imageUrl'],
       description: json['description'],
       category: json['category'],
-      weight: json['weight'],
+      weight:
+          json['weight'] is int
+              ? json['weight']
+              : (json['weight'] as num?)?.toInt(),
       metadata:
           json['metadata'] != null
               ? Map<String, dynamic>.from(json['metadata'])
@@ -97,12 +103,18 @@ class MatchaProduct {
               ? (data['firstSeen'] as dynamic).toDate()
               : DateTime.now(),
       price: data['price'],
-      priceValue: data['priceValue']?.toDouble(),
+      priceValue:
+          data['priceValue'] is double
+              ? data['priceValue']
+              : (data['priceValue'] as num?)?.toDouble(),
       currency: data['currency'],
       imageUrl: data['imageUrl'],
       description: data['description'],
       category: data['category'],
-      weight: data['weight'],
+      weight:
+          data['weight'] is int
+              ? data['weight']
+              : (data['weight'] as num?)?.toInt(),
       metadata:
           data['metadata'] != null
               ? Map<String, dynamic>.from(data['metadata'])
@@ -512,14 +524,21 @@ class ProductFilter {
     String? searchTerm,
     bool? showDiscontinued,
     bool? favoritesOnly,
+    // Special parameters to explicitly set fields to null
+    bool clearInStock = false,
+    bool clearMinPrice = false,
+    bool clearMaxPrice = false,
+    bool clearSites = false,
+    bool clearCategories = false,
+    bool clearSearchTerm = false,
   }) {
     return ProductFilter(
-      sites: sites ?? this.sites,
-      inStock: inStock ?? this.inStock,
-      minPrice: minPrice ?? this.minPrice,
-      maxPrice: maxPrice ?? this.maxPrice,
-      categories: categories ?? this.categories,
-      searchTerm: searchTerm ?? this.searchTerm,
+      sites: clearSites ? null : (sites ?? this.sites),
+      inStock: clearInStock ? null : (inStock ?? this.inStock),
+      minPrice: clearMinPrice ? null : (minPrice ?? this.minPrice),
+      maxPrice: clearMaxPrice ? null : (maxPrice ?? this.maxPrice),
+      categories: clearCategories ? null : (categories ?? this.categories),
+      searchTerm: clearSearchTerm ? null : (searchTerm ?? this.searchTerm),
       showDiscontinued: showDiscontinued ?? this.showDiscontinued,
       favoritesOnly: favoritesOnly ?? this.favoritesOnly,
     );

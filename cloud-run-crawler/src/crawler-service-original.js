@@ -149,7 +149,7 @@ class CrawlerService {
         currencyConversion: {
           from: 'JPY',
           to: 'EUR',
-          rate: 0.00577 // 1 JPY = 0.00577 EUR (updated for accuracy)
+          rate: 0.0067 // 1 JPY = 0.0067 EUR (approximate, should be updated regularly)
         }
       }
     };
@@ -662,7 +662,7 @@ class CrawlerService {
     const exchangeRates = {
       'USD': 0.85,    // 1 USD = 0.85 EUR
       'CAD': 0.63,    // 1 CAD = 0.63 EUR  
-      'JPY': 0.00577,  // 1 JPY = 0.00577 EUR (updated for accuracy)
+      'JPY': 0.0067,  // 1 JPY = 0.0067 EUR
       'GBP': 1.17,    // 1 GBP = 1.17 EUR
       'SEK': 0.086,   // 1 SEK = 0.086 EUR (for Poppatea)
       'DKK': 0.134,   // 1 DKK = 0.134 EUR
@@ -759,7 +759,20 @@ class CrawlerService {
       return price;
     }
 
-    // Convert currency if needed
+    // Special handling for Horiishichimeien JPY cents
+    if (siteKey === 'horiishichimeien' && config.currencyConversion.from === 'JPY') {
+      // Shopify stores JPY prices in cents, so ¥648 is stored as 64800
+      if (numericValue > 1000) {
+        numericValue = numericValue / 100; // Convert cents to actual JPY
+        this.logger.info('Converted JPY cents to JPY', { 
+          original: numericValue * 100, 
+          converted: numericValue,
+          siteKey 
+        });
+      }
+    }
+
+    // Convert currency
     const convertedValue = numericValue * config.currencyConversion.rate;
     
     // Format as target currency
@@ -1058,7 +1071,7 @@ class CrawlerService {
         const jpyMatch = cleaned.match(/¥(\d+[.,]\d+)/);
         if (jpyMatch) {
           const jpyValue = parseFloat(jpyMatch[1].replace(',', ''));
-          const euroValue = (jpyValue * 0.00577).toFixed(2); // 1 JPY = 0.00577 EUR (updated for accuracy)
+          const euroValue = (jpyValue * 0.0067).toFixed(2); // 1 JPY = 0.0067 EUR
           return `€${euroValue}`;
         }
         break;
@@ -1073,7 +1086,7 @@ class CrawlerService {
         
         if (jpyMatchIppodo) {
           const jpyValue = parseFloat(jpyMatchIppodo[1].replace(/,/g, ''));
-          const euroValue = (jpyValue * 0.00577).toFixed(2);
+          const euroValue = (jpyValue * 0.0067).toFixed(2);
           return `€${euroValue}`;
         }
 
@@ -1081,7 +1094,7 @@ class CrawlerService {
         const numMatch = cleaned.match(/(\d+[.,]\d+)/);
         if (numMatch) {
           const jpyValue = parseFloat(numMatch[1].replace(',', ''));
-          const euroValue = (jpyValue * 0.00577).toFixed(2);
+          const euroValue = (jpyValue * 0.0067).toFixed(2);
           return `€${euroValue}`;
         }
         break;
@@ -1165,7 +1178,7 @@ class CrawlerService {
         const yoshienYenMatch = cleaned.match(/¥(\d{1,3}(?:,\d{3})*)/);
         if (yoshienYenMatch) {
           const jpyValue = parseFloat(yoshienYenMatch[1].replace(/,/g, ''));
-          const euroValue = (jpyValue * 0.00577).toFixed(2);
+          const euroValue = (jpyValue * 0.0067).toFixed(2);
           return `€${euroValue}`;
         }
         
@@ -1209,7 +1222,7 @@ class CrawlerService {
         let horiYenMatch = cleaned.match(/¥(\d{1,3}(?:,\d{3})+)/); // With comma separator for thousands
         if (horiYenMatch) {
           const jpyValue = parseFloat(horiYenMatch[1].replace(/,/g, '')); // Remove commas: "10,800" -> 10800
-          const euroValue = (jpyValue * 0.00577).toFixed(2); // Updated accurate JPY to EUR rate
+          const euroValue = (jpyValue * 0.0065).toFixed(2); // Updated more accurate JPY to EUR rate
           return `€${euroValue}`;
         }
         
@@ -1217,7 +1230,7 @@ class CrawlerService {
         horiYenMatch = cleaned.match(/¥(\d+)(?!\d)/); // Ensure we don't partial match longer numbers
         if (horiYenMatch) {
           const jpyValue = parseFloat(horiYenMatch[1]);
-          const euroValue = (jpyValue * 0.00577).toFixed(2);
+          const euroValue = (jpyValue * 0.0065).toFixed(2);
           return `€${euroValue}`;
         }
         
@@ -1225,7 +1238,7 @@ class CrawlerService {
         const horiNumMatch = cleaned.match(/(\d{1,3}(?:,\d{3})+|\d+)/);
         if (horiNumMatch) {
           const jpyValue = parseFloat(horiNumMatch[1].replace(/,/g, ''));
-          const euroValue = (jpyValue * 0.00577).toFixed(2);
+          const euroValue = (jpyValue * 0.0065).toFixed(2);
           return `€${euroValue}`;
         }
         break;
@@ -1719,67 +1732,6 @@ class CrawlerService {
               });
             }
           });
-        }
-      }
-
-      // Method 4: Create standard Poppatea variants if none found
-      if (variants.length === 0) {
-        this.logger.info('No variants found, creating standard Poppatea variants', { productUrl });
-        
-        // Extract base price from the page
-        const priceElements = $('.price, .price__regular, .product-price');
-        let basePrice = 0;
-        let basePriceText = '';
-        
-        for (let i = 0; i < priceElements.length; i++) {
-          const priceText = $(priceElements[i]).text().trim();
-          const cleanedPrice = this.cleanPriceBySite(priceText, 'poppatea');
-          const priceValue = this.extractPriceValue(cleanedPrice);
-          
-          if (priceValue > 0) {
-            basePrice = priceValue;
-            basePriceText = cleanedPrice;
-            break;
-          }
-        }
-        
-        // Common Poppatea variants based on their standard product structure
-        const standardVariants = [
-          { size: '50g Dose', portions: '50 Portionen', multiplier: 1.0 },
-          { size: '50g Nachfüllbeutel', portions: '50 Portionen', multiplier: 0.8 },
-          { size: '2x 50g Nachfüllbeutel', portions: '100 Portionen', multiplier: 1.5 }
-        ];
-        
-        // If we have a base price, create variants with estimated prices
-        if (basePrice > 0) {
-          for (const variant of standardVariants) {
-            const variantName = `${baseName} - ${variant.size} (${variant.portions})`;
-            const variantPrice = basePrice * variant.multiplier;
-            const variantPriceText = `€${variantPrice.toFixed(2).replace('.', ',')}`;
-            const variantId = this.generateProductId(productUrl, variantName, 'poppatea');
-            
-            variants.push({
-              id: variantId,
-              name: variantName,
-              normalizedName: this.normalizeName(variantName),
-              site: 'poppatea',
-              siteName: config.name,
-              price: variantPriceText,
-              originalPrice: variantPriceText,
-              priceValue: variantPrice,
-              currency: 'EUR',
-              url: productUrl,
-              imageUrl: processedMainImageUrl,
-              isInStock: true, // Default to true when creating estimates
-              category: this.detectCategory(baseName, 'poppatea'),
-              lastChecked: new Date(),
-              lastUpdated: new Date(),
-              firstSeen: new Date(),
-              isDiscontinued: false,
-              missedScans: 0,
-              crawlSource: 'cloud-run'
-            });
-          }
         }
       }
 

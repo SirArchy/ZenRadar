@@ -24,8 +24,8 @@ class HoriishichimeienSpecializedCrawler {
       }
     };
     
-    // JPY to EUR exchange rate
-    this.jpyToEurRate = 0.0058;
+    // JPY to EUR exchange rate (consistent with main crawler service)
+    this.jpyToEurRate = 0.00577;
   }
 
   async crawl(categoryUrl, config) {

@@ -758,7 +758,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                       // Clear stock filter and favorites filter, keep other filters intact
                       setState(() {
                         _filter = _filter.copyWith(
-                          inStock: null,
+                          clearInStock: true,
                           favoritesOnly: false,
                         );
                         _currentPage = 1;
@@ -836,6 +836,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                       setState(() {
                         _filter = _filter.copyWith(
                           inStock: isSelected ? true : null,
+                          clearInStock: !isSelected,
                           // When stock filter is selected, clear favorites filter
                           favoritesOnly:
                               isSelected ? false : _filter.favoritesOnly,
@@ -876,6 +877,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                       setState(() {
                         _filter = _filter.copyWith(
                           inStock: isSelected ? false : null,
+                          clearInStock: !isSelected,
                           // When stock filter is selected, clear favorites filter
                           favoritesOnly:
                               isSelected ? false : _filter.favoritesOnly,

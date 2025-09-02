@@ -116,13 +116,17 @@ class BackendService {
   /// Initialize FCM and register token with backend
   Future<void> initializeFCM() async {
     try {
+      if (kDebugMode) {
+        print('🚀 Backend: Initializing FCM service...');
+      }
+
       await FirebaseMessagingService.instance.initialize();
 
-      // Update subscriptions for existing favorites
+      // Update subscriptions for existing favorites (happens in background)
       await FirebaseMessagingService.instance.updateFavoriteSubscriptions();
 
       if (kDebugMode) {
-        print('✅ Backend: FCM initialized and subscriptions updated');
+        print('✅ Backend: FCM initialized and subscriptions started');
       }
     } catch (e) {
       if (kDebugMode) {

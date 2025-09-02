@@ -11,7 +11,6 @@ import 'services/firestore_service.dart';
 import 'services/theme_service.dart';
 import 'services/battery_optimization_service.dart';
 import 'services/favorite_notification_service.dart';
-import 'services/firebase_messaging_service.dart';
 import 'screens/app_initializer.dart';
 
 void main() async {
@@ -38,7 +37,6 @@ void main() async {
   // Initialize services
   await DatabaseService.platformService.initDatabase();
   await ThemeService.instance.init();
-  await BackendService.instance.initializeFCM();
 
   // Only initialize mobile-specific services on mobile platforms
   if (!kIsWeb) {
@@ -53,11 +51,13 @@ void main() async {
     // Initialize background service (server mode only)
     await BackgroundServiceController.initializeService();
 
-    // Initialize favorite product notification monitoring
-    await FavoriteNotificationService.instance.initializeService();
+    // Initialize FCM and favorite notification services
+    // FCM initialization includes favorite subscriptions, so we do it first
+    await BackendService.instance.initializeFCM();
 
-    // Initialize Firebase Cloud Messaging for push notifications
-    await FirebaseMessagingService.instance.initialize();
+    // Initialize favorite product notification monitoring
+    // This will not re-subscribe to FCM topics since FCM is already initialized
+    await FavoriteNotificationService.instance.initializeService();
 
     // Request basic permissions (mobile only) - notification permission excluded
     // as it will be requested during onboarding when user explicitly opts in

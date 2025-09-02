@@ -32,6 +32,14 @@ class FirebaseMessagingService {
       return;
     }
 
+    // Prevent duplicate initialization
+    if (_isInitialized) {
+      if (kDebugMode) {
+        print('🔔 FCM: Already initialized, skipping');
+      }
+      return;
+    }
+
     try {
       _messaging = FirebaseMessaging.instance;
 
@@ -307,9 +315,8 @@ class FirebaseMessagingService {
 
     try {
       await _messaging!.subscribeToTopic(topic);
-      if (kDebugMode) {
-        print('✅ FCM: Subscribed to topic: $topic');
-      }
+      // Reduce logging verbosity for individual subscriptions
+      // Only log in verbose debug mode or for important topics
     } catch (e) {
       if (kDebugMode) {
         print('❌ FCM: Failed to subscribe to topic $topic: $e');
@@ -351,20 +358,24 @@ class FirebaseMessagingService {
       final favoriteIds =
           await DatabaseService.platformService.getFavoriteProductIds();
 
-      // Subscribe to notifications for each favorite product
-      for (final productId in favoriteIds) {
-        await subscribeToProduct(productId);
+      if (kDebugMode) {
+        print(
+          '🔔 FCM: Starting subscription update for ${favoriteIds.length} favorite products',
+        );
       }
+
+      // Subscribe to notifications for favorite products in background
+      // Don't await this to avoid blocking the UI
+      _subscribeToFavoritesInBackground(favoriteIds);
 
       // Also register/update the token on the server when favorites change
       if (_fcmToken != null) {
-        await _sendTokenToServer(_fcmToken!);
+        // Don't await this either to avoid blocking
+        _sendTokenToServer(_fcmToken!);
       }
 
       if (kDebugMode) {
-        print(
-          '✅ FCM: Updated subscriptions for ${favoriteIds.length} favorite products',
-        );
+        print('✅ FCM: Subscription update initiated (running in background)');
       }
     } catch (e) {
       if (kDebugMode) {
@@ -373,7 +384,49 @@ class FirebaseMessagingService {
     }
   }
 
+  /// Subscribe to favorite products in background to avoid blocking UI
+  Future<void> _subscribeToFavoritesInBackground(
+    List<String> favoriteIds,
+  ) async {
+    try {
+      // Process subscriptions in batches to reduce load
+      const batchSize = 10;
+      for (int i = 0; i < favoriteIds.length; i += batchSize) {
+        final batch = favoriteIds.skip(i).take(batchSize).toList();
+
+        // Process this batch in parallel
+        await Future.wait(
+          batch.map((productId) => subscribeToProduct(productId)),
+          eagerError: false, // Continue even if some subscriptions fail
+        );
+
+        if (kDebugMode) {
+          final processed = i + batch.length;
+          print(
+            '✅ FCM: Processed batch ${(i ~/ batchSize) + 1} - ${batch.length} subscriptions (${processed}/${favoriteIds.length})',
+          );
+        }
+
+        // Small delay between batches to prevent overwhelming the system
+        if (i + batchSize < favoriteIds.length) {
+          await Future.delayed(const Duration(milliseconds: 100));
+        }
+      }
+
+      if (kDebugMode) {
+        print(
+          '✅ FCM: All ${favoriteIds.length} favorite product subscriptions completed',
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ FCM: Error during background subscription: $e');
+      }
+    }
+  }
+
   /// Call this method when a user adds/removes a favorite
+  /// This handles immediate subscription/unsubscription for responsive UI
   Future<void> onFavoriteChanged(String productId, bool isFavorite) async {
     if (!_isInitialized) return;
 
@@ -398,6 +451,13 @@ class FirebaseMessagingService {
         );
       }
     }
+  }
+
+  /// Quick favorite subscription update (for immediate UI response)
+  /// Use this when user favorites/unfavorites a product for instant feedback
+  Future<void> updateSingleFavorite(String productId, bool isFavorite) async {
+    // Don't await this to keep UI responsive
+    onFavoriteChanged(productId, isFavorite);
   }
 
   /// Get current FCM token
