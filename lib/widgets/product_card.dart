@@ -411,10 +411,7 @@ class _ProductCardState extends State<ProductCard> {
                                         CategoryIcon(
                                           category: widget.product.category,
                                           size: 16,
-                                          color:
-                                              Theme.of(
-                                                context,
-                                              ).colorScheme.onPrimaryContainer,
+                                          // Remove color to show full colored icon instead of outline
                                         ),
                                         const SizedBox(width: 4),
                                         Text(

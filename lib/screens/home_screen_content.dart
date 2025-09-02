@@ -7,11 +7,13 @@ import '../services/database_service.dart';
 import '../services/search_history_service.dart';
 import '../services/recommendation_service.dart';
 import '../services/backend_service.dart';
+import '../services/settings_service.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_filters.dart';
 import '../widgets/mobile_filter_modal.dart';
 import '../widgets/matcha_icon.dart';
 import '../widgets/skeleton_loading.dart';
+import '../widgets/swipe_tutorial_overlay.dart';
 import 'product_detail_page.dart';
 
 class HomeScreenContent extends StatefulWidget {
@@ -73,6 +75,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
   // Collapsible filter section state
   bool _isFilterSectionExpanded = true;
+
+  // Tutorial state
+  bool _showTutorialOverlay = false;
 
   // Public method to refresh products (can be called from parent)
   void refreshProducts() {
@@ -171,6 +176,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     _loadFilterOptions();
     _restoreFilterAndLoadProducts();
     _loadSearchEnhancements();
+    _checkTutorialStatus();
   }
 
   Future<void> _loadSearchEnhancements() async {
@@ -178,6 +184,37 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     _loadRecentSearches();
     // Load recommendations
     _loadRecommendations();
+  }
+
+  Future<void> _checkTutorialStatus() async {
+    try {
+      final hasSeenTutorial =
+          await SettingsService.instance.hasSeenHomeScreenTutorial();
+      if (!hasSeenTutorial && mounted) {
+        // Wait a bit for the UI to settle, then show tutorial
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          if (mounted) {
+            setState(() {
+              _showTutorialOverlay = true;
+            });
+          }
+        });
+      }
+    } catch (e) {
+      print('Error checking tutorial status: $e');
+    }
+  }
+
+  void _dismissTutorial() async {
+    setState(() {
+      _showTutorialOverlay = false;
+    });
+
+    try {
+      await SettingsService.instance.markHomeScreenTutorialSeen();
+    } catch (e) {
+      print('Error marking tutorial as seen: $e');
+    }
   }
 
   Future<void> _loadRecentSearches() async {
@@ -545,6 +582,12 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                 child: _buildSearchSuggestions(),
               ),
             ),
+          ),
+
+        // Tutorial overlay
+        if (_showTutorialOverlay)
+          Positioned.fill(
+            child: SwipeTutorialOverlay(onDismiss: _dismissTutorial),
           ),
       ],
     );

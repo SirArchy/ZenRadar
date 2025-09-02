@@ -349,6 +349,8 @@ class UserSettings {
   final bool
   backgroundScanFavoritesOnly; // New setting for background scan mode
   final bool hasCompletedOnboarding; // Track if user has completed onboarding
+  final bool
+  hasSeenHomeScreenTutorial; // Track if user has seen the swipe tutorial
   final String?
   fcmToken; // Firebase Cloud Messaging token for push notifications
   // Note: App now runs exclusively in server mode - no local mode support
@@ -380,6 +382,7 @@ class UserSettings {
     this.preferredCurrency = "EUR",
     this.backgroundScanFavoritesOnly = false, // Default: scan all products
     this.hasCompletedOnboarding = false, // Default: new user needs onboarding
+    this.hasSeenHomeScreenTutorial = false, // Default: new user needs tutorial
     this.fcmToken, // Firebase Cloud Messaging token
   });
 
@@ -419,6 +422,7 @@ class UserSettings {
       preferredCurrency: json['preferredCurrency'] ?? "EUR",
       backgroundScanFavoritesOnly: json['backgroundScanFavoritesOnly'] ?? false,
       hasCompletedOnboarding: json['hasCompletedOnboarding'] ?? false,
+      hasSeenHomeScreenTutorial: json['hasSeenHomeScreenTutorial'] ?? false,
       fcmToken: json['fcmToken'], // Firebase Cloud Messaging token
       // Note: appMode is no longer supported - app runs exclusively in server mode
     );
@@ -441,6 +445,7 @@ class UserSettings {
       'preferredCurrency': preferredCurrency,
       'backgroundScanFavoritesOnly': backgroundScanFavoritesOnly,
       'hasCompletedOnboarding': hasCompletedOnboarding,
+      'hasSeenHomeScreenTutorial': hasSeenHomeScreenTutorial,
       'fcmToken': fcmToken, // Firebase Cloud Messaging token
       // Note: appMode is no longer saved - app runs exclusively in server mode
     };
@@ -462,6 +467,7 @@ class UserSettings {
     String? preferredCurrency,
     bool? backgroundScanFavoritesOnly,
     bool? hasCompletedOnboarding,
+    bool? hasSeenHomeScreenTutorial,
     String? fcmToken, // Firebase Cloud Messaging token
   }) {
     return UserSettings(
@@ -484,6 +490,8 @@ class UserSettings {
           backgroundScanFavoritesOnly ?? this.backgroundScanFavoritesOnly,
       hasCompletedOnboarding:
           hasCompletedOnboarding ?? this.hasCompletedOnboarding,
+      hasSeenHomeScreenTutorial:
+          hasSeenHomeScreenTutorial ?? this.hasSeenHomeScreenTutorial,
       fcmToken: fcmToken ?? this.fcmToken, // Firebase Cloud Messaging token
     );
   }

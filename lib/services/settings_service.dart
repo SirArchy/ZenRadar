@@ -197,4 +197,22 @@ class SettingsService {
       (settings) => settings.copyWith(hasCompletedOnboarding: false),
     );
   }
+
+  // Convenience methods for home screen tutorial tracking
+  Future<bool> hasSeenHomeScreenTutorial() async {
+    final settings = await getSettings();
+    return settings.hasSeenHomeScreenTutorial;
+  }
+
+  Future<void> markHomeScreenTutorialSeen() async {
+    await updateSettings(
+      (settings) => settings.copyWith(hasSeenHomeScreenTutorial: true),
+    );
+  }
+
+  Future<void> resetHomeScreenTutorial() async {
+    await updateSettings(
+      (settings) => settings.copyWith(hasSeenHomeScreenTutorial: false),
+    );
+  }
 }

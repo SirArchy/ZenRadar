@@ -403,7 +403,7 @@ class FirebaseMessagingService {
         if (kDebugMode) {
           final processed = i + batch.length;
           print(
-            '✅ FCM: Processed batch ${(i ~/ batchSize) + 1} - ${batch.length} subscriptions (${processed}/${favoriteIds.length})',
+            '✅ FCM: Processed batch ${(i ~/ batchSize) + 1} - ${batch.length} subscriptions ($processed/${favoriteIds.length})',
           );
         }
 
