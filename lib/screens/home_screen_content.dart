@@ -85,6 +85,10 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   // Tutorial state
   bool _showTutorialOverlay = false;
 
+  // Subscription state
+  bool _isPremium = false;
+  SubscriptionTier _currentTier = SubscriptionTier.free;
+
   // Public method to refresh products (can be called from parent)
   void refreshProducts() {
     _loadProducts();
@@ -163,6 +167,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     // Register this instance
     HomeScreenContent._currentInstance = this;
 
+    // Listen to subscription service changes
+    SubscriptionService.instance.addListener(_onSubscriptionChanged);
+
     // Set up focus listener for smart search history
     _searchFocusNode.addListener(() {
       if (_searchFocusNode.hasFocus) {
@@ -187,6 +194,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     // Load settings first (usually cached)
     await _loadSettings();
 
+    // Load subscription status
+    await _loadSubscriptionStatus();
+
     // Start loading products immediately with cached filter
     _restoreFilterAndLoadProducts();
 
@@ -197,6 +207,17 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       _loadSearchEnhancements();
       _checkTutorialStatus();
     });
+  }
+
+  /// Handle subscription service changes (debug mode toggle)
+  void _onSubscriptionChanged() {
+    if (mounted) {
+      // Reload subscription status and filters
+      _loadSubscriptionStatus().then((_) {
+        // Reload products to apply new filtering
+        _loadProducts();
+      });
+    }
   }
 
   Future<void> _loadSearchEnhancements() async {
@@ -234,6 +255,30 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       await SettingsService.instance.markHomeScreenTutorialSeen();
     } catch (e) {
       print('Error marking tutorial as seen: $e');
+    }
+  }
+
+  Future<void> _loadSubscriptionStatus() async {
+    try {
+      final isPremium = await SubscriptionService.instance.isPremiumUser();
+      final tier = await SubscriptionService.instance.getCurrentTier();
+
+      setState(() {
+        _isPremium = isPremium;
+        _currentTier = tier;
+      });
+    } catch (e) {
+      print('Error loading subscription status: $e');
+    }
+  }
+
+  Future<int> _getFavoriteCount() async {
+    try {
+      final db = DatabaseService.platformService;
+      final favoriteProducts = await db.getFavoriteProducts();
+      return favoriteProducts.length;
+    } catch (e) {
+      return 0;
     }
   }
 
@@ -325,6 +370,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       HomeScreenContent._currentInstance = null;
     }
 
+    // Remove subscription service listener
+    SubscriptionService.instance.removeListener(_onSubscriptionChanged);
+
     _searchController.dispose();
     _searchFocusNode.dispose();
     _scrollController.dispose();
@@ -334,9 +382,16 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   Future<void> _loadSettings() async {
     try {
       final settings = await SettingsService.instance.getSettings();
+      final oldCurrency = _preferredCurrency;
+
       setState(() {
         _preferredCurrency = settings.preferredCurrency;
       });
+
+      // Refresh filter options if currency changed (to update price range)
+      if (oldCurrency != settings.preferredCurrency) {
+        await _loadFilterOptions();
+      }
     } catch (e) {
       print('Error loading settings: $e');
     }
@@ -468,7 +523,8 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         setState(() {
           _availableSites = ['All', ...availableSites];
           _availableCategories = categories;
-          _priceRange = priceRange;
+          // Convert price range to user's preferred currency
+          _priceRange = _convertPriceRangeToUserCurrency(priceRange);
         });
       }
     } catch (e) {
@@ -478,10 +534,46 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         setState(() {
           _availableSites = ['All'];
           _availableCategories = [];
-          _priceRange = {'min': 0.0, 'max': 1000.0};
+          _priceRange = _convertPriceRangeToUserCurrency({
+            'min': 0.0,
+            'max': 1000.0,
+          });
         });
       }
     }
+  }
+
+  /// Convert price range from EUR to user's preferred currency
+  Map<String, double> _convertPriceRangeToUserCurrency(
+    Map<String, double> priceRange,
+  ) {
+    final minPrice = priceRange['min'] ?? 0.0;
+    final maxPrice = priceRange['max'] ?? 1000.0;
+
+    // Apply currency conversion multipliers (FROM EUR TO user currency)
+    double minConverted = minPrice;
+    double maxConverted = maxPrice;
+
+    switch (_preferredCurrency) {
+      case 'JPY':
+        minConverted = minPrice * 149; // EUR to JPY (1 EUR = ~149 JPY)
+        maxConverted = maxPrice * 149;
+        break;
+      case 'USD':
+        minConverted = minPrice * 1.08; // EUR to USD (1 EUR = ~1.08 USD)
+        maxConverted = maxPrice * 1.08;
+        break;
+      case 'CAD':
+        minConverted = minPrice * 1.48; // EUR to CAD (1 EUR = ~1.48 CAD)
+        maxConverted = maxPrice * 1.48;
+        break;
+      case 'EUR':
+      default:
+        // No conversion needed for EUR
+        break;
+    }
+
+    return {'min': minConverted, 'max': maxConverted};
   }
 
   Future<void> _loadProducts({bool loadMore = false}) async {
@@ -499,10 +591,54 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     }
 
     try {
+      // Apply free mode site restrictions for non-premium users
+      ProductFilter effectiveFilter = _filter;
+
+      if (!_isPremium) {
+        // In free mode, always restrict to allowed sites
+        final freeSites = SubscriptionTierExtension.freeEnabledSites;
+        final siteNameToKey = <String, String>{
+          'Ippodo Tea': 'ippodo',
+          'Marukyu-Koyamaen': 'marukyu',
+          'Nakamura Tokichi': 'tokichi',
+          'Matcha Kāru': 'matcha-karu',
+          'Yoshi En': 'yoshien',
+        };
+
+        // Get the display names for free sites
+        final allowedSiteNames =
+            siteNameToKey.entries
+                .where((entry) => freeSites.contains(entry.value))
+                .map((entry) => entry.key)
+                .toList();
+
+        // Always restrict to allowed sites for free users, regardless of filter state
+        List<String> restrictedSites;
+        if (effectiveFilter.sites?.isNotEmpty == true &&
+            !effectiveFilter.sites!.contains('All')) {
+          // If user has selected specific sites, filter them to only allowed sites
+          restrictedSites =
+              effectiveFilter.sites!
+                  .where((site) => allowedSiteNames.contains(site))
+                  .toList();
+        } else {
+          // If no sites selected or "All" is selected, show only allowed sites
+          restrictedSites = allowedSiteNames;
+        }
+
+        effectiveFilter = effectiveFilter.copyWith(sites: restrictedSites);
+
+        if (kDebugMode) {
+          print('🆓 Free mode: Restricting to sites: $restrictedSites');
+          print('🆓 Original filter sites: ${_filter.sites}');
+          print('🆓 Effective filter sites: ${effectiveFilter.sites}');
+        }
+      }
+
       final result = await DatabaseService.platformService.getProductsPaginated(
         page: _currentPage,
         itemsPerPage: 20,
-        filter: _filter,
+        filter: effectiveFilter,
       );
 
       setState(() {
@@ -772,63 +908,69 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   Widget _buildCollapsibleFilterSection() {
     return Column(
       children: [
-        // Header with toggle button
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              Icon(
-                Icons.tune,
-                size: 20,
-                color: Theme.of(context).colorScheme.onSurface.withAlpha(179),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Filters & Sort',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
+        // Header with toggle button - make entire row clickable
+        InkWell(
+          onTap: () {
+            setState(() {
+              _isFilterSectionExpanded = !_isFilterSectionExpanded;
+            });
+          },
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.tune,
+                  size: 20,
                   color: Theme.of(context).colorScheme.onSurface.withAlpha(179),
                 ),
-              ),
-              const Spacer(),
-              if (_getActiveFilterCount() > 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
+                const SizedBox(width: 8),
+                Text(
+                  'Filters & Sort',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withAlpha(179),
                   ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withAlpha(51),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${_getActiveFilterCount()} active',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w500,
+                ),
+                const Spacer(),
+                if (_getActiveFilterCount() > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withAlpha(51),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${_getActiveFilterCount()} active',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: () {
-                  setState(() {
-                    _isFilterSectionExpanded = !_isFilterSectionExpanded;
-                  });
-                },
-                icon: AnimatedRotation(
+                const SizedBox(width: 8),
+                AnimatedRotation(
                   turns: _isFilterSectionExpanded ? 0.5 : 0,
                   duration: const Duration(milliseconds: 200),
-                  child: const Icon(Icons.expand_more),
+                  child: Icon(
+                    Icons.expand_more,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withAlpha(179),
+                  ),
                 ),
-                tooltip:
-                    _isFilterSectionExpanded
-                        ? 'Collapse filters'
-                        : 'Expand filters',
-              ),
-            ],
+              ],
+            ),
           ),
         ),
 
@@ -908,43 +1050,90 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                             : Colors.green,
                   ),
                   const SizedBox(width: 8),
-                  FilterChip(
-                    label: Text(
-                      'Favorites',
-                      style: TextStyle(
-                        fontSize: isSmallScreen ? 12 : 14,
-                        color:
+                  FutureBuilder<int>(
+                    future: _getFavoriteCount(),
+                    builder: (context, snapshot) {
+                      final favoriteCount = snapshot.data ?? 0;
+                      final showCounter = !_isPremium && favoriteCount > 0;
+
+                      return FilterChip(
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.favorite, size: 16),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Favorites',
+                              style: TextStyle(
+                                fontSize: isSmallScreen ? 12 : 14,
+                                color:
+                                    Theme.of(context).brightness ==
+                                            Brightness.light
+                                        ? Colors.black87
+                                        : Colors.white,
+                              ),
+                            ),
+                            if (showCounter) ...[
+                              const SizedBox(width: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      _filter.favoritesOnly
+                                          ? Colors.white.withAlpha(75)
+                                          : Theme.of(
+                                            context,
+                                          ).colorScheme.primary.withAlpha(50),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  '$favoriteCount/${_currentTier.maxFavorites}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        _filter.favoritesOnly
+                                            ? Colors.white
+                                            : Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isSmallScreen ? 6 : 8,
+                          vertical: isSmallScreen ? 2 : 4,
+                        ),
+                        selected: _filter.favoritesOnly,
+                        onSelected: (isSelected) async {
+                          setState(() {
+                            _filter = _filter.copyWith(
+                              favoritesOnly: isSelected,
+                              // When favorites is selected, clear inStock filter to show both in/out of stock favorites
+                              inStock: isSelected ? null : _filter.inStock,
+                            );
+                            _currentPage = 1;
+                            _hasMoreProducts = true;
+                          });
+                          await _saveFilterToPrefs(_filter);
+                          _loadProducts();
+                        },
+                        selectedColor:
                             Theme.of(context).brightness == Brightness.light
-                                ? Colors.black87
-                                : Colors.white,
-                      ),
-                    ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isSmallScreen ? 6 : 8,
-                      vertical: isSmallScreen ? 2 : 4,
-                    ),
-                    selected: _filter.favoritesOnly,
-                    onSelected: (isSelected) async {
-                      setState(() {
-                        _filter = _filter.copyWith(
-                          favoritesOnly: isSelected,
-                          // When favorites is selected, clear inStock filter to show both in/out of stock favorites
-                          inStock: isSelected ? null : _filter.inStock,
-                        );
-                        _currentPage = 1;
-                        _hasMoreProducts = true;
-                      });
-                      await _saveFilterToPrefs(_filter);
-                      _loadProducts();
+                                ? Colors.pink.shade50
+                                : Colors.pink.withAlpha((0.2 * 255).toInt()),
+                        checkmarkColor:
+                            Theme.of(context).brightness == Brightness.light
+                                ? Colors.pink.shade600
+                                : Colors.pink,
+                      );
                     },
-                    selectedColor:
-                        Theme.of(context).brightness == Brightness.light
-                            ? Colors.pink.shade50
-                            : Colors.pink.withAlpha((0.2 * 255).toInt()),
-                    checkmarkColor:
-                        Theme.of(context).brightness == Brightness.light
-                            ? Colors.pink.shade600
-                            : Colors.pink,
                   ),
                   const SizedBox(width: 8),
                   FilterChip(

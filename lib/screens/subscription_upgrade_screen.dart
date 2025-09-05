@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/matcha_product.dart';
 import '../services/subscription_service.dart';
+import '../services/payment_service.dart';
 
 class SubscriptionUpgradeScreen extends StatefulWidget {
   final FavoriteValidationResult? validationResult;
@@ -73,13 +74,15 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Upgrade to Premium'),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.black87,
+        foregroundColor: isDark ? Colors.white : Colors.black87,
       ),
       body: FadeTransition(
         opacity: _fadeAnimation,
@@ -117,6 +120,8 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
   }
 
   Widget _buildHeader() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -124,17 +129,29 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Colors.amber.shade100, Colors.orange.shade100],
+          colors:
+              isDark
+                  ? [
+                    Colors.amber.shade800.withAlpha(75),
+                    Colors.orange.shade800.withAlpha(75),
+                  ]
+                  : [Colors.amber.shade100, Colors.orange.shade100],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.amber.shade200),
+        border: Border.all(
+          color: isDark ? Colors.amber.shade700 : Colors.amber.shade200,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.star, color: Colors.amber.shade700, size: 32),
+              Icon(
+                Icons.star,
+                color: isDark ? Colors.amber.shade300 : Colors.amber.shade700,
+                size: 32,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -142,7 +159,8 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.amber.shade900,
+                    color:
+                        isDark ? Colors.amber.shade200 : Colors.amber.shade900,
                   ),
                 ),
               ),
@@ -153,7 +171,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
             'Get unlimited access to all matcha vendors, faster notifications, and comprehensive analytics.',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey.shade700,
+              color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
               height: 1.4,
             ),
           ),
@@ -164,18 +182,28 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
 
   Widget _buildLimitReachedCard() {
     final result = widget.validationResult!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.orange.shade50,
+        color:
+            isDark
+                ? Colors.orange.shade900.withAlpha(75)
+                : Colors.orange.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange.shade200),
+        border: Border.all(
+          color: isDark ? Colors.orange.shade700 : Colors.orange.shade200,
+        ),
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: Colors.orange.shade700, size: 24),
+          Icon(
+            Icons.info_outline,
+            color: isDark ? Colors.orange.shade400 : Colors.orange.shade700,
+            size: 24,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -185,13 +213,22 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
                   'Limit Reached',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: Colors.orange.shade800,
+                    color:
+                        isDark
+                            ? Colors.orange.shade300
+                            : Colors.orange.shade800,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   result.message,
-                  style: TextStyle(color: Colors.orange.shade700, fontSize: 13),
+                  style: TextStyle(
+                    color:
+                        isDark
+                            ? Colors.orange.shade400
+                            : Colors.orange.shade700,
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),
@@ -226,14 +263,23 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
         isFreeTier
             ? _currentTier == SubscriptionTier.free
             : _currentTier == SubscriptionTier.premium;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isFreeTier ? Colors.grey.shade50 : Colors.amber.shade50,
+        color:
+            isFreeTier
+                ? (isDark ? Colors.grey.shade800 : Colors.grey.shade50)
+                : (isDark
+                    ? Colors.amber.shade900.withAlpha(75)
+                    : Colors.amber.shade50),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isFreeTier ? Colors.grey.shade300 : Colors.amber.shade300,
+          color:
+              isFreeTier
+                  ? (isDark ? Colors.grey.shade600 : Colors.grey.shade300)
+                  : (isDark ? Colors.amber.shade600 : Colors.amber.shade300),
           width: isCurrentTier ? 2 : 1,
         ),
       ),
@@ -669,24 +715,35 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
     setState(() => _isLoading = true);
 
     try {
-      // Show coming soon message for now
+      // Import the payment service
+      final PaymentService paymentService = PaymentService.instance;
+
+      // Start premium upgrade flow (defaults to monthly)
+      await paymentService.startPremiumUpgrade(
+        plan: 'monthly', // You can add UI to let users choose monthly vs yearly
+        successUrl: 'https://your-app.com/success',
+        cancelUrl: 'https://your-app.com/cancel',
+      );
+
+      // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Premium upgrade coming soon! 🚀'),
-            backgroundColor: Colors.blue,
-            duration: Duration(seconds: 3),
+            content: Text('Redirecting to secure checkout... 🚀'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
           ),
         );
       }
-
-      // TODO: Implement actual payment processing
-      // For now, just show a placeholder
-      await Future.delayed(const Duration(seconds: 1));
     } catch (e) {
+      debugPrint('Error starting upgrade: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 4),
+          ),
         );
       }
     } finally {

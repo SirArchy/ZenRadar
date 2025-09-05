@@ -44,10 +44,18 @@ class _ProductFiltersState extends State<ProductFilters> {
   void initState() {
     super.initState();
     _currentFilter = widget.filter;
+
+    // Ensure price range values are within bounds
+    final minPrice = widget.priceRange['min']!;
+    final maxPrice = widget.priceRange['max']!;
+    final currentMin = _currentFilter.minPrice ?? minPrice;
+    final currentMax = _currentFilter.maxPrice ?? maxPrice;
+
     _priceRangeValues = RangeValues(
-      _currentFilter.minPrice ?? widget.priceRange['min']!,
-      _currentFilter.maxPrice ?? widget.priceRange['max']!,
+      currentMin.clamp(minPrice, maxPrice),
+      currentMax.clamp(minPrice, maxPrice),
     );
+
     // Auto-expand if sites are already selected
     _isSiteFilterExpanded = _currentFilter.sites?.isNotEmpty ?? false;
     _isCategoryFilterExpanded = _currentFilter.categories?.isNotEmpty ?? false;
@@ -60,6 +68,32 @@ class _ProductFiltersState extends State<ProductFilters> {
       _preferredCurrency = settings.preferredCurrency;
       _priceConverter = ProductPriceConverter();
     });
+  }
+
+  @override
+  void didUpdateWidget(ProductFilters oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Update filter if it changed
+    if (widget.filter != oldWidget.filter) {
+      _currentFilter = widget.filter;
+    }
+
+    // Update price range if the available range changed or filter changed
+    if (widget.priceRange != oldWidget.priceRange ||
+        widget.filter != oldWidget.filter) {
+      final minPrice = widget.priceRange['min']!;
+      final maxPrice = widget.priceRange['max']!;
+      final currentMin = _currentFilter.minPrice ?? minPrice;
+      final currentMax = _currentFilter.maxPrice ?? maxPrice;
+
+      setState(() {
+        _priceRangeValues = RangeValues(
+          currentMin.clamp(minPrice, maxPrice),
+          currentMax.clamp(minPrice, maxPrice),
+        );
+      });
+    }
   }
 
   @override
@@ -737,15 +771,26 @@ class _ProductFiltersState extends State<ProductFilters> {
       return '€${price.toStringAsFixed(2)}'; // Default to EUR
     }
 
+    // For now, just format without conversion until we can implement async conversion
+    // The price values in the slider are already in EUR from the backend
     final symbol = _priceConverter!.getCurrencySymbol(_preferredCurrency);
 
+    // Apply a simple conversion multiplier for display purposes
+    double displayPrice = price;
     switch (_preferredCurrency) {
       case 'JPY':
-        return '$symbol${price.round()}'; // Yen doesn't use decimals
+        displayPrice = price * 130; // Approximate EUR to JPY
+        return '$symbol${displayPrice.round()}'; // Yen doesn't use decimals
+      case 'USD':
+        displayPrice = price * 1.1; // Approximate EUR to USD
+        return '$symbol${displayPrice.toStringAsFixed(2)}';
+      case 'CAD':
+        displayPrice = price * 1.5; // Approximate EUR to CAD
+        return '$symbol${displayPrice.toStringAsFixed(2)}';
       case 'EUR':
-        return '$symbol${price.toStringAsFixed(2).replaceAll('.', ',')}';
+        return '$symbol${displayPrice.toStringAsFixed(2).replaceAll('.', ',')}';
       default:
-        return '$symbol${price.toStringAsFixed(2)}';
+        return '$symbol${displayPrice.toStringAsFixed(2)}';
     }
   }
 

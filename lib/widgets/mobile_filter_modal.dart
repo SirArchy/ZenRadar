@@ -6,6 +6,7 @@ import '../models/matcha_product.dart';
 import '../services/settings_service.dart';
 import '../services/product_price_converter.dart';
 import '../services/database_service.dart';
+import '../services/subscription_service.dart';
 import 'dart:math' as math;
 
 class EnhancedPriceDistributionPainter extends CustomPainter {
@@ -171,18 +172,47 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
     });
 
     try {
+      // Check subscription status for free-tier restrictions
+      final subscriptionService = SubscriptionService.instance;
+      final isPremium = await subscriptionService.isPremiumUser();
+
       // Create a temporary filter without price constraints to get full price range
-      final tempFilter = _currentFilter.copyWith(
+      ProductFilter tempFilter = _currentFilter.copyWith(
         minPrice: null,
         maxPrice: null,
       );
+
+      // Apply free-tier site restrictions for non-premium users
+      if (!isPremium) {
+        const allowedSiteNames = [
+          'Ippodo Tea Co',
+          'Marukyu Koyamaen',
+          'Nakamura Tokichi',
+          'Matcha Karu',
+          'Yoshien',
+        ];
+
+        List<String> restrictedSites;
+        if (tempFilter.sites == null || tempFilter.sites!.isEmpty) {
+          // If no sites selected, use all allowed sites
+          restrictedSites = allowedSiteNames;
+        } else {
+          // Filter selected sites to only include allowed ones
+          restrictedSites =
+              tempFilter.sites!
+                  .where((site) => allowedSiteNames.contains(site))
+                  .toList();
+        }
+
+        tempFilter = tempFilter.copyWith(sites: restrictedSites);
+      }
 
       // Get filtered products for both count and price distribution calculation
       final filteredProductsResult = await DatabaseService.platformService
           .getProductsPaginated(
             page: 1,
             itemsPerPage: 10000, // Get all filtered products
-            filter: tempFilter, // Use filter without price constraints
+            filter: tempFilter, // Use filter with free-tier restrictions
           );
 
       double totalPrice = 0.0;
@@ -227,17 +257,25 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
         _isLoadingStatistics = false;
 
         // Update price range values if they're outside the new dynamic range
-        // Also ensure the range values are valid
-        final safeStart = math.max(_priceRangeValues.start, dynamicMin);
-        final safeEnd = math.min(_priceRangeValues.end, dynamicMax);
+        // Also ensure the range values are valid and within bounds
+        final currentStart = _priceRangeValues.start;
+        final currentEnd = _priceRangeValues.end;
 
-        if (_priceRangeValues.start < dynamicMin ||
-            _priceRangeValues.end > dynamicMax ||
-            safeStart > safeEnd) {
-          _priceRangeValues = RangeValues(
-            math.min(safeStart, safeEnd), // Ensure start <= end
-            math.max(safeStart, safeEnd), // Ensure start <= end
-          );
+        // Ensure the current range values are within the dynamic range bounds
+        final safeStart = currentStart.clamp(dynamicMin, dynamicMax);
+        final safeEnd = currentEnd.clamp(dynamicMin, dynamicMax);
+
+        // Ensure start <= end
+        final finalStart = math.min(safeStart, safeEnd);
+        final finalEnd = math.max(safeStart, safeEnd);
+
+        // Only update if values are actually invalid
+        if (currentStart < dynamicMin ||
+            currentStart > dynamicMax ||
+            currentEnd < dynamicMin ||
+            currentEnd > dynamicMax ||
+            currentStart > currentEnd) {
+          _priceRangeValues = RangeValues(finalStart, finalEnd);
         }
       });
 

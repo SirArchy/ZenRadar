@@ -42,7 +42,7 @@ class CrawlerService {
       'marukyu': {
         name: 'Marukyu-Koyamaen',
         baseUrl: 'https://www.marukyu-koyamaen.co.jp',
-        categoryUrl: 'https://www.marukyu-koyamaen.co.jp/english/shop/products/catalog/matcha?currency=USD',
+        categoryUrl: 'https://www.marukyu-koyamaen.co.jp/english/shop/products/catalog/matcha',
         productSelector: '.item, .product-item, .product',
         nameSelector: '.item-name, .product-name, .name, h3',
         priceSelector: '.price, .item-price, .cost',
@@ -50,7 +50,9 @@ class CrawlerService {
         linkSelector: 'a, .item-link',
         imageSelector: '.item-image img, .product-image img, img[src*="product"]',
         stockKeywords: ['add to cart', 'in stock', 'available'],
-        outOfStockKeywords: ['out of stock', 'sold out', 'unavailable']
+        outOfStockKeywords: ['out of stock', 'sold out', 'unavailable'],
+        currency: 'JPY',
+        currencySymbol: '¥'
       },
       'ippodo': {
         name: 'Ippodo Tea',
@@ -63,20 +65,24 @@ class CrawlerService {
         linkSelector: 'a[href*="/products/"]',
         imageSelector: '.m-product-card__image img, .product-card__media img',
         stockKeywords: ['add to cart', 'buy now', 'purchase'],
-        outOfStockKeywords: ['out of stock', 'sold out']
+        outOfStockKeywords: ['out of stock', 'sold out'],
+        currency: 'JPY',
+        currencySymbol: '¥'
       },
       'yoshien': {
         name: 'Yoshi En',
-        baseUrl: 'https://www.marukyu-koyamaen.co.jp',
-        categoryUrl: 'https://www.marukyu-koyamaen.co.jp/english/shop/products/catalog/matcha?currency=USD',
-        productSelector: '.product',
-        nameSelector: '.product-name, .item-name, h3',
-        priceSelector: '.price, .item-price, .cost',
-        stockSelector: '.cart-form button:not([disabled]), .add-to-cart:not(.disabled)',
-        linkSelector: 'a, .item-link',
-        imageSelector: '.product-image img, .item-image img, img[src*="product"]',
-        stockKeywords: ['add to cart', 'in stock', 'available'],
-        outOfStockKeywords: ['out of stock', 'sold out', 'unavailable']
+        baseUrl: 'https://www.yoshien.com',
+        categoryUrl: 'https://www.yoshien.com/matcha',
+        productSelector: '.cs-product-tile', // Use the article elements containing products
+        nameSelector: 'a.product-item-link', // Product name in link text
+        priceSelector: '.price', // Price elements with EUR amounts
+        stockSelector: '.price', // If price exists, product is in stock (Magento-style)
+        linkSelector: 'a.product-item-link', // Same as name selector
+        imageSelector: '.cs-product-tile__image img, .product-image-photo', // Product images
+        stockKeywords: ['€'], // If price is present, it's in stock
+        outOfStockKeywords: ['nicht verfügbar', 'ausverkauft', 'sold out'],
+        currency: 'EUR',
+        currencySymbol: '€'
       },
       'matcha-karu': {
         name: 'Matcha Kāru',
@@ -115,7 +121,9 @@ class CrawlerService {
         linkSelector: 'a[href*="/products/"]',
         imageSelector: 'img[src*="/content/products/"], .product-image-img, img[alt*="Matcha"]:not([alt*="Best"]):not([alt*="Selling"]):not([alt*="Specialty"]):not([alt*="Extra"])',
         stockKeywords: ['add to cart', 'in stock', 'available'],
-        outOfStockKeywords: ['out of stock', 'sold out', 'unavailable']
+        outOfStockKeywords: ['out of stock', 'sold out', 'unavailable'],
+        currency: 'USD',
+        currencySymbol: '$'
       },
       'enjoyemeri': {
         name: 'Emeri',
@@ -128,12 +136,14 @@ class CrawlerService {
         linkSelector: 'a',
         imageSelector: '.product-media__image, .product-card__image img',
         stockKeywords: ['add to cart', 'buy now', 'purchase'],
-        outOfStockKeywords: ['out of stock', 'sold out']
+        outOfStockKeywords: ['out of stock', 'sold out'],
+        currency: 'CAD',
+        currencySymbol: '$'
       },
       'poppatea': {
         name: 'Poppatea',
         baseUrl: 'https://poppatea.com',
-        categoryUrl: 'https://poppatea.com/collections/all',
+        categoryUrl: 'https://poppatea.com/de-de/collections/all-teas',
         productSelector: '.card, .product-card, .grid-item',
         nameSelector: 'h3, .card-title, [data-product-title], .product-title',
         priceSelector: '.price, .money',
@@ -141,7 +151,9 @@ class CrawlerService {
         linkSelector: 'a',
         imageSelector: 'img, .card-image img, .product-image img, img[src*="product"], img[src*="cdn/shop"]', // Updated to catch all images
         stockKeywords: ['add to cart', 'lägg i varukorg', 'köp'],
-        outOfStockKeywords: ['slutsåld', 'ej i lager', 'sold out', 'notify me']
+        outOfStockKeywords: ['slutsåld', 'ej i lager', 'sold out', 'notify me'],
+        currency: 'EUR',
+        currencySymbol: '€'
       },
       'horiishichimeien': {
         name: 'Horiishichimeien',

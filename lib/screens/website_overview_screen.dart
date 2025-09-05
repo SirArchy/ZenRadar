@@ -66,8 +66,25 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
         forceRefresh: false, // Use cache by default
       );
 
+      // Filter analytics for free users
+      List<WebsiteStockAnalytics> filteredAnalytics = analytics;
+      if (!_isPremium) {
+        // Only show analytics for free tier sites
+        final freeSites = [
+          'ippodo',
+          'marukyu',
+          'tokichi',
+          'matcha-karu',
+          'yoshien',
+        ];
+        filteredAnalytics =
+            analytics
+                .where((analytics) => freeSites.contains(analytics.siteKey))
+                .toList();
+      }
+
       setState(() {
-        _websiteAnalytics = analytics;
+        _websiteAnalytics = filteredAnalytics;
         _summary = summary;
         _isLoading = false;
       });
@@ -77,6 +94,23 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  /// Calculate stock percentage for free users based on filtered analytics
+  double _calculateFreeUserStockPercentage() {
+    if (_websiteAnalytics.isEmpty) return 0.0;
+
+    final totalProducts = _websiteAnalytics.fold<int>(
+      0,
+      (sum, analytics) => sum + analytics.totalProducts,
+    );
+    final productsInStock = _websiteAnalytics.fold<int>(
+      0,
+      (sum, analytics) => sum + analytics.productsInStock,
+    );
+
+    if (totalProducts == 0) return 0.0;
+    return (productsInStock / totalProducts) * 100;
   }
 
   Future<void> _forceRefreshAnalytics() async {
@@ -96,8 +130,25 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
         forceRefresh: true, // Force refresh
       );
 
+      // Filter analytics for free users
+      List<WebsiteStockAnalytics> filteredAnalytics = analytics;
+      if (!_isPremium) {
+        // Only show analytics for free tier sites
+        final freeSites = [
+          'ippodo',
+          'marukyu',
+          'tokichi',
+          'matcha-karu',
+          'yoshien',
+        ];
+        filteredAnalytics =
+            analytics
+                .where((analytics) => freeSites.contains(analytics.siteKey))
+                .toList();
+      }
+
       setState(() {
-        _websiteAnalytics = analytics;
+        _websiteAnalytics = filteredAnalytics;
         _summary = summary;
         _isLoading = false;
       });
@@ -231,6 +282,17 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
   }
 
   Widget _buildSummaryCard() {
+    // Calculate free-tier specific numbers
+    final totalWebsitesForUser =
+        _isPremium
+            ? (_summary['totalWebsites'] ?? 0)
+            : 5; // Free tier has 5 available websites
+
+    final activeWebsitesForUser =
+        _isPremium
+            ? (_summary['activeWebsites'] ?? 0)
+            : _websiteAnalytics.length; // Show actual active free sites
+
     return Container(
       margin: const EdgeInsets.all(16),
       child: Card(
@@ -252,7 +314,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Overall Summary',
+                          _isPremium ? 'Overall Summary' : 'Free Tier Summary',
                           style: Theme.of(context).textTheme.headlineSmall,
                         ),
                       ),
@@ -297,7 +359,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                   Expanded(
                     child: _buildSummaryItem(
                       'Websites',
-                      '${_summary['activeWebsites'] ?? 0}/${_summary['totalWebsites'] ?? 0}',
+                      '$activeWebsitesForUser/$totalWebsitesForUser',
                       Icons.language,
                       Colors.blue,
                     ),
@@ -305,7 +367,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                   Expanded(
                     child: _buildSummaryItem(
                       'Products',
-                      '${_summary['totalProducts'] ?? 0}',
+                      '${_isPremium ? (_summary['totalProducts'] ?? 0) : _websiteAnalytics.fold<int>(0, (sum, analytics) => sum + analytics.totalProducts)}',
                       Icons.inventory_2,
                       Colors.green,
                     ),
@@ -318,7 +380,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                   Expanded(
                     child: _buildSummaryItem(
                       'In Stock',
-                      '${(_summary['overallStockPercentage'] ?? 0).toStringAsFixed(1)}%',
+                      '${_isPremium ? (_summary['overallStockPercentage'] ?? 0).toStringAsFixed(1) : _calculateFreeUserStockPercentage().toStringAsFixed(1)}%',
                       Icons.check_circle,
                       Colors.green,
                     ),
@@ -326,7 +388,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                   Expanded(
                     child: _buildSummaryItem(
                       'Updates',
-                      '${_summary['totalUpdates'] ?? 0}',
+                      '${_isPremium ? (_summary['totalUpdates'] ?? 0) : _websiteAnalytics.fold<int>(0, (sum, analytics) => sum + analytics.stockUpdates.length)}',
                       Icons.timeline,
                       Colors.orange,
                     ),

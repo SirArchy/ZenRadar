@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'home_screen_content.dart';
 import 'website_overview_screen.dart';
-import 'background_activity_screen.dart';
+import 'recent_scans.dart';
 import 'settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -82,22 +82,12 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         ],
       ),
       floatingActionButton:
-          _currentIndex <
-                  3 // Only show FAB for first 3 tabs (not settings)
+          _currentIndex ==
+                  0 // Only show FAB on home screen
               ? FloatingActionButton(
                 onPressed: () {
-                  // Trigger refresh based on current tab
-                  switch (_currentIndex) {
-                    case 0:
-                      HomeScreenContent.refreshIfActive();
-                      break;
-                    case 1:
-                      // Add refresh for website overview if needed
-                      break;
-                    case 2:
-                      // Add refresh for background activity if needed
-                      break;
-                  }
+                  // Trigger refresh for home screen only
+                  HomeScreenContent.refreshIfActive();
                 },
                 tooltip: 'Refresh',
                 child: const Icon(Icons.refresh),

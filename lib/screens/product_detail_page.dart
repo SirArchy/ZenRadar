@@ -58,6 +58,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   @override
   void initState() {
     super.initState();
+    // Listen to subscription service changes
+    SubscriptionService.instance.addListener(_onSubscriptionChanged);
     // Don't call async methods here that might access inherited widgets
   }
 
@@ -70,6 +72,21 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       _loadUserSettings();
       _loadPriceHistory();
       _loadFavoriteStatus();
+      _loadSubscriptionStatus();
+    }
+  }
+
+  @override
+  void dispose() {
+    // Remove subscription service listener
+    SubscriptionService.instance.removeListener(_onSubscriptionChanged);
+    super.dispose();
+  }
+
+  /// Handle subscription service changes (debug mode toggle)
+  void _onSubscriptionChanged() {
+    if (mounted) {
+      // Reload subscription status
       _loadSubscriptionStatus();
     }
   }
@@ -504,6 +521,39 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Widget _buildPriceOverview() {
+    if (_isLoading) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Price Analytics',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: _buildLoadingStatCard()),
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildLoadingStatCard()),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(child: _buildLoadingStatCard()),
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildLoadingStatCard()),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (_priceAnalytics == null || _priceAnalytics!.totalDataPoints == 0) {
       return Card(
         child: Padding(
@@ -637,7 +687,101 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
+  Widget _buildLoadingStatCard() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface.withAlpha(50),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(50),
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            width: 40,
+            height: 12,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(50),
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            width: 60,
+            height: 16,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(50),
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPriceChart() {
+    if (_isLoading) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    'Price History',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildHistoryAccessBadge(),
+                  const Spacer(),
+                  // Loading placeholder for time range selector
+                  Container(
+                    width: 80,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 200,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Loading price history...',
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withAlpha(150),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (_priceAnalytics == null || _filteredHistory.isEmpty) {
       return Card(
         child: Padding(
@@ -714,11 +858,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ],
             ),
             const SizedBox(height: 16),
-            // Use the improved price chart
-            ImprovedPriceChart(
-              priceHistory: _filteredHistory,
-              currencySymbol: _currentCurrencySymbol,
-              timeRange: _selectedTimeRange,
+            // Use the improved price chart with loading animation
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: ImprovedPriceChart(
+                key: ValueKey(_selectedTimeRange),
+                priceHistory: _filteredHistory,
+                currencySymbol: _currentCurrencySymbol,
+                timeRange: _selectedTimeRange,
+              ),
             ),
           ],
         ),
@@ -1230,25 +1378,36 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   /// Build history access badge showing subscription limitations
   Widget _buildHistoryAccessBadge() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (_isPremium) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          color: Colors.green.shade100,
+          color:
+              isDark
+                  ? Colors.green.shade800.withAlpha(100)
+                  : Colors.green.shade100,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.green.shade300),
+          border: Border.all(
+            color: isDark ? Colors.green.shade600 : Colors.green.shade300,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle, size: 12, color: Colors.green.shade700),
+            Icon(
+              Icons.check_circle,
+              size: 12,
+              color: isDark ? Colors.green.shade400 : Colors.green.shade700,
+            ),
             const SizedBox(width: 4),
             Text(
               'Full Access',
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
-                color: Colors.green.shade700,
+                color: isDark ? Colors.green.shade400 : Colors.green.shade700,
               ),
             ),
           ],
@@ -1258,21 +1417,30 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          color: Colors.orange.shade100,
+          color:
+              isDark
+                  ? Colors.orange.shade800.withAlpha(100)
+                  : Colors.orange.shade100,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.orange.shade300),
+          border: Border.all(
+            color: isDark ? Colors.orange.shade600 : Colors.orange.shade300,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.schedule, size: 12, color: Colors.orange.shade700),
+            Icon(
+              Icons.schedule,
+              size: 12,
+              color: isDark ? Colors.orange.shade400 : Colors.orange.shade700,
+            ),
             const SizedBox(width: 4),
             Text(
               '${_currentTier.historyLimitDays} days',
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
-                color: Colors.orange.shade700,
+                color: isDark ? Colors.orange.shade400 : Colors.orange.shade700,
               ),
             ),
           ],
@@ -1283,18 +1451,29 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   /// Build subscription information banner
   Widget _buildSubscriptionInfoBanner() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (_isPremium) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.green.shade50,
+          color:
+              isDark
+                  ? Colors.green.shade900.withAlpha(75)
+                  : Colors.green.shade50,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.green.shade200),
+          border: Border.all(
+            color: isDark ? Colors.green.shade700 : Colors.green.shade200,
+          ),
         ),
         child: Row(
           children: [
-            Icon(Icons.star, color: Colors.amber.shade700, size: 20),
+            Icon(
+              Icons.star,
+              color: isDark ? Colors.amber.shade400 : Colors.amber.shade700,
+              size: 20,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Column(
@@ -1304,14 +1483,20 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     'Premium Access',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: Colors.green.shade700,
+                      color:
+                          isDark
+                              ? Colors.green.shade300
+                              : Colors.green.shade700,
                     ),
                   ),
                   Text(
                     'Viewing full price & stock history with unlimited access',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.green.shade600,
+                      color:
+                          isDark
+                              ? Colors.green.shade400
+                              : Colors.green.shade600,
                     ),
                   ),
                 ],
@@ -1325,13 +1510,22 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         width: double.infinity,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.orange.shade50,
+          color:
+              isDark
+                  ? Colors.orange.shade900.withAlpha(75)
+                  : Colors.orange.shade50,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.orange.shade200),
+          border: Border.all(
+            color: isDark ? Colors.orange.shade700 : Colors.orange.shade200,
+          ),
         ),
         child: Row(
           children: [
-            Icon(Icons.info, color: Colors.orange.shade700, size: 20),
+            Icon(
+              Icons.info,
+              color: isDark ? Colors.orange.shade400 : Colors.orange.shade700,
+              size: 20,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Column(
@@ -1341,14 +1535,20 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     'Limited History Access',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: Colors.orange.shade700,
+                      color:
+                          isDark
+                              ? Colors.orange.shade300
+                              : Colors.orange.shade700,
                     ),
                   ),
                   Text(
                     'Free tier shows last ${_currentTier.historyLimitDays} days. Upgrade for full history access.',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.orange.shade600,
+                      color:
+                          isDark
+                              ? Colors.orange.shade400
+                              : Colors.orange.shade600,
                     ),
                   ),
                 ],
@@ -1357,8 +1557,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             TextButton(
               onPressed: _showSimpleUpgradeDialog,
               style: TextButton.styleFrom(
-                backgroundColor: Colors.orange.shade100,
-                foregroundColor: Colors.orange.shade800,
+                backgroundColor:
+                    isDark
+                        ? Colors.orange.shade800.withAlpha(75)
+                        : Colors.orange.shade100,
+                foregroundColor:
+                    isDark ? Colors.orange.shade300 : Colors.orange.shade800,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 6,

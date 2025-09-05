@@ -761,9 +761,34 @@ class FirestoreService {
       for (final doc in querySnapshot.docs) {
         final data = doc.data();
         final priceValue = (data['priceValue'] as num?)?.toDouble();
+        final currency = data['currency'] as String?;
+
         if (priceValue != null && priceValue > 0) {
-          if (priceValue < minPrice) minPrice = priceValue;
-          if (priceValue > maxPrice) maxPrice = priceValue;
+          // Convert all prices to EUR for consistent range calculation
+          double euroPriceValue = priceValue;
+
+          switch (currency) {
+            case 'JPY':
+              euroPriceValue = priceValue * 0.0067; // JPY to EUR
+              break;
+            case 'USD':
+              euroPriceValue = priceValue * 0.92; // USD to EUR
+              break;
+            case 'GBP':
+              euroPriceValue = priceValue * 1.16; // GBP to EUR
+              break;
+            case 'CAD':
+              euroPriceValue = priceValue * 0.67; // CAD to EUR
+              break;
+            case 'EUR':
+            default:
+              // Already in EUR or unknown currency, use as-is
+              euroPriceValue = priceValue;
+              break;
+          }
+
+          if (euroPriceValue < minPrice) minPrice = euroPriceValue;
+          if (euroPriceValue > maxPrice) maxPrice = euroPriceValue;
         }
       }
 

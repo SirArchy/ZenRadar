@@ -99,7 +99,7 @@ class _SwipeTutorialOverlayState extends State<SwipeTutorialOverlay>
                         children: [
                           // Title
                           Text(
-                            'Swipe to Add Favorites',
+                            'Swipe to Navigate the App',
                             style: Theme.of(
                               context,
                             ).textTheme.headlineSmall?.copyWith(
@@ -164,7 +164,7 @@ class _SwipeTutorialOverlayState extends State<SwipeTutorialOverlay>
 
                           // Description
                           Text(
-                            'Swipe left on any product card to quickly add it to your favorites and get notified when it\'s back in stock!',
+                            'Swipe left or right to navigate between screens',
                             style: Theme.of(context).textTheme.bodyMedium,
                             textAlign: TextAlign.center,
                           ),

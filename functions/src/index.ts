@@ -6,13 +6,8 @@
  * @throws Will throw an error if the Cloud Run request fails.
  */
 /**
- * ZenRadar Cloud Functions for Matcha         });
-
-        logger.info("User favorite removed", {
-          userId: userId,
-          productId: productId,
-        });Monitoring
- * Handles crawl requests and triggers Cloud Run crawler
+ * ZenRadar Cloud Functions for Matcha Monitoring
+ * Handles crawl requests, notifications, and subscription payments
  */
 
 import {setGlobalOptions} from "firebase-functions";
@@ -32,6 +27,14 @@ setGlobalOptions({
   maxInstances: 10,
   region: "europe-west3", // Same region as your Firestore
 });
+
+// Export payment functions
+export {
+  createCheckoutSession,
+  createCustomerPortalSession,
+  handleStripeWebhook,
+  getUserSubscriptionStatus,
+} from "./payments";
 
 /**
  * Triggered when a new crawl request is created in Firestore

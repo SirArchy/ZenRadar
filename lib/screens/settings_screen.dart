@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print, use_build_context_synchronously
+// ignore_for_file: avoid_print
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +12,7 @@ import '../services/theme_service.dart';
 import '../services/favorite_notification_service.dart';
 import '../services/notification_service.dart';
 import '../services/subscription_service.dart';
+import '../services/payment_service.dart';
 import '../widgets/matcha_icon.dart';
 import 'auth_screen.dart';
 import 'subscription_upgrade_screen.dart';
@@ -1812,16 +1813,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// Build subscription limits information widget
   Widget _buildSubscriptionLimitsInfo() {
-    final maxVendors = _currentTier.maxVendors;
+    final unlockedSitesAmount = _currentTier.maxVendors;
     final enabledSitesCount = _userSettings.enabledSites.length;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: _isPremium ? Colors.green.shade50 : Colors.orange.shade50,
+        color:
+            _isPremium
+                ? (isDark
+                    ? Colors.green.shade900.withAlpha(75)
+                    : Colors.green.shade50)
+                : (isDark
+                    ? Colors.orange.shade900.withAlpha(75)
+                    : Colors.orange.shade50),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: _isPremium ? Colors.green.shade200 : Colors.orange.shade200,
+          color:
+              _isPremium
+                  ? (isDark ? Colors.green.shade700 : Colors.green.shade200)
+                  : (isDark ? Colors.orange.shade700 : Colors.orange.shade200),
         ),
       ),
       child: Column(
@@ -1833,7 +1845,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _isPremium ? Icons.check_circle : Icons.info,
                 size: 16,
                 color:
-                    _isPremium ? Colors.green.shade700 : Colors.orange.shade700,
+                    _isPremium
+                        ? (isDark
+                            ? Colors.green.shade400
+                            : Colors.green.shade700)
+                        : (isDark
+                            ? Colors.orange.shade400
+                            : Colors.orange.shade700),
               ),
               const SizedBox(width: 8),
               Text(
@@ -1844,8 +1862,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   fontWeight: FontWeight.w600,
                   color:
                       _isPremium
-                          ? Colors.green.shade700
-                          : Colors.orange.shade700,
+                          ? (isDark
+                              ? Colors.green.shade300
+                              : Colors.green.shade700)
+                          : (isDark
+                              ? Colors.orange.shade300
+                              : Colors.orange.shade700),
                 ),
               ),
             ],
@@ -1853,16 +1875,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 8),
           if (!_isPremium) ...[
             Text(
-              'Sites enabled: $enabledSitesCount / $maxVendors',
-              style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+              'Sites enabled: $unlockedSitesAmount / $enabledSitesCount',
+              style: TextStyle(
+                color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                fontSize: 13,
+              ),
             ),
             const SizedBox(height: 4),
           ],
           Text(
             _isPremium
                 ? 'Monitor all supported matcha websites simultaneously'
-                : 'Upgrade to Premium to monitor unlimited sites',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                : 'Upgrade to Premium to monitor all sites',
+            style: TextStyle(
+              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+              fontSize: 12,
+            ),
           ),
           if (!_isPremium) ...[
             const SizedBox(height: 8),
@@ -1871,10 +1899,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: TextButton(
                 onPressed: _showUpgradeDialog,
                 style: TextButton.styleFrom(
-                  backgroundColor: Colors.orange.shade100,
-                  foregroundColor: Colors.orange.shade800,
+                  backgroundColor:
+                      isDark
+                          ? Colors.orange.shade800.withAlpha(75)
+                          : Colors.orange.shade100,
+                  foregroundColor:
+                      isDark ? Colors.orange.shade300 : Colors.orange.shade800,
                 ),
                 child: const Text('Upgrade to Premium'),
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: _manageSubscription,
+                style: TextButton.styleFrom(
+                  backgroundColor:
+                      isDark
+                          ? Colors.green.shade800.withAlpha(75)
+                          : Colors.green.shade100,
+                  foregroundColor:
+                      isDark ? Colors.green.shade300 : Colors.green.shade700,
+                ),
+                child: const Text('Manage Subscription'),
               ),
             ),
           ],
@@ -1988,5 +2037,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  /// Manage subscription through Stripe Customer Portal
+  Future<void> _manageSubscription() async {
+    try {
+      await PaymentService.instance.openSubscriptionManagement(
+        returnUrl: 'https://your-app.com/settings',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening subscription management: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

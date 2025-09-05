@@ -2,10 +2,11 @@ import 'package:flutter/foundation.dart';
 import '../models/matcha_product.dart';
 import 'settings_service.dart';
 import 'database_service.dart';
+import 'payment_service.dart';
 
 /// Service to handle subscription tier validation and limits
 /// Centralizes all freemium model logic
-class SubscriptionService {
+class SubscriptionService extends ChangeNotifier {
   static final SubscriptionService _instance = SubscriptionService._internal();
   factory SubscriptionService() => _instance;
   SubscriptionService._internal();
@@ -39,11 +40,45 @@ class SubscriptionService {
       if (kDebugMode) {
         print('🐛 Debug premium mode ${enabled ? 'enabled' : 'disabled'}');
       }
+      // Notify listeners about the change
+      notifyListeners();
     }
   }
 
   /// Get debug premium mode status
   bool get isDebugPremiumMode => kDebugMode && _debugPremiumMode;
+
+  /// Sync subscription status from payment service and update local settings
+  Future<void> syncSubscriptionStatus() async {
+    try {
+      final paymentService = PaymentService.instance;
+      final subscriptionStatus = await paymentService.getSubscriptionStatus();
+
+      // Update local settings with the latest status
+      await SettingsService.instance.updateSettings(
+        (settings) => settings.copyWith(
+          subscriptionTier:
+              subscriptionStatus.isPremium
+                  ? SubscriptionTier.premium
+                  : SubscriptionTier.free,
+        ),
+      );
+
+      if (kDebugMode) {
+        print(
+          '📱 Subscription status synced: ${subscriptionStatus.toString()}',
+        );
+      }
+
+      // Notify listeners about the change
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error syncing subscription status: $e');
+      }
+      // Don't throw error to avoid disrupting app flow
+    }
+  }
 
   /// Check if subscription has expired
   Future<bool> isSubscriptionExpired() async {
