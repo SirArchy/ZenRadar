@@ -35,14 +35,27 @@ class PreloadService {
     return true;
   }
 
-  /// Start preloading data in the background immediately when app starts
+  /// Start preloading data in the background after user authentication
   Future<void> startBackgroundPreload() async {
-    if (_isPreloadingActive) return;
+    // Don't start multiple preload operations
+    if (_isPreloadingActive) {
+      print('🔄 Preload service already active, skipping...');
+      return;
+    }
+
+    // Verify user authentication before starting any preloading
+    if (!_shouldProceedWithFirestore()) {
+      print('⚠️ Cannot start preload - user authentication required');
+      return;
+    }
 
     _isPreloadingActive = true;
     _initialPreloadCompleter = Completer<void>();
 
-    print('🚀 Starting background data preload...');
+    final authService = AuthService.instance;
+    print(
+      '🚀 Starting background data preload for user: ${authService.currentUser?.email}',
+    );
 
     // Run all preloading in parallel without blocking
     unawaited(_preloadAllData());
@@ -309,6 +322,15 @@ class PreloadService {
     // Restart preloading
     _hasCompletedInitialPreload = false;
     await startBackgroundPreload();
+  }
+
+  /// Reset preload service state (useful for debugging/troubleshooting)
+  void resetPreloadService() {
+    print('🔄 Resetting preload service state...');
+    _isPreloadingActive = false;
+    _hasCompletedInitialPreload = false;
+    _initialPreloadCompleter?.complete();
+    _initialPreloadCompleter = null;
   }
 }
 

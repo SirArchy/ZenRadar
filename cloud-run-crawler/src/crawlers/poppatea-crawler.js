@@ -154,15 +154,17 @@ class PoppateaSpecializedCrawler {
         const groups = {};
         
         for (const variant of variants) {
-            if (variant.available && variant.price && variant.title) {
+            // Note: Poppatea structure changed - now uses 'name' instead of 'title' and no 'available' field
+            // We assume variants are available if they're listed
+            if (variant.price && variant.name) {
                 // Filter for matcha and hojicha products
-                const title = variant.title.toLowerCase();
-                if (title.includes('matcha') || title.includes('match') || title.includes('hojicha') || title.includes('hoji')) {
-                    const baseTitle = this.extractBaseTitle(variant.title);
+                const name = variant.name.toLowerCase();
+                if (name.includes('matcha') || name.includes('match') || name.includes('hojicha') || name.includes('hoji')) {
+                    const baseTitle = this.extractBaseTitle(variant.name);
                     
                     // Log for debugging
                     if (this.logger && this.logger.info) {
-                        this.logger.info(`Processing variant: ${variant.title} -> Base: ${baseTitle}`);
+                        this.logger.info(`Processing variant: ${variant.name} -> Base: ${baseTitle}`);
                     }
                     
                     if (!groups[baseTitle]) {
@@ -176,10 +178,10 @@ class PoppateaSpecializedCrawler {
         return groups;
     }
 
-    extractBaseTitle(title) {
+    extractBaseTitle(name) {
         // Remove variant-specific suffixes to get base product name
-        return title
-            .replace(/\s*-\s*(50g|100g|Dose|Nachfüllbeutel|2x50g).*$/, '')
+        return name
+            .replace(/\s*-\s*(50g|100g|Dose|Nachfüllbeutel|2x50g|2 x 50 g).*$/, '')
             .replace(/\s*\(\d+\s*Portionen?\).*$/, '') // Remove portion info
             .replace(/\s*-\s*\d+g.*$/, '') // Remove size info like "- 50g"
             .trim();
@@ -193,7 +195,7 @@ class PoppateaSpecializedCrawler {
             let productSlug = this.getProductSlugFromTitle(baseTitle);
             
             const productUrl = `https://poppatea.com/de-de/products/${productSlug}`;
-            const productId = this.generateProductId(productUrl, baseTitle);
+            const productId = this.generateVariantProductId(variant, baseTitle);
             
             // Try to get product image
             let imageUrl = null;
@@ -209,7 +211,7 @@ class PoppateaSpecializedCrawler {
                     if (this.logger && this.logger.warn) {
                         this.logger.warn('Failed to process Poppatea product image', { 
                             productId, 
-                            variant: variant.title, 
+                            variant: variant.name, 
                             error: imageError.message 
                         });
                     }
@@ -218,8 +220,8 @@ class PoppateaSpecializedCrawler {
             
             return {
                 id: productId,
-                name: variant.title || baseTitle,
-                normalizedName: this.normalizeName(variant.title || baseTitle),
+                name: variant.name || baseTitle,
+                normalizedName: this.normalizeName(variant.name || baseTitle),
                 site: 'poppatea',
                 siteName: this.siteName,
                 price: '€' + priceInEuros.toFixed(2),
@@ -228,7 +230,7 @@ class PoppateaSpecializedCrawler {
                 currency: 'EUR',
                 url: productUrl,
                 imageUrl: imageUrl || null,
-                isInStock: variant.available ? true : false,
+                isInStock: true, // Assume available if listed (no availability field in new structure)
                 category: 'Matcha',
                 lastChecked: new Date(),
                 lastUpdated: new Date(),
@@ -240,8 +242,8 @@ class PoppateaSpecializedCrawler {
                 metadata: {
                     variantId: variant.id,
                     productId: variant.product_id,
-                    inventoryQuantity: variant.inventory_quantity,
-                    sku: variant.sku
+                    sku: variant.sku,
+                    publicTitle: variant.public_title
                 }
             };
         } catch (error) {
@@ -274,21 +276,21 @@ class PoppateaSpecializedCrawler {
             .replace(/^-+|-+$/g, '');
     }
 
-    getProductNameForId(title) {
-        const titleLower = title.toLowerCase();
+    getProductNameForId(name) {
+        const nameLower = name.toLowerCase();
         
-        // Map specific product titles to their expected ID name parts
-        if (titleLower.includes('matcha tee') && titleLower.includes('zeremoniell') && !titleLower.includes('chai')) {
+        // Map specific product names to their expected ID name parts
+        if (nameLower.includes('matcha tee') && nameLower.includes('zeremoniell') && !nameLower.includes('chai')) {
             return 'Matcha Tee Zeremoniell';
         }
-        if (titleLower.includes('matcha tee') && titleLower.includes('chai') && titleLower.includes('zeremoniell')) {
+        if (nameLower.includes('matcha tee') && nameLower.includes('chai') && nameLower.includes('zeremoniell')) {
             return 'Matcha Tee mit Chai Zere'; // Truncated to match expected ID
         }
-        if (titleLower.includes('hojicha') || titleLower.includes('hoji')) {
+        if (nameLower.includes('hojicha') || nameLower.includes('hoji')) {
             return 'Hojichatee Pulver'; // Use the German name for the ID
         }
         
-        return title;
+        return name;
     }
 
     generateProductId(url, name) {
@@ -299,6 +301,17 @@ class PoppateaSpecializedCrawler {
         const namePart = productName.toLowerCase().replace(/[^\w]/g, '');
         
         return `poppatea_${slugPart}_${namePart}`;
+    }
+
+    generateVariantProductId(variant, baseTitle) {
+        const slug = this.getProductSlugFromTitle(baseTitle);
+        const productName = this.getProductNameForId(baseTitle);
+        
+        const slugPart = slug.replace(/-/g, '');
+        const namePart = productName.toLowerCase().replace(/[^\w]/g, '');
+        const variantId = variant.id || 'unknown';
+        
+        return `poppatea_${slugPart}_${namePart}_${variantId}`;
     }
 
     normalizeName(name) {
@@ -327,7 +340,8 @@ class PoppateaSpecializedCrawler {
                 const [exists] = await file.exists();
                 if (exists) {
                     // Image already exists, return the existing URL
-                    const publicUrl = `https://storage.googleapis.com/${this.storage.bucket().name}/${fileName}`;
+                    const bucketName = this.storage.bucket().name;
+                    const publicUrl = `https://storage.googleapis.com/${bucketName}.firebasestorage.app/${fileName}`;
                     if (this.logger && this.logger.info) {
                         this.logger.info('Using existing Poppatea image from storage', { 
                             productId, 
@@ -441,7 +455,8 @@ class PoppateaSpecializedCrawler {
             await file.makePublic();
 
             // Return public URL
-            const publicUrl = `https://storage.googleapis.com/${this.storage.bucket().name}/${fileName}`;
+            const bucketName = this.storage.bucket().name;
+            const publicUrl = `https://storage.googleapis.com/${bucketName}.firebasestorage.app/${fileName}`;
             
             if (this.logger && this.logger.info) {
                 this.logger.info('Poppatea image uploaded successfully', { 

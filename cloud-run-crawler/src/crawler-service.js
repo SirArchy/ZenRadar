@@ -2061,7 +2061,8 @@ class CrawlerService {
         const [exists] = await file.exists();
         if (exists) {
           // Image already exists, return the existing URL
-          const publicUrl = `https://storage.googleapis.com/${this.storage.bucket().name}/${fileName}`;
+          const bucketName = this.storage.bucket().name;
+          const publicUrl = `https://storage.googleapis.com/${bucketName}.firebasestorage.app/${fileName}`;
           this.logger.info('Using existing image from storage', { 
             productId, 
             siteKey, 
@@ -2167,7 +2168,8 @@ class CrawlerService {
       await file.makePublic();
 
       // Return public URL
-      const publicUrl = `https://storage.googleapis.com/${this.storage.bucket().name}/${fileName}`;
+      const bucketName = this.storage.bucket().name;
+      const publicUrl = `https://storage.googleapis.com/${bucketName}.firebasestorage.app/${fileName}`;
       
       this.logger.info('Image uploaded successfully', { 
         productId, 

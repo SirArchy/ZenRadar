@@ -5,6 +5,8 @@ import 'home_screen_content.dart';
 import 'website_overview_screen.dart';
 import 'recent_scans.dart';
 import 'settings_screen.dart';
+import '../services/preload_service.dart';
+import '../services/auth_service.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -29,22 +31,36 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     });
 
     // Start background data preloading now that user is authenticated
-    // _initializePreloadService(); // Temporarily disabled to prevent permission errors
+    _initializePreloadService();
   }
 
   /// Initialize the preload service after user authentication is confirmed
-  // Temporarily disabled to prevent permission errors
-  /*
   void _initializePreloadService() {
-    // Add a small delay to ensure authentication state is fully established
+    // Verify authentication state before starting preload
+    final authService = AuthService.instance;
+    if (!authService.isSignedIn || authService.currentUser == null) {
+      print('⚠️ Cannot start preload service - user not authenticated');
+      return;
+    }
+
+    print(
+      '🚀 Initializing preload service for authenticated user: ${authService.currentUser?.email}',
+    );
+
+    // Add a small delay to ensure all services are fully initialized
     Future.delayed(const Duration(milliseconds: 500), () {
-      // Start preloading in background without blocking UI
-      PreloadService.instance.startBackgroundPreload().catchError((error) {
-        print('Preload service initialization failed: $error');
-      });
+      // Double-check authentication is still valid before proceeding
+      if (authService.isSignedIn && authService.currentUser != null) {
+        PreloadService.instance.startBackgroundPreload().catchError((error) {
+          print('❌ Preload service initialization failed: $error');
+        });
+      } else {
+        print(
+          '⚠️ Authentication state changed, skipping preload initialization',
+        );
+      }
     });
   }
-  */
 
   @override
   void dispose() {
