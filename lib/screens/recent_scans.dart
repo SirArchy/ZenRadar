@@ -7,6 +7,8 @@ import '../models/scan_activity.dart';
 import '../services/database_service.dart';
 import '../services/firestore_service.dart';
 import '../services/cache_service.dart';
+import '../services/preload_service.dart';
+import '../services/subscription_service.dart';
 import '../widgets/skeleton_loading.dart';
 import 'stock_updates_screen.dart';
 // ignore_for_file: avoid_print
@@ -70,50 +72,76 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     });
 
     try {
-      // Load server scan activities from Firestore (server mode only)
-      try {
-        final serverActivities = await _loadServerActivitiesFromFirestore();
-        print(
-          'Loaded ${serverActivities.length} server activities from Firestore',
-        );
-
-        // Apply free mode limitation - only last 24 scans
-        final limitedActivities = serverActivities.take(24).toList();
-
-        setState(() {
-          _activities = limitedActivities;
-          _totalActivities = limitedActivities.length;
-          _hasMoreData = false; // No pagination for server mode yet
-          _isLoading = false;
+      // Trigger background preloading on first access (if not already started)
+      if (!PreloadService.instance.hasCompletedInitialPreload) {
+        PreloadService.instance.startBackgroundPreload().catchError((error) {
+          print('Failed to start preload service: $error');
         });
-      } catch (e) {
-        print('Error loading server activities: $e');
-        setState(() {
-          _activities = [];
-          _totalActivities = 0;
-          _hasMoreData = false;
-          _isLoading = false;
-        });
+      }
 
-        // Show error message to user
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to load server activities: $e'),
-              backgroundColor: Colors.red,
-              action: SnackBarAction(
-                label: 'Retry',
-                onPressed: () => _forceRefreshActivities(),
-              ),
-            ),
-          );
+      List<ScanActivity> activities = [];
+
+      // First, try to get cached activities from preload service
+      if (PreloadService.instance.hasCompletedInitialPreload) {
+        print('🚀 Loading activities from preload cache...');
+        final cachedActivities =
+            await PreloadService.instance.getCachedRecentActivities();
+        if (cachedActivities != null && cachedActivities.isNotEmpty) {
+          activities = cachedActivities;
+          print('✅ Loaded ${activities.length} activities from preload cache');
         }
       }
-    } catch (e) {
-      print('Error loading scan activities: $e');
+
+      // If no cached activities, load from Firestore
+      if (activities.isEmpty) {
+        print('📡 Loading activities from Firestore...');
+        final isPremium = await SubscriptionService.instance.isPremiumUser();
+        activities = await _loadServerActivitiesFromFirestore(
+          forceRefresh: false,
+        );
+
+        // Apply free mode limitation if needed
+        if (!isPremium && activities.length > 24) {
+          activities = activities.take(24).toList();
+        }
+
+        print('✅ Loaded ${activities.length} activities from Firestore');
+      } else {
+        // Apply free mode limitation to cached data too
+        final isPremium = await SubscriptionService.instance.isPremiumUser();
+        if (!isPremium && activities.length > 24) {
+          activities = activities.take(24).toList();
+        }
+      }
+
       setState(() {
+        _activities = activities;
+        _totalActivities = activities.length;
+        _hasMoreData = false; // No pagination for server mode yet
         _isLoading = false;
       });
+    } catch (e) {
+      print('❌ Error loading activities: $e');
+      setState(() {
+        _activities = [];
+        _totalActivities = 0;
+        _hasMoreData = false;
+        _isLoading = false;
+      });
+
+      // Show error message to user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load activities: $e'),
+            backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: () => _forceRefreshActivities(),
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -125,6 +153,10 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     try {
       // Clear cache and force refresh from server
       await CacheService.clearCache('server_activities');
+      await CacheService.clearCache('recent_activities_preload');
+
+      // Also refresh preload service cache
+      await PreloadService.instance.refreshPreloadedData();
 
       final serverActivities = await _loadServerActivitiesFromFirestore(
         forceRefresh: true,
@@ -134,7 +166,9 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       );
 
       // Apply free mode limitation - only last 24 scans
-      final limitedActivities = serverActivities.take(24).toList();
+      final isPremium = await SubscriptionService.instance.isPremiumUser();
+      final limitedActivities =
+          isPremium ? serverActivities : serverActivities.take(24).toList();
 
       setState(() {
         _activities = limitedActivities;

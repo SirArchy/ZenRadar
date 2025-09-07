@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../models/website_stock_analytics.dart';
 import '../services/website_analytics_service.dart';
 import '../services/subscription_service.dart';
+import '../services/preload_service.dart';
+import '../services/cache_service.dart';
 import '../widgets/website_stock_chart.dart';
 import '../widgets/skeleton_loading.dart';
 
@@ -20,7 +22,9 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
 
   List<WebsiteStockAnalytics> _websiteAnalytics = [];
   Map<String, dynamic> _summary = {};
-  bool _isLoading = true;
+  Map<String, dynamic> _fastSummary = {};
+  bool _isLoadingSummary = true;
+  bool _isLoadingAnalytics = true;
   String _selectedTimeRange = 'month';
   String? _error;
   bool _isPremium = false;
@@ -31,7 +35,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
   void initState() {
     super.initState();
     _loadSubscriptionStatus();
-    _loadAnalytics();
+    _loadProgressively();
   }
 
   Future<void> _loadSubscriptionStatus() async {
@@ -49,27 +53,81 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
     }
   }
 
-  Future<void> _loadAnalytics() async {
+  /// Load data progressively - fast summary first, then full analytics
+  Future<void> _loadProgressively() async {
+    // Trigger background preloading on first access (if not already started)
+    if (!PreloadService.instance.hasCompletedInitialPreload) {
+      PreloadService.instance.startBackgroundPreload().catchError((error) {
+        print('Failed to start preload service: $error');
+      });
+    }
+
+    // Check if preloading has completed - if so, try to load from cache immediately
+    if (PreloadService.instance.hasCompletedInitialPreload) {
+      print('🚀 Preload completed - loading from cache immediately');
+      await _loadFromCacheOrServer();
+    } else {
+      // First, load fast summary for immediate feedback
+      _loadFastSummary();
+
+      // Then load full analytics in the background
+      _loadFullAnalytics();
+
+      // Also try to wait for preload to complete (with timeout)
+      _waitForPreloadWithTimeout();
+    }
+  }
+
+  /// Wait for preload completion with timeout to avoid blocking UI
+  Future<void> _waitForPreloadWithTimeout() async {
+    try {
+      await PreloadService.instance.waitForInitialPreload().timeout(
+        const Duration(seconds: 5),
+      );
+
+      print('🎯 Preload completed - refreshing with cached data');
+
+      // Once preload completes, refresh with the cached data
+      if (mounted) {
+        await _loadFromCacheOrServer();
+      }
+    } catch (e) {
+      print('⏰ Preload timeout or error - continuing with normal loading: $e');
+    }
+  }
+
+  /// Load data from cache first, then from server if needed
+  Future<void> _loadFromCacheOrServer() async {
     setState(() {
-      _isLoading = true;
+      _isLoadingSummary = true;
+      _isLoadingAnalytics = true;
       _error = null;
     });
 
     try {
-      // Load analytics (will use cache if available)
-      final analytics = await _analyticsService.getAllWebsiteAnalytics(
-        timeRange: _selectedTimeRange,
-        forceRefresh: false, // Use cache by default
-      );
-      final summary = await _analyticsService.getOverallSummary(
-        timeRange: _selectedTimeRange,
-        forceRefresh: false, // Use cache by default
-      );
+      // Load analytics and summary from cache first (preload service handles caching)
+      final results = await Future.wait([
+        _analyticsService.getAllWebsiteAnalytics(
+          timeRange: _selectedTimeRange,
+          forceRefresh: false, // Use cache if available
+        ),
+        _analyticsService.getAnalyticsSummary(
+          timeRange: _selectedTimeRange,
+          forceRefresh: false, // Use cache if available
+        ),
+        _analyticsService.getFastSummary(
+          timeRange: _selectedTimeRange,
+          forceRefresh: false, // Use cache if available
+        ),
+      ]);
+
+      final analytics = results[0] as List<WebsiteStockAnalytics>;
+      final summary = results[1] as Map<String, dynamic>;
+      final fastSummary = results[2] as Map<String, dynamic>;
 
       // Filter analytics for free users
       List<WebsiteStockAnalytics> filteredAnalytics = analytics;
       if (!_isPremium) {
-        // Only show analytics for free tier sites
         final freeSites = [
           'ippodo',
           'marukyu',
@@ -86,14 +144,100 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
       setState(() {
         _websiteAnalytics = filteredAnalytics;
         _summary = summary;
-        _isLoading = false;
+        _fastSummary = fastSummary;
+        _isLoadingSummary = false;
+        _isLoadingAnalytics = false;
       });
+
+      print('✅ Data loaded successfully: ${filteredAnalytics.length} websites');
     } catch (e) {
       setState(() {
         _error = 'Failed to load analytics: $e';
-        _isLoading = false;
+        _isLoadingSummary = false;
+        _isLoadingAnalytics = false;
+      });
+      print('❌ Failed to load data: $e');
+    }
+  }
+
+  /// Load fast summary data for immediate display
+  Future<void> _loadFastSummary() async {
+    setState(() {
+      _isLoadingSummary = true;
+      _error = null;
+    });
+
+    try {
+      final fastSummary = await _analyticsService.getFastSummary(
+        timeRange: _selectedTimeRange,
+        forceRefresh: false,
+      );
+
+      setState(() {
+        _fastSummary = fastSummary;
+        _isLoadingSummary = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load summary: $e';
+        _isLoadingSummary = false;
       });
     }
+  }
+
+  /// Load full analytics data
+  Future<void> _loadFullAnalytics() async {
+    setState(() {
+      _isLoadingAnalytics = true;
+    });
+
+    try {
+      // Load analytics and full summary (will use cache if available)
+      final results = await Future.wait([
+        _analyticsService.getAllWebsiteAnalytics(
+          timeRange: _selectedTimeRange,
+          forceRefresh: false,
+        ),
+        _analyticsService.getAnalyticsSummary(
+          timeRange: _selectedTimeRange,
+          forceRefresh: false,
+        ),
+      ]);
+
+      final analytics = results[0] as List<WebsiteStockAnalytics>;
+      final summary = results[1] as Map<String, dynamic>;
+
+      // Filter analytics for free users
+      List<WebsiteStockAnalytics> filteredAnalytics = analytics;
+      if (!_isPremium) {
+        final freeSites = [
+          'ippodo',
+          'marukyu',
+          'tokichi',
+          'matcha-karu',
+          'yoshien',
+        ];
+        filteredAnalytics =
+            analytics
+                .where((analytics) => freeSites.contains(analytics.siteKey))
+                .toList();
+      }
+
+      setState(() {
+        _websiteAnalytics = filteredAnalytics;
+        _summary = summary;
+        _isLoadingAnalytics = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load full analytics: $e';
+        _isLoadingAnalytics = false;
+      });
+    }
+  }
+
+  Future<void> _loadAnalytics() async {
+    await _loadProgressively();
   }
 
   /// Calculate stock percentage for free users based on filtered analytics
@@ -115,20 +259,39 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
 
   Future<void> _forceRefreshAnalytics() async {
     setState(() {
-      _isLoading = true;
+      _isLoadingSummary = true;
+      _isLoadingAnalytics = true;
       _error = null;
     });
 
     try {
+      // Clear all relevant caches
+      await CacheService.clearCache('website_analytics_$_selectedTimeRange');
+      await CacheService.clearCache('analytics_summary_$_selectedTimeRange');
+      await CacheService.clearCache('fast_summary_$_selectedTimeRange');
+
+      // Also refresh preload service cache
+      await PreloadService.instance.refreshPreloadedData();
+
       // Force refresh from server/database, bypass cache
-      final analytics = await _analyticsService.getAllWebsiteAnalytics(
-        timeRange: _selectedTimeRange,
-        forceRefresh: true, // Force refresh
-      );
-      final summary = await _analyticsService.getOverallSummary(
-        timeRange: _selectedTimeRange,
-        forceRefresh: true, // Force refresh
-      );
+      final results = await Future.wait([
+        _analyticsService.getAllWebsiteAnalytics(
+          timeRange: _selectedTimeRange,
+          forceRefresh: true, // Force refresh
+        ),
+        _analyticsService.getAnalyticsSummary(
+          timeRange: _selectedTimeRange,
+          forceRefresh: true, // Force refresh
+        ),
+        _analyticsService.getFastSummary(
+          timeRange: _selectedTimeRange,
+          forceRefresh: true, // Force refresh
+        ),
+      ]);
+
+      final analytics = results[0] as List<WebsiteStockAnalytics>;
+      final summary = results[1] as Map<String, dynamic>;
+      final fastSummary = results[2] as Map<String, dynamic>;
 
       // Filter analytics for free users
       List<WebsiteStockAnalytics> filteredAnalytics = analytics;
@@ -150,12 +313,15 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
       setState(() {
         _websiteAnalytics = filteredAnalytics;
         _summary = summary;
-        _isLoading = false;
+        _fastSummary = fastSummary;
+        _isLoadingSummary = false;
+        _isLoadingAnalytics = false;
       });
     } catch (e) {
       setState(() {
         _error = 'Failed to refresh analytics: $e';
-        _isLoading = false;
+        _isLoadingSummary = false;
+        _isLoadingAnalytics = false;
       });
     }
   }
@@ -201,7 +367,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
         setState(() {
           _selectedTimeRange = selectedTimeRange;
         });
-        _loadAnalytics();
+        _loadProgressively();
       }
     });
   }
@@ -224,7 +390,8 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) {
+    // Show loading skeleton if both summary and analytics are loading
+    if (_isLoadingSummary && _isLoadingAnalytics) {
       return ListView.builder(
         itemCount: 3,
         itemBuilder: (context, index) {
@@ -267,6 +434,28 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(child: _buildSummaryCard()),
+          SliverToBoxAdapter(
+            child:
+                _isLoadingAnalytics
+                    ? Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          const Center(child: CircularProgressIndicator()),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Loading detailed analytics...',
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withAlpha(150),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                    : const SizedBox.shrink(),
+          ),
           SliverPadding(
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
@@ -282,16 +471,27 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
   }
 
   Widget _buildSummaryCard() {
+    // Use fast summary if available, otherwise fall back to full summary
+    final summaryData = _fastSummary.isNotEmpty ? _fastSummary : _summary;
+
     // Calculate free-tier specific numbers
     final totalWebsitesForUser =
         _isPremium
-            ? (_summary['totalWebsites'] ?? 0)
+            ? (summaryData['totalWebsites'] ?? 0)
             : 5; // Free tier has 5 available websites
 
     final activeWebsitesForUser =
         _isPremium
-            ? (_summary['activeWebsites'] ?? 0)
+            ? (summaryData['activeWebsites'] ?? 0)
             : _websiteAnalytics.length; // Show actual active free sites
+
+    // Show loading skeleton if no data is available
+    if (summaryData.isEmpty && _isLoadingSummary) {
+      return Container(
+        margin: const EdgeInsets.all(16),
+        child: const SkeletonStatsHeader(),
+      );
+    }
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -367,7 +567,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                   Expanded(
                     child: _buildSummaryItem(
                       'Products',
-                      '${_isPremium ? (_summary['totalProducts'] ?? 0) : _websiteAnalytics.fold<int>(0, (sum, analytics) => sum + analytics.totalProducts)}',
+                      '${_isPremium ? (summaryData['totalProducts'] ?? 0) : _websiteAnalytics.fold<int>(0, (sum, analytics) => sum + analytics.totalProducts)}',
                       Icons.inventory_2,
                       Colors.green,
                     ),
@@ -380,7 +580,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                   Expanded(
                     child: _buildSummaryItem(
                       'In Stock',
-                      '${_isPremium ? (_summary['overallStockPercentage'] ?? 0).toStringAsFixed(1) : _calculateFreeUserStockPercentage().toStringAsFixed(1)}%',
+                      '${_isPremium ? (summaryData['overallStockPercentage'] ?? 0).toStringAsFixed(1) : _calculateFreeUserStockPercentage().toStringAsFixed(1)}%',
                       Icons.check_circle,
                       Colors.green,
                     ),
@@ -388,19 +588,19 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                   Expanded(
                     child: _buildSummaryItem(
                       'Updates',
-                      '${_isPremium ? (_summary['totalUpdates'] ?? 0) : _websiteAnalytics.fold<int>(0, (sum, analytics) => sum + analytics.stockUpdates.length)}',
+                      '${_isPremium ? (summaryData['totalUpdates'] ?? 0) : _websiteAnalytics.fold<int>(0, (sum, analytics) => sum + analytics.stockUpdates.length)}',
                       Icons.timeline,
                       Colors.orange,
                     ),
                   ),
                 ],
               ),
-              if (_summary['mostRecentUpdate'] != null) ...[
+              if (summaryData['mostRecentUpdate'] != null) ...[
                 const SizedBox(height: 12),
                 Builder(
                   builder: (context) {
                     final mostRecentUpdate = _safeParseDateTime(
-                      _summary['mostRecentUpdate'],
+                      summaryData['mostRecentUpdate'],
                     );
                     return Text(
                       'Last update: ${mostRecentUpdate != null ? _formatDateTime(mostRecentUpdate) : 'Unknown'}',
@@ -414,10 +614,10 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                   },
                 ),
               ],
-              if (_summary['mostActiveWebsite'] != null) ...[
+              if (summaryData['mostActiveWebsite'] != null) ...[
                 const SizedBox(height: 4),
                 Text(
-                  'Most active: ${_summary['mostActiveWebsite']}',
+                  'Most active: ${summaryData['mostActiveWebsite']}',
                   style: TextStyle(
                     fontSize: 12,
                     color: Theme.of(

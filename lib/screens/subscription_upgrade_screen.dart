@@ -637,42 +637,159 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
       );
     }
 
-    return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton.icon(
-            onPressed: _isLoading ? null : _handleUpgrade,
-            icon:
-                _isLoading
-                    ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                    : const Icon(Icons.upgrade, size: 24),
-            label: Text(
-              _isLoading ? 'Processing...' : 'Start 7-Day Free Trial',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.amber,
-              foregroundColor: Colors.amber.shade900,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+    return FutureBuilder<TrialStatus>(
+      future: PaymentService.instance.getTrialStatus(),
+      builder: (context, snapshot) {
+        final trialStatus = snapshot.data;
+
+        // Show trial options if user can start trial
+        if (trialStatus?.canStart == true) {
+          return Column(
+            children: [
+              // Start Trial Button
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _handleStartTrial,
+                  icon:
+                      _isLoading
+                          ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : const Icon(Icons.play_arrow, size: 24),
+                  label: Text(
+                    _isLoading ? 'Starting Trial...' : 'Start 7-Day Free Trial',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                ),
               ),
-              elevation: 0,
+              const SizedBox(height: 12),
+              Text(
+                'Get full premium access instantly. No credit card required.',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              // Or upgrade directly
+              TextButton(
+                onPressed: _isLoading ? null : _handleUpgrade,
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.amber.shade700,
+                ),
+                child: const Text('Or upgrade directly with payment'),
+              ),
+            ],
+          );
+        }
+
+        // Show active trial status
+        if (trialStatus?.isActive == true) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.shade200),
             ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Premium features available immediately. Cancel anytime.',
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-          textAlign: TextAlign.center,
-        ),
-      ],
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.access_time, color: Colors.blue.shade700),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Free Trial Active',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue.shade800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${trialStatus!.daysRemaining} days remaining',
+                  style: TextStyle(color: Colors.blue.shade700),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _handleUpgrade,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amber,
+                      foregroundColor: Colors.amber.shade900,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Upgrade Now & Keep Premium'),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Default upgrade button for users who already used trial
+        return Column(
+          children: [
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : _handleUpgrade,
+                icon:
+                    _isLoading
+                        ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                        : const Icon(Icons.upgrade, size: 24),
+                label: Text(
+                  _isLoading ? 'Processing...' : 'Upgrade to Premium',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.amber,
+                  foregroundColor: Colors.amber.shade900,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Premium features available immediately. Cancel anytime.',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -741,6 +858,41 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handleStartTrial() async {
+    setState(() => _isLoading = true);
+    try {
+      await PaymentService.instance.startFreeTrial();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              '🎉 7-day free trial started! Enjoy premium features!',
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        // Close the upgrade screen since user now has premium access
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      debugPrint('Error starting trial: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error starting trial: $e'),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 4),
           ),

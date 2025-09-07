@@ -25,325 +25,7 @@ class PoppateaSpecializedCrawler {
         
         this.sekToEurRate = 0.086;
     }
-    
-    async crawl(categoryUrl, config) {
-        return await this.crawlProducts(categoryUrl, config);
-    }
-
-    async crawlProducts(categoryUrl = null, config = null) {
-        // Use the correct German URL for Poppatea with all matcha products
-        const targetUrl = 'https://poppatea.com/de-de/collections/all-teas';
-        
-        if (this.logger && this.logger.info) {
-            this.logger.info('Starting Poppatea crawl from ' + targetUrl + ' (German all-teas collection)');
-        }
-        
-        const results = [];
-
-        try {
-            if (this.logger && this.logger.info) {
-                this.logger.info('Fetching collection: ' + targetUrl);
-            }
-            
-            const response = await this.fetchWithRetry(targetUrl);
-            
-            if (!response.ok) {
-                if (this.logger && this.logger.error) {
-                    this.logger.error('Failed to fetch ' + targetUrl + ': ' + response.status + ' ' + response.statusText);
-                }
-                return { products: results };
-            }
-            
-            const html = await response.text();
-            if (this.logger && this.logger.info) {
-                this.logger.info('HTML length: ' + html.length);
-                // Log if we can find any products or variants in the HTML
-                const hasProducts = html.includes('product') || html.includes('Product');
-                const hasVariants = html.includes('variants') || html.includes('variant');
-                const hasMatcha = html.includes('matcha') || html.includes('Matcha');
-                this.logger.info('HTML content analysis: products=' + hasProducts + ', variants=' + hasVariants + ', matcha=' + hasMatcha);
-            }
-
-            const variantsPattern = /"variants"\s*:\s*(\[.*?\])/s;
-            const variantsMatch = html.match(variantsPattern);
-            
-            if (!variantsMatch) {
-                if (this.logger && this.logger.info) {
-                    this.logger.info('No variants found with regex pattern');
-                }
-                return { products: results };
-            }
-
-            try {
-                const variants = JSON.parse(variantsMatch[1]);
-                if (this.logger && this.logger.info) {
-                    this.logger.info('Found ' + variants.length + ' variants');
-                    // Log first few variants for debugging
-                    variants.slice(0, 5).forEach((variant, index) => {
-                        this.logger.info(`Variant ${index + 1}: ${variant.title} (ID: ${variant.id}, Available: ${variant.available})`);
-                    });
-                }
-                
-                const productGroups = this.groupVariantsByProduct(variants);
-                if (this.logger && this.logger.info) {
-                    this.logger.info('Grouped into ' + Object.keys(productGroups).length + ' products');
-                    Object.keys(productGroups).forEach(baseTitle => {
-                        this.logger.info(`Product group: "${baseTitle}" has ${productGroups[baseTitle].length} variants`);
-                    });
-                }
-                
-                for (const [productTitle, productVariants] of Object.entries(productGroups)) {
-                    if (this.logger && this.logger.info) {
-                        this.logger.info(`Creating products for: ${productTitle} (${productVariants.length} variants)`);
-                    }
-                    
-                    for (const variant of productVariants) {
-                        const product = await this.createVariantProduct(variant, productTitle);
-                        if (product) {
-                            if (this.logger && this.logger.info) {
-                                this.logger.info(`Created product: ${product.id} - ${product.name}`);
-                            }
-                            results.push(product);
-                        }
-                    }
-                }
-                
-            } catch (parseError) {
-                if (this.logger && this.logger.error) {
-                    this.logger.error('Error parsing variants JSON: ' + parseError.message);
-                }
-            }
-            
-        } catch (error) {
-            if (this.logger && this.logger.error) {
-                this.logger.error('Error crawling Poppatea: ' + error.message);
-            }
-        }
-
-        if (this.logger && this.logger.info) {
-            this.logger.info('Poppatea crawl completed. Found ' + results.length + ' products.');
-        }
-        return { products: results };
-    }
-
-    async fetchWithRetry(url, maxRetries = 3, retryDelay = 2000) {
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            try {
-                const response = await axios.get(url, this.requestConfig);
-                return {
-                    ok: response.status >= 200 && response.status < 300,
-                    status: response.status,
-                    statusText: response.statusText,
-                    text: async () => response.data
-                };
-            } catch (error) {
-                if (attempt === maxRetries) {
-                    throw error;
-                }
-                
-                if (this.logger && this.logger.warn) {
-                    this.logger.warn('Fetch attempt ' + attempt + ' failed, retrying... ' + error.message);
-                }
-                
-                await new Promise(resolve => setTimeout(resolve, retryDelay));
-            }
-        }
-    }
-
-    groupVariantsByProduct(variants) {
-        const groups = {};
-        
-        for (const variant of variants) {
-            if (variant.available && variant.price && variant.title) {
-                // Filter for matcha and hojicha products
-                const title = variant.title.toLowerCase();
-                if (title.includes('matcha') || title.includes('match') || title.includes('hojicha') || title.includes('hoji')) {
-                    const baseTitle = this.extractBaseTitle(variant.title);
-                    
-                    // Log for debugging
-                    if (this.logger && this.logger.info) {
-                        this.logger.info(`Processing variant: ${variant.title} -> Base: ${baseTitle}`);
-                    }
-                    
-                    if (!groups[baseTitle]) {
-                        groups[baseTitle] = [];
-                    }
-                    groups[baseTitle].push(variant);
-                }
-            }
-        }
-        
-        return groups;
-    }
-
-    extractBaseTitle(title) {
-        // Remove variant-specific suffixes to get base product name
-        return title
-            .replace(/\s*-\s*(50g|100g|Dose|Nachfüllbeutel|2x50g).*$/, '')
-            .replace(/\s*\(\d+\s*Portionen?\).*$/, '') // Remove portion info
-            .replace(/\s*-\s*\d+g.*$/, '') // Remove size info like "- 50g"
-            .trim();
-    }
-
-    async createVariantProduct(variant, baseTitle) {
-        try {
-            const priceInEuros = variant.price / 100;
-            
-            // Map the base title to the correct product URL for consistent ID generation
-            let productSlug = this.getProductSlugFromTitle(baseTitle);
-            
-            const productUrl = `https://poppatea.com/de-de/products/${productSlug}`;
-            const productId = this.generateProductId(productUrl, baseTitle);
-            
-            // Try to get product image
-            let imageUrl = null;
-            if (variant.featured_image) {
-                try {
-                    let processedImageUrl = variant.featured_image.url || variant.featured_image;
-                    if (processedImageUrl.startsWith('//')) {
-                        processedImageUrl = 'https:' + processedImageUrl;
-                    }
-                    // Process and upload the image to Firebase Storage
-                    imageUrl = await this.downloadAndStoreImage(processedImageUrl, productId);
-                } catch (imageError) {
-                    if (this.logger && this.logger.warn) {
-                        this.logger.warn('Failed to process Poppatea product image', { 
-                            productId, 
-                            variant: variant.title, 
-                            error: imageError.message 
-                        });
-                    }
-                }
-            }
-            
-            return {
-                id: productId,
-                name: variant.title || baseTitle,
-                normalizedName: this.normalizeName(variant.title || baseTitle),
-                site: 'poppatea',
-                siteName: this.siteName,
-                price: '€' + priceInEuros.toFixed(2),
-                originalPrice: '€' + priceInEuros.toFixed(2),
-                priceValue: priceInEuros,
-                currency: 'EUR',
-                url: productUrl,
-                imageUrl: imageUrl || null,
-                isInStock: variant.available ? true : false,
-                category: 'Matcha',
-                lastChecked: new Date(),
-                lastUpdated: new Date(),
-                firstSeen: new Date(),
-                isDiscontinued: false,
-                missedScans: 0,
-                crawlSource: 'specialized',
-                productId: variant.id ? variant.id.toString() : null,
-                metadata: {
-                    variantId: variant.id,
-                    productId: variant.product_id,
-                    inventoryQuantity: variant.inventory_quantity,
-                    sku: variant.sku
-                }
-            };
-        } catch (error) {
-            if (this.logger && this.logger.error) {
-                this.logger.error('Error creating variant product: ' + error.message);
-            }
-            return null;
-        }
-    }
-
-    getProductSlugFromTitle(title) {
-        const titleLower = title.toLowerCase();
-        
-        // Map specific product titles to their URL slugs
-        if (titleLower.includes('matcha tee') && titleLower.includes('zeremoniell') && !titleLower.includes('chai')) {
-            return 'matcha-tea-ceremonial';
-        }
-        if (titleLower.includes('matcha tee') && titleLower.includes('chai') && titleLower.includes('zeremoniell')) {
-            return 'matcha-tea-with-chai-ceremonial';
-        }
-        if (titleLower.includes('hojicha') || titleLower.includes('hoji')) {
-            return 'hojicha-tea-powder';
-        }
-        
-        // Fallback: create slug from title
-        return title.toLowerCase()
-            .replace(/[^\w\s-]/g, '')
-            .replace(/\s+/g, '-')
-            .replace(/--+/g, '-')
-            .replace(/^-+|-+$/g, '');
-    }
-
-    getProductNameForId(title) {
-        const titleLower = title.toLowerCase();
-        
-        // Map specific product titles to their expected ID name parts
-        if (titleLower.includes('matcha tee') && titleLower.includes('zeremoniell') && !titleLower.includes('chai')) {
-            return 'Matcha Tee Zeremoniell';
-        }
-        if (titleLower.includes('matcha tee') && titleLower.includes('chai') && titleLower.includes('zeremoniell')) {
-            return 'Matcha Tee mit Chai Zere'; // Truncated to match expected ID
-        }
-        if (titleLower.includes('hojicha') || titleLower.includes('hoji')) {
-            return 'Hojichatee Pulver'; // Use the German name for the ID
-        }
-        
-        return title;
-    }
-
-    generateProductId(url, name) {
-        const slug = this.getProductSlugFromTitle(name);
-        const productName = this.getProductNameForId(name);
-        
-        const slugPart = slug.replace(/-/g, '');
-        const namePart = productName.toLowerCase().replace(/[^\w]/g, '');
-        
-        return `poppatea_${slugPart}_${namePart}`;
-    }
-
-    normalizeName(name) {
-        if (!name) return '';
-        return name
-            .toLowerCase()
-            .replace(/[^\w\s]/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
-    }
-
-    /**
-     * Download and compress image, then upload to Firebase Storage
-     */
-    async downloadAndStoreImage(imageUrl, productId) {
-        try {
-            if (!imageUrl || imageUrl.includes('data:') || imageUrl.includes('placeholder')) {
                 return null;
-            }
-
-            // Check if image already exists in Firebase Storage
-            const fileName = `product-images/poppatea/${productId}.jpg`;
-            const file = this.storage.bucket().file(fileName);
-            
-            try {
-                const [exists] = await file.exists();
-                if (exists) {
-                    // Image already exists, return the existing URL
-                    const publicUrl = `https://storage.googleapis.com/${this.storage.bucket().name}/${fileName}`;
-                    if (this.logger && this.logger.info) {
-                        this.logger.info('Using existing Poppatea image from storage', { 
-                            productId, 
-                            publicUrl 
-                        });
-                    }
-                    return publicUrl;
-                }
-            } catch (existsError) {
-                // If checking existence fails, proceed to download
-                if (this.logger && this.logger.warn) {
-                    this.logger.warn('Failed to check if Poppatea image exists, proceeding to download', { 
-                        productId, 
-                        error: existsError.message 
-                    });
-                }
             }
 
             // Make URL absolute if relative
@@ -430,6 +112,9 @@ class PoppateaSpecializedCrawler {
             }
 
             // Upload to Firebase Storage
+            const fileName = `product-images/poppatea/${productId}.jpg`;
+            const file = this.storage.bucket().file(fileName);
+            
             await file.save(compressedImageBuffer, {
                 metadata: {
                     contentType: 'image/jpeg',
@@ -464,6 +149,289 @@ class PoppateaSpecializedCrawler {
             }
             return null;
         }
+    }
+
+}gger;
+        this.baseUrl = 'https://poppatea.com';
+        this.siteName = 'Poppatea';
+        this.storage = getStorage();
+        
+        this.requestConfig = {
+            timeout: 30000,
+            headers: {
+                'User-Agent': 'ZenRadar Bot 1.0 (+https://zenradar.app)',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        };
+        
+        this.sekToEurRate = 0.086;
+    }
+    
+    async crawl(categoryUrl, config) {
+        return await this.crawlProducts(categoryUrl, config);
+    }
+
+    async crawlProducts(categoryUrl = null, config = null) {
+        // Use the correct German URL for Poppatea with all matcha products
+        const targetUrl = 'https://poppatea.com/de-de/collections/all-teas';
+        
+        if (this.logger && this.logger.info) {
+            this.logger.info('Starting Poppatea crawl from ' + targetUrl + ' (German all-teas collection)');
+        }
+        
+        const results = [];
+
+        try {
+            if (this.logger && this.logger.info) {
+                this.logger.info('Fetching collection: ' + targetUrl);
+            }
+            
+            const response = await this.fetchWithRetry(targetUrl);
+            
+            if (!response.ok) {
+                if (this.logger && this.logger.error) {
+                    this.logger.error('Failed to fetch ' + targetUrl + ': ' + response.status + ' ' + response.statusText);
+                }
+                return { products: results };
+            }
+            
+            const html = await response.text();
+            if (this.logger && this.logger.info) {
+                this.logger.info('HTML length: ' + html.length);
+                // Log if we can find any products or variants in the HTML
+                const hasProducts = html.includes('product') || html.includes('Product');
+                const hasVariants = html.includes('variants') || html.includes('variant');
+                const hasMatcha = html.includes('matcha') || html.includes('Matcha');
+                this.logger.info('HTML content analysis: products=' + hasProducts + ', variants=' + hasVariants + ', matcha=' + hasMatcha);
+            }
+
+            const variantsPattern = /"variants"\s*:\s*(\[.*?\])/s;
+            const variantsMatch = html.match(variantsPattern);
+            
+            if (!variantsMatch) {
+                if (this.logger && this.logger.info) {
+                    this.logger.info('No variants found with regex pattern');
+                }
+                return { products: results };
+            }
+
+            try {
+                const variants = JSON.parse(variantsMatch[1]);
+                if (this.logger && this.logger.info) {
+                    this.logger.info('Found ' + variants.length + ' variants');
+                    // Log first few variants for debugging
+                    variants.slice(0, 5).forEach((variant, index) => {
+                        this.logger.info(`Variant ${index + 1}: ${variant.title} (ID: ${variant.id}, Available: ${variant.available})`);
+                    });
+                }
+                
+                const productGroups = this.groupVariantsByProduct(variants);
+                if (this.logger && this.logger.info) {
+                    this.logger.info('Grouped into ' + Object.keys(productGroups).length + ' products');
+                    Object.keys(productGroups).forEach(baseTitle => {
+                        this.logger.info(`Product group: "${baseTitle}" has ${productGroups[baseTitle].length} variants`);
+                    });
+                }
+                
+                for (const [productTitle, productVariants] of Object.entries(productGroups)) {
+                    if (this.logger && this.logger.info) {
+                        this.logger.info(`Creating products for: ${productTitle} (${productVariants.length} variants)`);
+                    }
+                    
+                    for (const variant of productVariants) {
+                        const product = this.createVariantProduct(variant, productTitle);
+                        if (product) {
+                            if (this.logger && this.logger.info) {
+                                this.logger.info(`Created product: ${product.id} - ${product.name}`);
+                            }
+                            results.push(product);
+                        }
+                    }
+                }
+                
+            } catch (parseError) {
+                if (this.logger && this.logger.error) {
+                    this.logger.error('Error parsing variants JSON: ' + parseError.message);
+                }
+            }
+            
+        } catch (error) {
+            if (this.logger && this.logger.error) {
+                this.logger.error('Error crawling Poppatea: ' + error.message);
+            }
+        }
+
+        if (this.logger && this.logger.info) {
+            this.logger.info('Poppatea crawl completed. Found ' + results.length + ' products.');
+        }
+        return { products: results };
+    }
+
+    async fetchWithRetry(url, maxRetries = 3, retryDelay = 2000) {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const response = await axios.get(url, this.requestConfig);
+                return {
+                    ok: response.status >= 200 && response.status < 300,
+                    status: response.status,
+                    statusText: response.statusText,
+                    text: async () => response.data
+                };
+            } catch (error) {
+                if (attempt === maxRetries) {
+                    throw error;
+                }
+                
+                if (this.logger && this.logger.warn) {
+                    this.logger.warn('Fetch attempt ' + attempt + ' failed, retrying... ' + error.message);
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+            }
+        }
+    }
+
+    groupVariantsByProduct(variants) {
+        const groups = {};
+        
+        for (const variant of variants) {
+            if (variant.available && variant.price && variant.title) {
+                // Filter for matcha and hojicha products
+                const title = variant.title.toLowerCase();
+                if (title.includes('matcha') || title.includes('match') || title.includes('hojicha') || title.includes('hoji')) {
+                    const baseTitle = this.extractBaseTitle(variant.title);
+                    
+                    // Log for debugging
+                    if (this.logger && this.logger.info) {
+                        this.logger.info(`Processing variant: ${variant.title} -> Base: ${baseTitle}`);
+                    }
+                    
+                    if (!groups[baseTitle]) {
+                        groups[baseTitle] = [];
+                    }
+                    groups[baseTitle].push(variant);
+                }
+            }
+        }
+        
+        return groups;
+    }
+
+    extractBaseTitle(title) {
+        // Remove variant-specific suffixes to get base product name
+        return title
+            .replace(/\s*-\s*(50g|100g|Dose|Nachfüllbeutel|2x50g).*$/, '')
+            .replace(/\s*\(\d+\s*Portionen?\).*$/, '') // Remove portion info
+            .replace(/\s*-\s*\d+g.*$/, '') // Remove size info like "- 50g"
+            .trim();
+    }
+
+    createVariantProduct(variant, baseTitle) {
+        try {
+            const priceInEuros = variant.price / 100;
+            
+            // Map the base title to the correct product URL for consistent ID generation
+            let productSlug = this.getProductSlugFromTitle(baseTitle);
+            
+            const productUrl = `https://poppatea.com/de-de/products/${productSlug}`;
+            const productId = this.generateProductId(productUrl, baseTitle);
+            
+            return {
+                id: productId,
+                name: variant.title || baseTitle,
+                normalizedName: this.normalizeName(variant.title || baseTitle),
+                site: 'poppatea',
+                siteName: this.siteName,
+                price: '€' + priceInEuros.toFixed(2),
+                originalPrice: '€' + priceInEuros.toFixed(2),
+                priceValue: priceInEuros,
+                currency: 'EUR',
+                url: productUrl,
+                imageUrl: null,
+                isInStock: variant.available ? true : false,
+                category: 'Matcha',
+                lastChecked: new Date(),
+                lastUpdated: new Date(),
+                firstSeen: new Date(),
+                isDiscontinued: false,
+                missedScans: 0,
+                crawlSource: 'specialized',
+                productId: variant.id ? variant.id.toString() : null,
+                metadata: {
+                    variantId: variant.id,
+                    productId: variant.product_id,
+                    inventoryQuantity: variant.inventory_quantity,
+                    sku: variant.sku
+                }
+            };
+        } catch (error) {
+            if (this.logger && this.logger.error) {
+                this.logger.error('Error creating variant product: ' + error.message);
+            }
+            return null;
+        }
+    }
+
+    getProductSlugFromTitle(title) {
+        const titleLower = title.toLowerCase();
+        
+        // Map specific product titles to their URL slugs
+        if (titleLower.includes('matcha tee') && titleLower.includes('zeremoniell') && !titleLower.includes('chai')) {
+            return 'matcha-tea-ceremonial';
+        }
+        if (titleLower.includes('matcha tee') && titleLower.includes('chai') && titleLower.includes('zeremoniell')) {
+            return 'matcha-tea-with-chai-ceremonial';
+        }
+        if (titleLower.includes('hojicha') || titleLower.includes('hoji')) {
+            return 'hojicha-tea-powder';
+        }
+        
+        // Fallback: create slug from title
+        return title.toLowerCase()
+            .replace(/[^\w\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/--+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    }
+
+    getProductNameForId(title) {
+        const titleLower = title.toLowerCase();
+        
+        // Map specific product titles to their expected ID name parts
+        if (titleLower.includes('matcha tee') && titleLower.includes('zeremoniell') && !titleLower.includes('chai')) {
+            return 'Matcha Tee Zeremoniell';
+        }
+        if (titleLower.includes('matcha tee') && titleLower.includes('chai') && titleLower.includes('zeremoniell')) {
+            return 'Matcha Tee mit Chai Zere'; // Truncated to match expected ID
+        }
+        if (titleLower.includes('hojicha') || titleLower.includes('hoji')) {
+            return 'Hojichatee Pulver'; // Use the German name for the ID
+        }
+        
+        return title;
+    }
+
+    generateProductId(url, name) {
+        const slug = this.getProductSlugFromTitle(name);
+        const productName = this.getProductNameForId(name);
+        
+        const slugPart = slug.replace(/-/g, '');
+        const namePart = productName.toLowerCase().replace(/[^\w]/g, '');
+        
+        return `poppatea_${slugPart}_${namePart}`;
+    }
+
+    normalizeName(name) {
+        if (!name) return '';
+        return name
+            .toLowerCase()
+            .replace(/[^\w\s]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
     }
 
 }

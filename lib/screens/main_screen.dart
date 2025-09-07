@@ -27,8 +27,24 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         _currentIndex = _tabController.index;
       });
     });
-    // No need to load app mode settings since server mode is always active
+
+    // Start background data preloading now that user is authenticated
+    // _initializePreloadService(); // Temporarily disabled to prevent permission errors
   }
+
+  /// Initialize the preload service after user authentication is confirmed
+  // Temporarily disabled to prevent permission errors
+  /*
+  void _initializePreloadService() {
+    // Add a small delay to ensure authentication state is fully established
+    Future.delayed(const Duration(milliseconds: 500), () {
+      // Start preloading in background without blocking UI
+      PreloadService.instance.startBackgroundPreload().catchError((error) {
+        print('Preload service initialization failed: $error');
+      });
+    });
+  }
+  */
 
   @override
   void dispose() {

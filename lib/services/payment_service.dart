@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import '../services/auth_service.dart';
+import '../services/subscription_service.dart';
+import '../models/matcha_product.dart';
 
 /// Service for handling Stripe payments and subscription management
 class PaymentService {
@@ -27,6 +29,7 @@ class PaymentService {
     required String plan, // 'monthly' or 'yearly'
     String? successUrl,
     String? cancelUrl,
+    bool? isTrialFlow, // Whether this is starting from trial
   }) async {
     try {
       final user = AuthService.instance.currentUser;
@@ -47,6 +50,7 @@ class PaymentService {
           'priceId': priceId,
           'successUrl': successUrl ?? 'https://your-app.com/success',
           'cancelUrl': cancelUrl ?? 'https://your-app.com/cancel',
+          'isTrialFlow': isTrialFlow ?? false,
         }),
       );
 
@@ -161,12 +165,14 @@ class PaymentService {
     required String plan,
     String? successUrl,
     String? cancelUrl,
+    bool? isTrialFlow,
   }) async {
     try {
       final checkoutUrl = await createCheckoutSession(
         plan: plan,
         successUrl: successUrl,
         cancelUrl: cancelUrl,
+        isTrialFlow: isTrialFlow,
       );
 
       if (checkoutUrl != null) {
@@ -177,6 +183,37 @@ class PaymentService {
     } catch (e) {
       debugPrint('Error starting premium upgrade: $e');
       rethrow;
+    }
+  }
+
+  /// Start a free trial (no payment required)
+  Future<bool> startFreeTrial() async {
+    try {
+      // Import subscription service to start the trial
+      final SubscriptionService subscriptionService =
+          SubscriptionService.instance;
+      return await subscriptionService.startTrial();
+    } catch (e) {
+      debugPrint('Error starting free trial: $e');
+      return false;
+    }
+  }
+
+  /// Check trial status
+  Future<TrialStatus> getTrialStatus() async {
+    try {
+      // Import subscription service to get trial status
+      final SubscriptionService subscriptionService =
+          SubscriptionService.instance;
+      return await subscriptionService.getTrialStatus();
+    } catch (e) {
+      debugPrint('Error getting trial status: $e');
+      return TrialStatus(
+        canStart: false,
+        isActive: false,
+        hasExpired: false,
+        daysRemaining: 0,
+      );
     }
   }
 

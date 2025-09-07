@@ -44,6 +44,70 @@ class WebsiteAnalyticsService {
     );
   }
 
+  /// Get a fast summary that loads quicker than full analytics (for initial screen load)
+  Future<Map<String, dynamic>> getFastSummary({
+    required String timeRange,
+    bool forceRefresh = false,
+  }) async {
+    final cacheKey = 'fast_summary_$timeRange';
+
+    // Try to get from cache first unless force refresh is requested
+    if (!forceRefresh) {
+      final cachedSummary = await CacheService.getCache<Map<String, dynamic>>(
+        cacheKey,
+      );
+      if (cachedSummary != null) {
+        print('Using cached fast summary for $timeRange');
+        return cachedSummary;
+      }
+    }
+
+    try {
+      // Check if server mode is enabled
+      bool isServerMode = await _settingsService.getServerMode();
+      Map<String, dynamic> summary;
+
+      if (isServerMode) {
+        // For server mode, use existing method
+        summary = await getAnalyticsSummary(
+          timeRange: timeRange,
+          forceRefresh: forceRefresh,
+        );
+      } else {
+        // For local mode, create a lightweight summary without full processing
+        summary = await _getFastLocalSummary(timeRange: timeRange);
+      }
+
+      // Cache the results for 5 minutes (shorter than full analytics)
+      await CacheService.setCache(
+        cacheKey,
+        summary,
+        duration: const Duration(minutes: 5),
+      );
+
+      return summary;
+    } catch (e) {
+      print('Error getting fast summary: $e');
+      return {};
+    }
+  }
+
+  /// Create a lightweight summary for local mode without full processing
+  Future<Map<String, dynamic>> _getFastLocalSummary({
+    required String timeRange,
+  }) async {
+    // This is a simplified version that provides basic data quickly
+    return {
+      'totalProducts': 0,
+      'totalInStock': 0,
+      'totalOutOfStock': 0,
+      'totalUpdates': 0,
+      'stockPercentage': 0.0,
+      'mostRecentUpdate': null,
+      'recentUpdates': <Map<String, dynamic>>[],
+    };
+  }
+
   /// Get analytics data for all websites (internal method)
   Future<List<WebsiteStockAnalytics>> getWebsiteAnalytics({
     required String timeRange,

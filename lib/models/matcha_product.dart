@@ -361,7 +361,7 @@ extension SubscriptionTierExtension on SubscriptionTier {
   static const List<String> freeEnabledSites = [
     "ippodo",
     "marukyu",
-    "nakamura",
+    "tokichi",
     "matcha-karu",
     "yoshien",
   ];
@@ -435,6 +435,8 @@ class UserSettings {
   final String? subscriptionId; // RevenueCat/Stripe subscription ID
   final DateTime? lastTierCheck; // Last time we verified subscription status
   final bool trialUsed; // Whether user has used their free trial
+  final DateTime? trialStartedAt; // When the trial started
+  final DateTime? trialEndsAt; // When the trial ends
 
   // Note: App now runs exclusively in server mode - no local mode support
 
@@ -473,6 +475,8 @@ class UserSettings {
     this.subscriptionId,
     this.lastTierCheck,
     this.trialUsed = false,
+    this.trialStartedAt,
+    this.trialEndsAt,
   });
 
   factory UserSettings.fromJson(Map<String, dynamic> json) {
@@ -494,7 +498,7 @@ class UserSettings {
             [
               "ippodo",
               "marukyu",
-              "nakamura",
+              "tokichi",
               "matcha-karu",
               "yoshien",
               "tokichi",
@@ -529,6 +533,14 @@ class UserSettings {
               ? DateTime.parse(json['lastTierCheck'])
               : null,
       trialUsed: json['trialUsed'] ?? false,
+      trialStartedAt:
+          json['trialStartedAt'] != null
+              ? DateTime.parse(json['trialStartedAt'])
+              : null,
+      trialEndsAt:
+          json['trialEndsAt'] != null
+              ? DateTime.parse(json['trialEndsAt'])
+              : null,
       // Note: appMode is no longer supported - app runs exclusively in server mode
     );
   }
@@ -558,6 +570,8 @@ class UserSettings {
       'subscriptionId': subscriptionId,
       'lastTierCheck': lastTierCheck?.toIso8601String(),
       'trialUsed': trialUsed,
+      'trialStartedAt': trialStartedAt?.toIso8601String(),
+      'trialEndsAt': trialEndsAt?.toIso8601String(),
       // Note: appMode is no longer saved - app runs exclusively in server mode
     };
   }
@@ -586,6 +600,8 @@ class UserSettings {
     String? subscriptionId,
     DateTime? lastTierCheck,
     bool? trialUsed,
+    DateTime? trialStartedAt,
+    DateTime? trialEndsAt,
   }) {
     return UserSettings(
       checkFrequencyMinutes:
@@ -617,16 +633,47 @@ class UserSettings {
       subscriptionId: subscriptionId ?? this.subscriptionId,
       lastTierCheck: lastTierCheck ?? this.lastTierCheck,
       trialUsed: trialUsed ?? this.trialUsed,
+      trialStartedAt: trialStartedAt ?? this.trialStartedAt,
+      trialEndsAt: trialEndsAt ?? this.trialEndsAt,
     );
   }
 
   /// Utility methods for subscription management
 
-  /// Check if user has premium access (active subscription)
+  /// Check if user has premium access (active subscription or trial)
   bool get isPremium {
+    // Check for active trial
+    if (isTrialActive) return true;
+
+    // Check for premium subscription
     if (subscriptionTier == SubscriptionTier.free) return false;
     if (subscriptionExpiresAt == null) return true; // Lifetime premium
     return subscriptionExpiresAt!.isAfter(DateTime.now());
+  }
+
+  /// Check if user has an active trial
+  bool get isTrialActive {
+    if (trialStartedAt == null || trialEndsAt == null) return false;
+    final now = DateTime.now();
+    return now.isAfter(trialStartedAt!) && now.isBefore(trialEndsAt!);
+  }
+
+  /// Check if trial has expired
+  bool get isTrialExpired {
+    if (trialEndsAt == null) return false;
+    return DateTime.now().isAfter(trialEndsAt!);
+  }
+
+  /// Check if user can start a trial (hasn't used one before)
+  bool get canStartTrial {
+    return !trialUsed && trialStartedAt == null;
+  }
+
+  /// Get days remaining in trial (returns 0 if no active trial)
+  int get trialDaysRemaining {
+    if (!isTrialActive) return 0;
+    final now = DateTime.now();
+    return trialEndsAt!.difference(now).inDays;
   }
 
   /// Check if subscription has expired
@@ -675,7 +722,7 @@ class UserSettings {
       return const [
         "ippodo",
         "marukyu",
-        "nakamura",
+        "tokichi",
         "matcha-karu",
         "yoshien",
         "tokichi",
@@ -891,5 +938,30 @@ class CustomWebsite {
       lastTested: lastTested ?? this.lastTested,
       testStatus: testStatus ?? this.testStatus,
     );
+  }
+}
+
+/// Trial status information
+class TrialStatus {
+  final bool canStart;
+  final bool isActive;
+  final bool hasExpired;
+  final int daysRemaining;
+  final DateTime? trialStartedAt;
+  final DateTime? trialEndsAt;
+
+  TrialStatus({
+    required this.canStart,
+    required this.isActive,
+    required this.hasExpired,
+    required this.daysRemaining,
+    this.trialStartedAt,
+    this.trialEndsAt,
+  });
+
+  @override
+  String toString() {
+    return 'TrialStatus(canStart: $canStart, isActive: $isActive, '
+        'hasExpired: $hasExpired, daysRemaining: $daysRemaining)';
   }
 }

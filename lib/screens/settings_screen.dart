@@ -917,10 +917,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final allSites = [
       {'key': 'ippodo', 'name': 'Ippodo Tea'},
       {'key': 'marukyu', 'name': 'Marukyu-Koyamaen'},
-      {'key': 'nakamura', 'name': 'Nakamura'},
       {'key': 'matcha-karu', 'name': 'Matcha-Karu'},
       {'key': 'yoshien', 'name': 'YOSHI En'},
-      {'key': 'tokichi', 'name': 'Tokichi'},
+      {'key': 'tokichi', 'name': 'Nakamura okichi'},
       {'key': 'sho-cha', 'name': 'Sho-Cha'},
       {'key': 'sazentea', 'name': 'Sazen Tea'},
       {'key': 'enjoyemeri', 'name': 'Enjoy Emeri'},

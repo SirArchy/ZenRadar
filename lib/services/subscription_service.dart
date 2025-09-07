@@ -22,7 +22,7 @@ class SubscriptionService extends ChangeNotifier {
     return settings.subscriptionTier;
   }
 
-  /// Check if user has premium access
+  /// Check if user has premium access (including trial)
   Future<bool> isPremiumUser() async {
     // Debug mode override
     if (kDebugMode && _debugPremiumMode) {
@@ -30,7 +30,75 @@ class SubscriptionService extends ChangeNotifier {
     }
 
     final settings = await SettingsService.instance.getSettings();
-    return settings.isPremium;
+    return settings.isPremium; // This now includes trial logic
+  }
+
+  /// Check if user has an active trial
+  Future<bool> isTrialActive() async {
+    final settings = await SettingsService.instance.getSettings();
+    return settings.isTrialActive;
+  }
+
+  /// Check if user can start a trial
+  Future<bool> canStartTrial() async {
+    final settings = await SettingsService.instance.getSettings();
+    return settings.canStartTrial;
+  }
+
+  /// Start a 7-day trial for the user
+  Future<bool> startTrial() async {
+    try {
+      final settings = await SettingsService.instance.getSettings();
+
+      // Check if user can start trial
+      if (!settings.canStartTrial) {
+        if (kDebugMode) {
+          print(
+            '❌ Cannot start trial: User has already used trial or has active trial',
+          );
+        }
+        return false;
+      }
+
+      // Start the trial
+      final now = DateTime.now();
+      final trialEnd = now.add(const Duration(days: 7));
+
+      await SettingsService.instance.updateSettings(
+        (currentSettings) => currentSettings.copyWith(
+          trialStartedAt: now,
+          trialEndsAt: trialEnd,
+          trialUsed: true,
+        ),
+      );
+
+      if (kDebugMode) {
+        print('🎉 Trial started! Expires: $trialEnd');
+      }
+
+      // Notify listeners about the change
+      notifyListeners();
+
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error starting trial: $e');
+      }
+      return false;
+    }
+  }
+
+  /// Get trial status information
+  Future<TrialStatus> getTrialStatus() async {
+    final settings = await SettingsService.instance.getSettings();
+    return TrialStatus(
+      canStart: settings.canStartTrial,
+      isActive: settings.isTrialActive,
+      hasExpired: settings.isTrialExpired,
+      daysRemaining: settings.trialDaysRemaining,
+      trialStartedAt: settings.trialStartedAt,
+      trialEndsAt: settings.trialEndsAt,
+    );
   }
 
   /// Set debug premium mode (only available in debug builds)

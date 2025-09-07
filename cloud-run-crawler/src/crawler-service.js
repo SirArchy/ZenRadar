@@ -2053,6 +2053,31 @@ class CrawlerService {
         return null;
       }
 
+      // Check if image already exists in Firebase Storage
+      const fileName = `product-images/${siteKey}/${productId}.jpg`;
+      const file = this.storage.bucket().file(fileName);
+      
+      try {
+        const [exists] = await file.exists();
+        if (exists) {
+          // Image already exists, return the existing URL
+          const publicUrl = `https://storage.googleapis.com/${this.storage.bucket().name}/${fileName}`;
+          this.logger.info('Using existing image from storage', { 
+            productId, 
+            siteKey, 
+            publicUrl 
+          });
+          return publicUrl;
+        }
+      } catch (existsError) {
+        // If checking existence fails, proceed to download
+        this.logger.warn('Failed to check if image exists, proceeding to download', { 
+          productId, 
+          siteKey, 
+          error: existsError.message 
+        });
+      }
+
       // Make URL absolute if relative
       let absoluteUrl = imageUrl;
       if (imageUrl.startsWith('//')) {
@@ -2131,9 +2156,6 @@ class CrawlerService {
       }
 
       // Upload to Firebase Storage
-      const fileName = `product-images/${siteKey}/${productId}.jpg`;
-      const file = this.storage.bucket().file(fileName);
-      
       await file.save(compressedImageBuffer, {
         metadata: {
           contentType: 'image/jpeg',
