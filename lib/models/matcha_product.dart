@@ -346,13 +346,13 @@ extension SubscriptionTierExtension on SubscriptionTier {
   }
 
   /// Free tier limits
-  static const int maxFavoritesForFree = 15;
+  static const int maxFavoritesForFree = 42;
   static const int maxVendorsForFree = 5;
   static const int minCheckFrequencyMinutesForFree = 360; // 6 hours
   static const int historyLimitDaysForFree = 7;
 
   /// Premium tier limits (effectively unlimited)
-  static const int maxFavoritesForPremium = 999;
+  static const int maxFavoritesForPremium = 99999;
   static const int maxVendorsForPremium = 999;
   static const int minCheckFrequencyMinutesForPremium = 60; // 1 hour
   static const int historyLimitDaysForPremium = 365 * 10; // 10 years

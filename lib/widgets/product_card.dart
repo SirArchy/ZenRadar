@@ -363,191 +363,221 @@ class _ProductCardState extends State<ProductCard> {
 
                         const Spacer(),
 
-                        // Bottom content overlay
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 8),
-
-                            // Site and category row
-                            Row(
+                        // Bottom content overlay - Use SingleChildScrollView to prevent overflow
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.6),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    widget.product.siteName ??
-                                        widget.product.site,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                if (widget.product.category != null)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Theme.of(
-                                            context,
-                                          ).colorScheme.primaryContainer,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        CategoryIcon(
-                                          category: widget.product.category,
-                                          size: 16,
-                                          // Remove color to show full colored icon instead of outline
+                                const SizedBox(height: 8),
+
+                                // Site and category row
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
                                         ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          widget.product.category!,
-                                          style: TextStyle(
-                                            color:
-                                                Theme.of(context)
-                                                    .colorScheme
-                                                    .onPrimaryContainer,
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.6,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          widget.product.siteName ??
+                                              widget.product.site,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
                                             fontWeight: FontWeight.w500,
-                                            fontSize: 10,
                                           ),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      ],
+                                      ),
                                     ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-
-                            // Bottom row: Price, Stock Status, Last checked
-                            Row(
-                              children: [
-                                // Price
-                                if (widget.product.price != null) ...[
-                                  if (_isConvertingPrice)
-                                    Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.9,
-                                        ),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      ),
-                                    )
-                                  else
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                        borderRadius: BorderRadius.circular(8),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.3,
+                                    const SizedBox(width: 8),
+                                    if (widget.product.category != null)
+                                      Flexible(
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.primaryContainer,
+                                            borderRadius: BorderRadius.circular(
+                                              8,
                                             ),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
                                           ),
-                                        ],
-                                      ),
-                                      child: Text(
-                                        _convertedPrice ??
-                                            widget.product.price!,
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color:
-                                              Theme.of(
-                                                context,
-                                              ).colorScheme.onPrimary,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-
-                                const Spacer(),
-
-                                // Stock status chip (moved to center)
-                                _buildStatusChip(context),
-
-                                const Spacer(),
-
-                                // Last checked info (conditionally shown)
-                                if (!widget.hideLastChecked)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.6,
-                                      ),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.access_time,
-                                          size: 12,
-                                          color: Colors.white.withValues(
-                                            alpha: 0.9,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              CategoryIcon(
+                                                category:
+                                                    widget.product.category,
+                                                size: 16,
+                                                // Remove color to show full colored icon instead of outline
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Flexible(
+                                                child: Text(
+                                                  widget.product.category!,
+                                                  style: TextStyle(
+                                                    color:
+                                                        Theme.of(context)
+                                                            .colorScheme
+                                                            .onPrimaryContainer,
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 10,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          _formatDateTime(
-                                            widget.product.lastChecked,
-                                          ),
-                                          style: TextStyle(
-                                            fontSize: 9,
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+
+                                // Bottom row: Price, Stock Status, Last checked
+                                Row(
+                                  children: [
+                                    // Price
+                                    if (widget.product.price != null) ...[
+                                      if (_isConvertingPrice)
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
                                             color: Colors.white.withValues(
                                               alpha: 0.9,
                                             ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                           ),
-                                          textAlign: TextAlign.end,
+                                          child: const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          ),
+                                        )
+                                      else
+                                        Flexible(
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.3),
+                                                  blurRadius: 4,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Text(
+                                              _convertedPrice ??
+                                                  widget.product.price!,
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color:
+                                                    Theme.of(
+                                                      context,
+                                                    ).colorScheme.onPrimary,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
                                         ),
-                                      ],
-                                    ),
-                                  ),
+                                    ],
+
+                                    const Spacer(),
+
+                                    // Stock status chip (moved to center)
+                                    _buildStatusChip(context),
+
+                                    const Spacer(),
+
+                                    // Last checked info (conditionally shown)
+                                    if (!widget.hideLastChecked)
+                                      Flexible(
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.6,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.end,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.access_time,
+                                                size: 12,
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.9,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                _formatDateTime(
+                                                  widget.product.lastChecked,
+                                                ),
+                                                style: TextStyle(
+                                                  fontSize: 9,
+                                                  color: Colors.white
+                                                      .withValues(alpha: 0.9),
+                                                ),
+                                                textAlign: TextAlign.end,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+
+                                if (widget.extraInfo != null) ...[
+                                  const SizedBox(height: 8),
+                                  widget.extraInfo!,
+                                ],
                               ],
                             ),
-
-                            if (widget.extraInfo != null) ...[
-                              const SizedBox(height: 8),
-                              widget.extraInfo!,
-                            ],
-                          ],
-                        ),
+                          ),
+                        ), // End Expanded
                       ],
                     ),
                   ),

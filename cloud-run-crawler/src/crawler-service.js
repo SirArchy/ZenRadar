@@ -2062,7 +2062,9 @@ class CrawlerService {
         if (exists) {
           // Image already exists, return the existing URL
           const bucketName = this.storage.bucket().name;
-          const publicUrl = `https://storage.googleapis.com/${bucketName}.firebasestorage.app/${fileName}`;
+          // Handle bucket names that already include .firebasestorage.app
+          const cleanBucketName = bucketName.replace('.firebasestorage.app', '');
+          const publicUrl = `https://storage.googleapis.com/${cleanBucketName}.firebasestorage.app/${fileName}`;
           this.logger.info('Using existing image from storage', { 
             productId, 
             siteKey, 
@@ -2169,7 +2171,9 @@ class CrawlerService {
 
       // Return public URL
       const bucketName = this.storage.bucket().name;
-      const publicUrl = `https://storage.googleapis.com/${bucketName}.firebasestorage.app/${fileName}`;
+      // Handle bucket names that already include .firebasestorage.app
+      const cleanBucketName = bucketName.replace('.firebasestorage.app', '');
+      const publicUrl = `https://storage.googleapis.com/${cleanBucketName}.firebasestorage.app/${fileName}`;
       
       this.logger.info('Image uploaded successfully', { 
         productId, 

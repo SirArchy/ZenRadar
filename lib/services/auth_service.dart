@@ -1,16 +1,42 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 /// Authentication service for server mode
 /// Handles Firebase Authentication for email/password sign in/up
 class AuthService {
   static final AuthService _instance = AuthService._internal();
   factory AuthService() => _instance;
-  AuthService._internal();
+
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  late final GoogleSignIn _googleSignIn;
+
+  // Constructor calls initialization
+  AuthService._internal() {
+    _initializeGoogleSignIn();
+  }
 
   static AuthService get instance => _instance;
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  // Initialize GoogleSignIn with proper configuration
+  void _initializeGoogleSignIn() {
+    if (kIsWeb) {
+      _googleSignIn = GoogleSignIn(
+        scopes: ['email', 'profile'],
+        // For web, the client ID is configured in index.html
+        // No need to specify it here for web
+      );
+    } else {
+      _googleSignIn = GoogleSignIn(
+        scopes: ['email', 'profile'],
+        // For Android, ensure the app's package name and SHA-1 fingerprint
+        // are registered in Firebase Console
+        // The client ID comes from google-services.json
+        signInOption: SignInOption.standard,
+      );
+    }
+  }
 
   /// Get current user
   User? get currentUser => _auth.currentUser;
@@ -113,10 +139,156 @@ class AuthService {
     }
   }
 
+  /// Sign in with Google
+  Future<AuthResult> signInWithGoogle() async {
+    try {
+      if (kIsWeb) {
+        // For web, check if we have proper configuration
+        if (kDebugMode) {
+          print('Attempting Google Sign-in on Web...');
+        }
+
+        // Try to sign in silently first (recommended for web)
+        GoogleSignInAccount? googleUser = await _googleSignIn.signInSilently();
+
+        // If no silent sign-in, trigger the sign-in flow
+        if (googleUser == null) {
+          if (kDebugMode) {
+            print('No silent sign-in available, triggering sign-in flow...');
+          }
+          googleUser = await _googleSignIn.signIn();
+        }
+
+        // If the user cancels the sign in process
+        if (googleUser == null) {
+          return AuthResult.error('Google Sign-in cancelled');
+        }
+
+        // Get the authentication details
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
+
+        if (kDebugMode) {
+          print(
+            'Got Google auth - Access Token: ${googleAuth.accessToken != null}',
+          );
+          print('Got Google auth - ID Token: ${googleAuth.idToken != null}');
+        }
+
+        // Create Firebase credential
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        // Sign in to Firebase with the Google credentials
+        final UserCredential userCredential = await _auth.signInWithCredential(
+          credential,
+        );
+
+        if (kDebugMode) {
+          print(
+            'User signed in with Google (Web): ${userCredential.user?.email}',
+          );
+        }
+
+        return AuthResult.success(userCredential.user);
+      } else {
+        // For mobile platforms, use the standard flow
+        // Sign out from any existing Google account first
+        await _googleSignIn.signOut();
+
+        // Trigger the Google Sign In flow
+        final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+        // If the user cancels the sign in process
+        if (googleUser == null) {
+          return AuthResult.error('Google Sign-in cancelled');
+        }
+
+        // Obtain the auth details from the request
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
+
+        // Create a new credential
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        // Sign in to Firebase with the Google credentials
+        final UserCredential userCredential = await _auth.signInWithCredential(
+          credential,
+        );
+
+        if (kDebugMode) {
+          print(
+            'User signed in with Google (Mobile): ${userCredential.user?.email}',
+          );
+        }
+
+        return AuthResult.success(userCredential.user);
+      }
+    } on FirebaseAuthException catch (e) {
+      if (kDebugMode) {
+        print('Google sign in Firebase error: ${e.code} - ${e.message}');
+      }
+      return AuthResult.error(_getAuthErrorMessage(e));
+    } catch (e) {
+      if (kDebugMode) {
+        print('Google sign in error: $e');
+        print('Error type: ${e.runtimeType}');
+      }
+
+      // Handle specific Google Sign-In errors
+      if (e is PlatformException) {
+        switch (e.code) {
+          case 'sign_in_failed':
+            // This is often error code 10 (DEVELOPER_ERROR)
+            if (e.message?.contains('10') ?? false) {
+              return AuthResult.error(
+                'Google Sign-in configuration error. The app is not properly configured in Firebase Console.\n'
+                'Please ensure the SHA-1 fingerprint is added to your Firebase project.\n'
+                'Error: ${e.message}',
+              );
+            }
+            return AuthResult.error(
+              'Google Sign-in failed. Please check your internet connection and try again.',
+            );
+          case 'network_error':
+            return AuthResult.error(
+              'Network error during Google Sign-in. Please check your connection.',
+            );
+          case 'sign_in_canceled':
+            return AuthResult.error('Google Sign-in was cancelled');
+          case 'sign_in_required':
+            return AuthResult.error('Google Sign-in is required');
+          default:
+            return AuthResult.error(
+              'Google Sign-in error: ${e.message ?? 'Unknown error (${e.code})'}',
+            );
+        }
+      }
+
+      final errorMessage = e.toString();
+      if (errorMessage.contains('CLIENT_ID_REQUIRED') ||
+          errorMessage.contains('invalid_client') ||
+          errorMessage.contains('401')) {
+        return AuthResult.error(
+          'Google Sign-in is not properly configured. Please check the setup guide in GOOGLE_SIGNIN_SETUP.md',
+        );
+      }
+
+      return AuthResult.error('Google sign-in failed. Please try again.');
+    }
+  }
+
   /// Sign out
   Future<void> signOut() async {
     try {
-      await _auth.signOut();
+      // Sign out from both Firebase and Google
+      await Future.wait([_auth.signOut(), _googleSignIn.signOut()]);
+
       if (kDebugMode) {
         print('User signed out successfully');
       }
@@ -293,7 +465,18 @@ class AuthService {
         return 'Network error. Please check your internet connection.';
       case 'requires-recent-login':
         return 'This operation requires recent authentication. Please sign in again.';
+      case 'invalid-verification-code':
+        return 'Invalid verification code. Please try again.';
+      case 'invalid-verification-id':
+        return 'Invalid verification ID. Please try again.';
+      case 'credential-already-in-use':
+        return 'This Google account is already linked to another user.';
+      case 'account-exists-with-different-credential':
+        return 'An account already exists with the same email address but different sign-in credentials.';
       default:
+        if (kDebugMode) {
+          print('Unhandled Firebase Auth error: ${e.code} - ${e.message}');
+        }
         return e.message ??
             'An authentication error occurred. Please try again.';
     }

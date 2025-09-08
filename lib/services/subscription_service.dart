@@ -157,6 +157,18 @@ class SubscriptionService extends ChangeNotifier {
   /// Validate if user can add more favorites
   Future<FavoriteValidationResult> canAddMoreFavorites() async {
     try {
+      // Debug mode override
+      if (kDebugMode && _debugPremiumMode) {
+        final currentFavoriteCount =
+            await DatabaseService.platformService.getFavoriteProductIds();
+        return FavoriteValidationResult(
+          canAdd: true, // Always true for debug premium mode
+          currentCount: currentFavoriteCount.length,
+          maxAllowed: SubscriptionTierExtension.maxFavoritesForPremium,
+          tier: SubscriptionTier.premium,
+        );
+      }
+
       final settings = await SettingsService.instance.getSettings();
       final currentFavoriteCount =
           await DatabaseService.platformService.getFavoriteProductIds();
@@ -370,11 +382,17 @@ class SubscriptionService extends ChangeNotifier {
       ),
       premium: TierFeatures(
         tier: SubscriptionTier.premium,
-        maxFavorites: 999, // Effectively unlimited
-        maxVendors: 999, // Effectively unlimited
+        maxFavorites:
+            SubscriptionTierExtension
+                .maxFavoritesForPremium, // Use the actual unlimited constant
+        maxVendors:
+            SubscriptionTierExtension
+                .maxVendorsForPremium, // Use the actual unlimited constant
         checkFrequencyHours:
             SubscriptionTierExtension.minCheckFrequencyMinutesForPremium ~/ 60,
-        historyDays: 999, // Effectively unlimited
+        historyDays:
+            SubscriptionTierExtension
+                .historyLimitDaysForPremium, // Use the actual unlimited constant
         hasCustomNotifications: true,
         hasPriorityNotifications: true,
       ),

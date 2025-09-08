@@ -31,92 +31,155 @@ class PoppateaSpecializedCrawler {
     }
 
     async crawlProducts(categoryUrl = null, config = null) {
-        // Use the correct German URL for Poppatea with all matcha products
-        const targetUrl = 'https://poppatea.com/de-de/collections/all-teas';
+        // Poppatea has 3 main tea products - crawl each directly
+        const productUrls = [
+            'https://poppatea.com/de-de/products/matcha-tea-ceremonial',
+            'https://poppatea.com/de-de/products/matcha-tea-with-chai-ceremonial', 
+            'https://poppatea.com/de-de/products/hojicha-tea-powder'
+        ];
         
         if (this.logger && this.logger.info) {
-            this.logger.info('Starting Poppatea crawl from ' + targetUrl + ' (German all-teas collection)');
+            this.logger.info('Starting Poppatea crawl for ' + productUrls.length + ' individual products');
         }
         
         const results = [];
 
-        try {
-            if (this.logger && this.logger.info) {
-                this.logger.info('Fetching collection: ' + targetUrl);
-            }
-            
-            const response = await this.fetchWithRetry(targetUrl);
-            
-            if (!response.ok) {
-                if (this.logger && this.logger.error) {
-                    this.logger.error('Failed to fetch ' + targetUrl + ': ' + response.status + ' ' + response.statusText);
-                }
-                return { products: results };
-            }
-            
-            const html = await response.text();
-            if (this.logger && this.logger.info) {
-                this.logger.info('HTML length: ' + html.length);
-                // Log if we can find any products or variants in the HTML
-                const hasProducts = html.includes('product') || html.includes('Product');
-                const hasVariants = html.includes('variants') || html.includes('variant');
-                const hasMatcha = html.includes('matcha') || html.includes('Matcha');
-                this.logger.info('HTML content analysis: products=' + hasProducts + ', variants=' + hasVariants + ', matcha=' + hasMatcha);
-            }
-
-            const variantsPattern = /"variants"\s*:\s*(\[.*?\])/s;
-            const variantsMatch = html.match(variantsPattern);
-            
-            if (!variantsMatch) {
-                if (this.logger && this.logger.info) {
-                    this.logger.info('No variants found with regex pattern');
-                }
-                return { products: results };
-            }
-
+        for (const productUrl of productUrls) {
             try {
-                const variants = JSON.parse(variantsMatch[1]);
                 if (this.logger && this.logger.info) {
-                    this.logger.info('Found ' + variants.length + ' variants');
-                    // Log first few variants for debugging
-                    variants.slice(0, 5).forEach((variant, index) => {
-                        this.logger.info(`Variant ${index + 1}: ${variant.title} (ID: ${variant.id}, Available: ${variant.available})`);
-                    });
+                    this.logger.info('Fetching product: ' + productUrl);
                 }
                 
-                const productGroups = this.groupVariantsByProduct(variants);
-                if (this.logger && this.logger.info) {
-                    this.logger.info('Grouped into ' + Object.keys(productGroups).length + ' products');
-                    Object.keys(productGroups).forEach(baseTitle => {
-                        this.logger.info(`Product group: "${baseTitle}" has ${productGroups[baseTitle].length} variants`);
-                    });
-                }
+                const response = await this.fetchWithRetry(productUrl);
                 
-                for (const [productTitle, productVariants] of Object.entries(productGroups)) {
-                    if (this.logger && this.logger.info) {
-                        this.logger.info(`Creating products for: ${productTitle} (${productVariants.length} variants)`);
+                if (!response.ok) {
+                    if (this.logger && this.logger.error) {
+                        this.logger.error('Failed to fetch ' + productUrl + ': ' + response.status + ' ' + response.statusText);
                     }
+                    continue;
+                }
+                
+                const html = await response.text();
+                if (this.logger && this.logger.info) {
+                    this.logger.info('HTML length for ' + productUrl + ': ' + html.length);
+                }
+
+                // Extract product image from HTML
+                let productImage = null;
+                try {
+                    // Extract all matching images and find the best one for this product
+                    const allImageMatches = [...html.matchAll(/<img[^>]+src="(https:\/\/poppatea\.com\/cdn\/shop\/files\/[^"]*\.jpg[^"]*)"[^>]*>/gi)];
                     
-                    for (const variant of productVariants) {
-                        const product = await this.createVariantProduct(variant, productTitle);
-                        if (product) {
-                            if (this.logger && this.logger.info) {
-                                this.logger.info(`Created product: ${product.id} - ${product.name}`);
+                    for (const match of allImageMatches) {
+                        const imgUrl = match[1];
+                        const imgName = imgUrl.toLowerCase();
+                        
+                        // Match specific product images based on URL content
+                        if (productUrl.includes('matcha-tea-ceremonial') && !productUrl.includes('chai')) {
+                            if (imgName.includes('matcha_tea') && !imgName.includes('chai')) {
+                                productImage = imgUrl;
+                                break;
                             }
-                            results.push(product);
+                        } else if (productUrl.includes('matcha-tea-with-chai')) {
+                            if (imgName.includes('matcha_tea_with_chai') || (imgName.includes('chai') && imgName.includes('matcha'))) {
+                                productImage = imgUrl;
+                                break;
+                            }
+                        } else if (productUrl.includes('hojicha-tea-powder')) {
+                            if (imgName.includes('hojicha')) {
+                                productImage = imgUrl;
+                                break;
+                            }
                         }
                     }
+                    
+                    // Clean up URL parameters for consistency  
+                    if (productImage && productImage.includes('?')) {
+                        productImage = productImage.split('?')[0];
+                    }
+                    
+                    if (productImage && this.logger && this.logger.info) {
+                        this.logger.info('Found product image for ' + productUrl + ': ' + productImage);
+                    }
+                } catch (imageError) {
+                    if (this.logger && this.logger.warn) {
+                        this.logger.warn('Failed to extract image from ' + productUrl + ': ' + imageError.message);
+                    }
+                }
+
+                const variantsPattern = /"variants"\s*:\s*(\[.*?\])/s;
+                let variantsMatch = html.match(variantsPattern);
+                
+                // Try alternative patterns if first one doesn't work
+                if (!variantsMatch) {
+                    const altPattern1 = /variants:\s*(\[.*?\])/s;
+                    variantsMatch = html.match(altPattern1);
                 }
                 
-            } catch (parseError) {
-                if (this.logger && this.logger.error) {
-                    this.logger.error('Error parsing variants JSON: ' + parseError.message);
+                if (!variantsMatch) {
+                    const altPattern2 = /window\.ShopifyAnalytics\.meta\.product\.variants\s*=\s*(\[.*?\])/s;
+                    variantsMatch = html.match(altPattern2);
                 }
-            }
-            
-        } catch (error) {
-            if (this.logger && this.logger.error) {
-                this.logger.error('Error crawling Poppatea: ' + error.message);
+                
+                if (!variantsMatch) {
+                    if (this.logger && this.logger.info) {
+                        this.logger.info('No variants found for ' + productUrl);
+                    }
+                    continue;
+                }
+
+                try {
+                    const variants = JSON.parse(variantsMatch[1]);
+                    if (this.logger && this.logger.info) {
+                        this.logger.info('Found ' + variants.length + ' variants for ' + productUrl);
+                        // Log first variant for debugging with full structure
+                        if (variants.length > 0) {
+                            const variant = variants[0];
+                            this.logger.info('Sample variant structure:', {
+                                id: variant.id,
+                                name: variant.name || variant.title,
+                                available: variant.available,
+                                price: variant.price,
+                                product_id: variant.product_id,
+                                sku: variant.sku,
+                                featured_image: variant.featured_image ? 'has_image' : 'no_image',
+                                public_title: variant.public_title,
+                                all_keys: Object.keys(variant)
+                            });
+                        }
+                    }
+                    
+                    const productGroups = this.groupVariantsByProduct(variants);
+                    if (this.logger && this.logger.info) {
+                        this.logger.info('Grouped ' + productUrl + ' into ' + Object.keys(productGroups).length + ' product groups');
+                    }
+                    
+                    for (const [productTitle, productVariants] of Object.entries(productGroups)) {
+                        if (this.logger && this.logger.info) {
+                            this.logger.info(`Creating products for: ${productTitle} (${productVariants.length} variants)`);
+                        }
+                        
+                        for (const variant of productVariants) {
+                            const product = await this.createVariantProduct(variant, productTitle, productImage);
+                            if (product) {
+                                if (this.logger && this.logger.info) {
+                                    this.logger.info(`Created product: ${product.id} - ${product.name}`);
+                                }
+                                results.push(product);
+                            }
+                        }
+                    }
+                    
+                } catch (parseError) {
+                    if (this.logger && this.logger.error) {
+                        this.logger.error('Error parsing variants JSON for ' + productUrl + ': ' + parseError.message);
+                    }
+                }
+                
+            } catch (error) {
+                if (this.logger && this.logger.error) {
+                    this.logger.error('Error crawling product ' + productUrl + ': ' + error.message);
+                }
             }
         }
 
@@ -156,21 +219,38 @@ class PoppateaSpecializedCrawler {
         for (const variant of variants) {
             // Note: Poppatea structure changed - now uses 'name' instead of 'title' and no 'available' field
             // We assume variants are available if they're listed
-            if (variant.price && variant.name) {
+            const variantName = variant.name || variant.title || '';
+            if (variant.price && variantName) {
                 // Filter for matcha and hojicha products
-                const name = variant.name.toLowerCase();
+                const name = variantName.toLowerCase();
                 if (name.includes('matcha') || name.includes('match') || name.includes('hojicha') || name.includes('hoji')) {
-                    const baseTitle = this.extractBaseTitle(variant.name);
+                    const baseTitle = this.extractBaseTitle(variantName);
                     
                     // Log for debugging
                     if (this.logger && this.logger.info) {
-                        this.logger.info(`Processing variant: ${variant.name} -> Base: ${baseTitle}`);
+                        this.logger.info(`Processing variant: ${variantName} -> Base: ${baseTitle}`);
                     }
                     
                     if (!groups[baseTitle]) {
                         groups[baseTitle] = [];
                     }
                     groups[baseTitle].push(variant);
+                } else {
+                    // Log filtered out products for debugging
+                    if (this.logger && this.logger.info) {
+                        this.logger.info(`Filtered out non-matcha variant: ${variantName}`);
+                    }
+                }
+            } else {
+                // Log variants without price or name
+                if (this.logger && this.logger.info) {
+                    this.logger.info(`Skipped variant without price or name:`, {
+                        id: variant.id,
+                        price: variant.price,
+                        name: variantName,
+                        hasName: !!variantName,
+                        hasPrice: !!variant.price
+                    });
                 }
             }
         }
@@ -187,9 +267,12 @@ class PoppateaSpecializedCrawler {
             .trim();
     }
 
-    async createVariantProduct(variant, baseTitle) {
+    async createVariantProduct(variant, baseTitle, productImage = null) {
         try {
-            const priceInEuros = variant.price / 100;
+            const priceInEuros = (variant.price || 0) / 100;
+            
+            // Get the variant name with fallback
+            const variantName = variant.name || variant.title || baseTitle;
             
             // Map the base title to the correct product URL for consistent ID generation
             let productSlug = this.getProductSlugFromTitle(baseTitle);
@@ -199,7 +282,21 @@ class PoppateaSpecializedCrawler {
             
             // Try to get product image
             let imageUrl = null;
-            if (variant.featured_image) {
+            if (productImage) {
+                try {
+                    // Process and upload the image to Firebase Storage
+                    imageUrl = await this.downloadAndStoreImage(productImage, productId);
+                } catch (imageError) {
+                    if (this.logger && this.logger.warn) {
+                        this.logger.warn('Failed to process Poppatea product image', { 
+                            productId, 
+                            variant: variant.name, 
+                            error: imageError.message 
+                        });
+                    }
+                }
+            } else if (variant.featured_image) {
+                // Fallback to variant image if available
                 try {
                     let processedImageUrl = variant.featured_image.url || variant.featured_image;
                     if (processedImageUrl.startsWith('//')) {
@@ -209,7 +306,7 @@ class PoppateaSpecializedCrawler {
                     imageUrl = await this.downloadAndStoreImage(processedImageUrl, productId);
                 } catch (imageError) {
                     if (this.logger && this.logger.warn) {
-                        this.logger.warn('Failed to process Poppatea product image', { 
+                        this.logger.warn('Failed to process Poppatea variant image', { 
                             productId, 
                             variant: variant.name, 
                             error: imageError.message 
@@ -220,8 +317,8 @@ class PoppateaSpecializedCrawler {
             
             return {
                 id: productId,
-                name: variant.name || baseTitle,
-                normalizedName: this.normalizeName(variant.name || baseTitle),
+                name: variantName || baseTitle,
+                normalizedName: this.normalizeName(variantName || baseTitle),
                 site: 'poppatea',
                 siteName: this.siteName,
                 price: '€' + priceInEuros.toFixed(2),
@@ -240,10 +337,10 @@ class PoppateaSpecializedCrawler {
                 crawlSource: 'specialized',
                 productId: variant.id ? variant.id.toString() : null,
                 metadata: {
-                    variantId: variant.id,
-                    productId: variant.product_id,
-                    sku: variant.sku,
-                    publicTitle: variant.public_title
+                    variantId: variant.id || null,
+                    productId: variant.product_id || null,
+                    sku: variant.sku || null,
+                    publicTitle: variant.public_title || null
                 }
             };
         } catch (error) {
@@ -341,7 +438,9 @@ class PoppateaSpecializedCrawler {
                 if (exists) {
                     // Image already exists, return the existing URL
                     const bucketName = this.storage.bucket().name;
-                    const publicUrl = `https://storage.googleapis.com/${bucketName}.firebasestorage.app/${fileName}`;
+                    // Handle bucket names that already include .firebasestorage.app
+                    const cleanBucketName = bucketName.replace('.firebasestorage.app', '');
+                    const publicUrl = `https://storage.googleapis.com/${cleanBucketName}.firebasestorage.app/${fileName}`;
                     if (this.logger && this.logger.info) {
                         this.logger.info('Using existing Poppatea image from storage', { 
                             productId, 
@@ -456,7 +555,9 @@ class PoppateaSpecializedCrawler {
 
             // Return public URL
             const bucketName = this.storage.bucket().name;
-            const publicUrl = `https://storage.googleapis.com/${bucketName}.firebasestorage.app/${fileName}`;
+            // Handle bucket names that already include .firebasestorage.app
+            const cleanBucketName = bucketName.replace('.firebasestorage.app', '');
+            const publicUrl = `https://storage.googleapis.com/${cleanBucketName}.firebasestorage.app/${fileName}`;
             
             if (this.logger && this.logger.info) {
                 this.logger.info('Poppatea image uploaded successfully', { 

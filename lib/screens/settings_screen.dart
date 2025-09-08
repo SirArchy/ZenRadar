@@ -831,19 +831,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   'PayPal',
                   _launchPayPal,
                 ),
-                const SizedBox(width: 16),
-                _buildSocialButton(
-                  Icon(
-                    Icons.local_cafe,
-                    size: 44,
-                    color:
-                        Theme.of(context).brightness == Brightness.dark
-                            ? Colors.brown.shade300
-                            : Colors.brown,
-                  ),
-                  'BuyMeACoffee',
-                  _launchBuyMeACoffee,
-                ),
               ],
             ),
           ],
@@ -1208,13 +1195,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _launchPayPal() async {
     final Uri url = Uri.parse('https://paypal.me/FEbert353');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    }
-  }
-
-  void _launchBuyMeACoffee() async {
-    final Uri url = Uri.parse('https://buymeacoffee.com/worktimetracker');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }

@@ -271,25 +271,59 @@ class PreloadService {
         (crawlRequest['createdAt'] as Timestamp?)?.toDate() ??
         DateTime.now();
 
-    final crawlResult =
-        crawlRequest['crawlResult'] as Map<String, dynamic>? ?? {};
-    final totalProducts = crawlResult['totalProducts'] as int? ?? 0;
-    final totalUpdates = crawlResult['totalUpdates'] as int? ?? 0;
+    // Extract scan details from the actual document structure
+    // Use the same field names as recent_scans.dart
+    final totalProducts = (crawlRequest['totalProducts'] ?? 0) as int;
+    final stockUpdates = (crawlRequest['stockUpdates'] ?? 0) as int;
+    final sitesProcessed = (crawlRequest['sitesProcessed'] ?? 0) as int;
+    final status = crawlRequest['status'] ?? 'unknown';
+    final requestId = crawlRequest['id'] ?? 'unknown';
 
-    final details =
-        totalUpdates > 0
-            ? '$totalUpdates stock updates found'
-            : 'No stock changes detected';
+    // Calculate duration from duration field (in milliseconds)
+    int durationInSeconds = 0;
+    final durationMs = crawlRequest['duration'];
+    if (durationMs != null && durationMs is int && durationMs > 0) {
+      durationInSeconds = (durationMs / 1000).round();
+    }
+
+    final hasStockUpdates = stockUpdates > 0;
+
+    // Build detailed status message based on actual data
+    String details;
+    switch (status) {
+      case 'completed':
+        details =
+            'Scanned $totalProducts products across $sitesProcessed sites';
+        if (hasStockUpdates) {
+          details += ' - $stockUpdates stock updates found';
+        }
+        break;
+      case 'running':
+        details = 'Scan in progress - $totalProducts products found so far';
+        break;
+      case 'failed':
+        details = 'Scan failed';
+        break;
+      case 'pending':
+        details = 'Scan queued for processing';
+        break;
+      default:
+        details =
+            hasStockUpdates
+                ? '$stockUpdates stock updates found'
+                : (totalProducts > 0 ? 'no updates' : 'No data available');
+        break;
+    }
 
     return ScanActivity(
-      id: crawlRequest['id'] as String? ?? '',
+      id: 'server_${requestId}_${timestamp.millisecondsSinceEpoch}',
       timestamp: timestamp,
-      itemsScanned: totalProducts,
-      duration: (crawlRequest['executionTime'] as int?) ?? 0,
-      hasStockUpdates: totalUpdates > 0,
+      itemsScanned: totalProducts, // This was the bug - using correct field
+      duration: durationInSeconds,
+      hasStockUpdates: hasStockUpdates,
       details: details,
       scanType: 'server',
-      crawlRequestId: crawlRequest['id'] as String?,
+      crawlRequestId: requestId,
     );
   }
 

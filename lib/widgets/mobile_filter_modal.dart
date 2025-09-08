@@ -269,13 +269,38 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
         final finalStart = math.min(safeStart, safeEnd);
         final finalEnd = math.max(safeStart, safeEnd);
 
-        // Only update if values are actually invalid
+        // Always ensure the range values are valid and within bounds
+        // This prevents the RangeSlider assertion error
         if (currentStart < dynamicMin ||
             currentStart > dynamicMax ||
             currentEnd < dynamicMin ||
             currentEnd > dynamicMax ||
             currentStart > currentEnd) {
           _priceRangeValues = RangeValues(finalStart, finalEnd);
+          print(
+            '🔧 Fixed price range values: $currentStart-$currentEnd -> $finalStart-$finalEnd (bounds: $dynamicMin-$dynamicMax)',
+          );
+        }
+
+        // Additional safety check to prevent RangeSlider exceptions
+        if (_priceRangeValues.start < _dynamicMinPrice ||
+            _priceRangeValues.end > _dynamicMaxPrice ||
+            _priceRangeValues.start > _priceRangeValues.end) {
+          final safeStart = _priceRangeValues.start.clamp(
+            _dynamicMinPrice,
+            _dynamicMaxPrice,
+          );
+          final safeEnd = _priceRangeValues.end.clamp(
+            _dynamicMinPrice,
+            _dynamicMaxPrice,
+          );
+          _priceRangeValues = RangeValues(
+            math.min(safeStart, safeEnd),
+            math.max(safeStart, safeEnd),
+          );
+          print(
+            '🛡️ Applied safety clamp to price range: ${_priceRangeValues.start}-${_priceRangeValues.end}',
+          );
         }
       });
 
@@ -611,7 +636,16 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
                     ),
                   ),
                   child: RangeSlider(
-                    values: _priceRangeValues,
+                    values: RangeValues(
+                      _priceRangeValues.start.clamp(
+                        _dynamicMinPrice,
+                        _dynamicMaxPrice,
+                      ),
+                      _priceRangeValues.end.clamp(
+                        _dynamicMinPrice,
+                        _dynamicMaxPrice,
+                      ),
+                    ),
                     min: _dynamicMinPrice,
                     max: _dynamicMaxPrice,
                     divisions: 50,

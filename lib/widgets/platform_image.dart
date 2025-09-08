@@ -51,6 +51,45 @@ class _PlatformImageState extends State<PlatformImage> {
     processedUrl = processedUrl.replaceAll('{height}', '400');
     processedUrl = processedUrl.replaceAll('%7Bheight%7D', '400');
 
+    // Fix doubled Firebase Storage domains (e.g., firebasestorage.app.firebasestorage.app)
+    // This must be first to handle URLs that already have the doubled domain
+    if (processedUrl.contains('.firebasestorage.app.firebasestorage.app')) {
+      processedUrl = processedUrl.replaceAll(
+        '.firebasestorage.app.firebasestorage.app',
+        '.firebasestorage.app',
+      );
+      if (kDebugMode) {
+        print(
+          '🔧 Fixed doubled Firebase Storage domain: $url -> $processedUrl',
+        );
+      }
+    }
+    // Ensure Firebase Storage URLs use the correct format
+    // Only process if it wasn't already fixed above
+    else if (processedUrl.contains('storage.googleapis.com')) {
+      // Fix potential missing .firebasestorage.app in Firebase Storage URLs
+      final regex = RegExp(
+        r'storage\.googleapis\.com/([^/\.]+)(?!/[^/]*\.firebasestorage\.app)',
+      );
+      final newUrl = processedUrl.replaceAllMapped(regex, (match) {
+        final bucketName = match.group(1);
+        if (bucketName != null &&
+            !bucketName.contains('.firebasestorage.app')) {
+          return 'storage.googleapis.com/$bucketName.firebasestorage.app';
+        }
+        return match.group(0)!;
+      });
+
+      if (newUrl != processedUrl) {
+        if (kDebugMode) {
+          print(
+            '🔧 Added .firebasestorage.app suffix: $processedUrl -> $newUrl',
+          );
+        }
+        processedUrl = newUrl;
+      }
+    }
+
     return processedUrl;
   }
 
@@ -128,15 +167,52 @@ class _PlatformImageState extends State<PlatformImage> {
 
     // On mobile platforms, use CachedNetworkImage for better performance
     return CachedNetworkImage(
-      imageUrl: widget.imageUrl,
+      imageUrl: _processImageUrl(widget.imageUrl), // Process URL on mobile too
       fit: widget.fit,
       width: widget.width,
       height: widget.height,
       placeholder: widget.placeholder,
-      errorWidget: widget.errorWidget,
+      errorWidget: (context, url, error) {
+        if (kDebugMode) {
+          if (error.toString().contains('404') ||
+              error.toString().contains('Invalid statusCode: 404')) {
+            print(
+              '🖼️ Mobile image 404 error for ${widget.imageUrl}: Image not found. Processed URL: ${_processImageUrl(widget.imageUrl)}',
+            );
+          } else if (error.toString().contains('EncodingError') ||
+              error.toString().contains('decode')) {
+            print(
+              '🖼️ Mobile image encoding error for ${widget.imageUrl}: Image file appears to be corrupted or in unsupported format',
+            );
+          } else {
+            print('🖼️ Mobile image error for ${widget.imageUrl}: $error');
+          }
+        }
+
+        // Attempt to use fallback widget or return default
+        if (widget.errorWidget != null) {
+          return widget.errorWidget!(context, widget.imageUrl, error);
+        }
+
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          color: Colors.grey[200],
+          child: const Icon(Icons.image_not_supported, color: Colors.grey),
+        );
+      },
       httpHeaders:
           widget.httpHeaders ??
-          const {'User-Agent': 'Mozilla/5.0 (compatible; ZenRadar/1.0)'},
+          const {
+            'User-Agent': 'Mozilla/5.0 (compatible; ZenRadar/1.0)',
+            'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+          },
+      // Enhanced caching settings for Firebase Storage
+      cacheKey: _processImageUrl(
+        widget.imageUrl,
+      ), // Use processed URL as cache key
+      maxWidthDiskCache: 800,
+      maxHeightDiskCache: 800,
       // Enhanced error handling for mobile
       errorListener: (exception) {
         if (kDebugMode) {
@@ -147,6 +223,9 @@ class _PlatformImageState extends State<PlatformImage> {
             );
           } else {
             print('🖼️ Mobile image error for ${widget.imageUrl}: $exception');
+            print(
+              '🖼️ Platform image error for ${widget.imageUrl}: Using fallback widget',
+            );
           }
         }
       },
