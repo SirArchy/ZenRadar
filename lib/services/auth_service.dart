@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'subscription_service.dart';
 
 /// Authentication service for server mode
 /// Handles Firebase Authentication for email/password sign in/up
@@ -123,6 +124,9 @@ class AuthService {
         print('User signed in successfully: ${credential.user?.email}');
       }
 
+      // Sync trial status from Firestore after successful sign-in
+      await _syncUserDataAfterSignIn();
+
       return AuthResult.success(credential.user);
     } on FirebaseAuthException catch (e) {
       if (kDebugMode) {
@@ -192,6 +196,9 @@ class AuthService {
           );
         }
 
+        // Sync trial status from Firestore after successful sign-in
+        await _syncUserDataAfterSignIn();
+
         return AuthResult.success(userCredential.user);
       } else {
         // For mobile platforms, use the standard flow
@@ -226,6 +233,9 @@ class AuthService {
             'User signed in with Google (Mobile): ${userCredential.user?.email}',
           );
         }
+
+        // Sync trial status from Firestore after successful sign-in
+        await _syncUserDataAfterSignIn();
 
         return AuthResult.success(userCredential.user);
       }
@@ -438,6 +448,27 @@ class AuthService {
     }
 
     return null; // Password is valid
+  }
+
+  /// Sync user data from Firestore after successful sign-in
+  Future<void> _syncUserDataAfterSignIn() async {
+    try {
+      // Use a delayed execution to avoid circular imports
+      // and ensure all services are initialized
+      Future.delayed(const Duration(milliseconds: 100), () async {
+        await SubscriptionService.instance
+            .isPremiumUser(); // This triggers sync
+      });
+
+      if (kDebugMode) {
+        print('🔄 User data sync initiated after sign-in');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error syncing user data after sign-in: $e');
+      }
+      // Don't throw error to avoid disrupting sign-in flow
+    }
   }
 
   /// Convert Firebase Auth errors to user-friendly messages

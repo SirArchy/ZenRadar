@@ -361,24 +361,6 @@ class _ProductCardState extends State<ProductCard> {
                                         ? Colors.green
                                         : Colors.red,
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                widget.product.isDiscontinued
-                                    ? 'Discontinued'
-                                    : widget.product.isInStock
-                                    ? 'In Stock'
-                                    : 'Out of Stock',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                  color:
-                                      widget.product.isDiscontinued
-                                          ? Colors.grey
-                                          : widget.product.isInStock
-                                          ? Colors.green.shade700
-                                          : Colors.red.shade700,
-                                ),
-                              ),
                             ],
                           ),
                           const SizedBox(height: 6),
@@ -415,7 +397,7 @@ class _ProductCardState extends State<ProductCard> {
                                   Text(
                                     _convertedPrice ?? widget.product.price!,
                                     style: TextStyle(
-                                      fontSize: 16,
+                                      fontSize: 24,
                                       fontWeight: FontWeight.bold,
                                       color:
                                           Theme.of(context).colorScheme.primary,

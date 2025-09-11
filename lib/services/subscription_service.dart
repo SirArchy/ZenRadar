@@ -3,6 +3,8 @@ import '../models/matcha_product.dart';
 import 'settings_service.dart';
 import 'database_service.dart';
 import 'payment_service.dart';
+import 'firestore_service.dart';
+import 'auth_service.dart';
 
 /// Service to handle subscription tier validation and limits
 /// Centralizes all freemium model logic
@@ -29,25 +31,123 @@ class SubscriptionService extends ChangeNotifier {
       return true;
     }
 
+    // First, load trial status from Firestore if user is authenticated
+    await _syncTrialFromFirestore();
+
     final settings = await SettingsService.instance.getSettings();
     return settings.isPremium; // This now includes trial logic
   }
 
   /// Check if user has an active trial
   Future<bool> isTrialActive() async {
+    // Sync trial status from Firestore first
+    await _syncTrialFromFirestore();
+
     final settings = await SettingsService.instance.getSettings();
     return settings.isTrialActive;
   }
 
   /// Check if user can start a trial
   Future<bool> canStartTrial() async {
+    // Sync trial status from Firestore first
+    await _syncTrialFromFirestore();
+
     final settings = await SettingsService.instance.getSettings();
     return settings.canStartTrial;
+  }
+
+  /// Sync trial status from Firestore to local settings
+  Future<void> _syncTrialFromFirestore() async {
+    try {
+      // Only sync if user is authenticated
+      if (!AuthService.instance.isSignedIn) {
+        return;
+      }
+
+      final userSettings = await FirestoreService.instance.getUserSettings();
+      if (userSettings == null) {
+        return; // No remote settings found
+      }
+
+      // Extract trial-related fields
+      final trialUsed = userSettings['trialUsed'] as bool?;
+      final trialStartedAtStr = userSettings['trialStartedAt'] as String?;
+      final trialEndsAtStr = userSettings['trialEndsAt'] as String?;
+
+      if (trialUsed != null) {
+        DateTime? trialStartedAt;
+        DateTime? trialEndsAt;
+
+        if (trialStartedAtStr != null) {
+          trialStartedAt = DateTime.tryParse(trialStartedAtStr);
+        }
+        if (trialEndsAtStr != null) {
+          trialEndsAt = DateTime.tryParse(trialEndsAtStr);
+        }
+
+        // Update local settings with Firestore data
+        await SettingsService.instance.updateSettings(
+          (currentSettings) => currentSettings.copyWith(
+            trialUsed: trialUsed,
+            trialStartedAt: trialStartedAt,
+            trialEndsAt: trialEndsAt,
+          ),
+        );
+
+        if (kDebugMode) {
+          print(
+            '📱 Trial status synced from Firestore: used=$trialUsed, active=${trialStartedAt != null && trialEndsAt != null && DateTime.now().isBefore(trialEndsAt)}',
+          );
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error syncing trial status from Firestore: $e');
+      }
+      // Don't throw error to avoid disrupting app flow
+    }
+  }
+
+  /// Save trial status to Firestore
+  Future<void> _saveTrialToFirestore({
+    required bool trialUsed,
+    DateTime? trialStartedAt,
+    DateTime? trialEndsAt,
+  }) async {
+    try {
+      // Only save if user is authenticated
+      if (!AuthService.instance.isSignedIn) {
+        return;
+      }
+
+      final updates = <String, dynamic>{'trialUsed': trialUsed};
+
+      if (trialStartedAt != null) {
+        updates['trialStartedAt'] = trialStartedAt.toIso8601String();
+      }
+      if (trialEndsAt != null) {
+        updates['trialEndsAt'] = trialEndsAt.toIso8601String();
+      }
+
+      await FirestoreService.instance.updateUserSettings(updates);
+
+      if (kDebugMode) {
+        print('💾 Trial status saved to Firestore');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error saving trial status to Firestore: $e');
+      }
+      // Don't throw error to avoid disrupting local trial functionality
+    }
   }
 
   /// Start a 7-day trial for the user
   Future<bool> startTrial() async {
     try {
+      // Sync from Firestore first to ensure we have latest data
+      await _syncTrialFromFirestore();
+
       final settings = await SettingsService.instance.getSettings();
 
       // Check if user can start trial
@@ -72,6 +172,13 @@ class SubscriptionService extends ChangeNotifier {
         ),
       );
 
+      // Save to Firestore for persistence across devices/logins
+      await _saveTrialToFirestore(
+        trialUsed: true,
+        trialStartedAt: now,
+        trialEndsAt: trialEnd,
+      );
+
       if (kDebugMode) {
         print('🎉 Trial started! Expires: $trialEnd');
       }
@@ -90,6 +197,9 @@ class SubscriptionService extends ChangeNotifier {
 
   /// Get trial status information
   Future<TrialStatus> getTrialStatus() async {
+    // Sync from Firestore first
+    await _syncTrialFromFirestore();
+
     final settings = await SettingsService.instance.getSettings();
     return TrialStatus(
       canStart: settings.canStartTrial,

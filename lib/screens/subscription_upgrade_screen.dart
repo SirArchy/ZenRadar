@@ -376,7 +376,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
     if (_tierComparison == null) return const SizedBox();
 
     final comparison = _tierComparison!;
-
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -387,9 +387,11 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
         const SizedBox(height: 16),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark ? Colors.grey.shade800 : Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(
+              color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+            ),
           ),
           child: Column(
             children: [
@@ -438,13 +440,18 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
     IconData icon, {
     bool isLastRow = false,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         border:
             isLastRow
                 ? null
-                : Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                : Border(
+                  bottom: BorderSide(
+                    color: isDark ? Colors.grey.shade600 : Colors.grey.shade200,
+                  ),
+                ),
       ),
       child: Row(
         children: [
@@ -461,7 +468,9 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
             child: Text(
               freeValue,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600),
+              style: TextStyle(
+                color: isDark ? Colors.grey.shade200 : Colors.grey.shade600,
+              ),
             ),
           ),
           Expanded(
@@ -511,12 +520,15 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
     String testimonial,
     IconData icon,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Colors.grey.shade800 : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -538,7 +550,11 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
                   ),
                   Text(
                     title,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                    style: TextStyle(
+                      color:
+                          isDark ? Colors.grey.shade200 : Colors.grey.shade600,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
@@ -548,7 +564,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
           Text(
             testimonial,
             style: TextStyle(
-              color: Colors.grey.shade700,
+              color: isDark ? Colors.grey.shade200 : Colors.grey.shade700,
               fontStyle: FontStyle.italic,
             ),
           ),
@@ -583,26 +599,33 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
   }
 
   Widget _buildFAQItem(String question, String answer) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Colors.grey.shade800 : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade600 : Colors.grey.shade200,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             question,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              color: isDark ? Colors.white : Colors.black,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             answer,
             style: TextStyle(
-              color: Colors.grey.shade700,
+              color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
               fontSize: 13,
               height: 1.4,
             ),
@@ -794,11 +817,12 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
   }
 
   Widget _buildContactSupport() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: isDark ? Colors.blue.shade200 : Colors.blue.shade50,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.blue.shade200),
       ),
@@ -810,7 +834,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
             'Need Help?',
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              color: Colors.blue.shade800,
+              color: isDark ? Colors.grey.shade100 : Colors.grey.shade800,
             ),
           ),
           const SizedBox(height: 4),
@@ -821,7 +845,12 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
           const SizedBox(height: 12),
           TextButton(
             onPressed: _contactSupport,
-            child: const Text('Contact Support'),
+            child: Text(
+              'Contact Support',
+              style: TextStyle(
+                color: isDark ? Colors.amber.shade800 : Colors.amber.shade200,
+              ),
+            ),
           ),
         ],
       ),

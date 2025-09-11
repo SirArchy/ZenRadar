@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/scan_activity.dart';
 import '../models/matcha_product.dart';
-import '../widgets/product_card.dart';
+import '../widgets/product_card_new.dart';
 
 class StockUpdatesScreen extends StatelessWidget {
   final List<dynamic> updates;
@@ -19,7 +19,6 @@ class StockUpdatesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scrollController = ScrollController();
     // Filter updates to only show products that are newly added or came back in stock
     final filteredUpdates =
         updates.where((update) {
@@ -41,21 +40,6 @@ class StockUpdatesScreen extends StatelessWidget {
           // Don't show products that went out of stock or stayed the same
           return false;
         }).toList();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (highlightProductId != null) {
-        final idx = filteredUpdates.indexWhere(
-          (u) => u['productId'] == highlightProductId,
-        );
-        if (idx != -1) {
-          scrollController.animateTo(
-            idx * 72.0, // Approximate item height
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeInOut,
-          );
-        }
-      }
-    });
 
     return Scaffold(
       appBar: AppBar(
@@ -91,14 +75,20 @@ class StockUpdatesScreen extends StatelessWidget {
                   ],
                 ),
               )
-              : ListView.builder(
-                controller: scrollController,
+              : GridView.builder(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount:
+                      MediaQuery.of(context).size.width > 600
+                          ? 3
+                          : 2, // 3 columns on wide screens, 2 on narrow
+                  childAspectRatio: 1,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                ),
+                padding: const EdgeInsets.all(8),
                 itemCount: filteredUpdates.length,
                 itemBuilder: (context, index) {
                   final update = filteredUpdates[index];
-                  final isHighlighted =
-                      highlightProductId != null &&
-                      update['productId'] == highlightProductId;
 
                   final product = MatchaProduct(
                     id: update['productId'] ?? '',
@@ -135,75 +125,27 @@ class StockUpdatesScreen extends StatelessWidget {
                             : null,
                   );
 
-                  final previousIsInStock = update['previousIsInStock'];
-                  String stockChangeText;
-                  Color stockChangeColor;
-
-                  if (previousIsInStock == null) {
-                    stockChangeText =
-                        product.isInStock
-                            ? "First seen in stock"
-                            : "First seen out of stock";
-                    stockChangeColor =
-                        product.isInStock ? Colors.green : Colors.red;
-                  } else if ((previousIsInStock == 0 ||
-                          previousIsInStock == false) &&
-                      product.isInStock) {
-                    stockChangeText = "Back in Stock";
-                    stockChangeColor = Colors.green;
-                  } else if ((previousIsInStock == 1 ||
-                          previousIsInStock == true) &&
-                      !product.isInStock) {
-                    stockChangeText = "Went Out of Stock";
-                    stockChangeColor = Colors.red;
-                  } else {
-                    stockChangeText =
-                        product.isInStock
-                            ? "Still in Stock"
-                            : "Still out of Stock";
-                    stockChangeColor = Colors.grey;
-                  }
-
-                  return Container(
-                    color: isHighlighted ? Colors.yellow.withAlpha(75) : null,
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ProductCard(
-                          product: product,
-                          preferredCurrency: product.currency,
-                          isFavorite: false,
-                          onTap: () async {
-                            if (product.url.isNotEmpty) {
-                              final uri = Uri.parse(product.url);
-                              if (await canLaunchUrl(uri)) {
-                                await launchUrl(
-                                  uri,
-                                  mode: LaunchMode.externalApplication,
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Could not open product page',
-                                    ),
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                          extraInfo: Chip(
-                            label: Text(stockChangeText),
-                            backgroundColor: stockChangeColor.withAlpha(40),
-                            labelStyle: TextStyle(
-                              color: stockChangeColor,
-                              fontWeight: FontWeight.bold,
+                  return ProductCard(
+                    product: product,
+                    preferredCurrency: product.currency,
+                    isFavorite: false,
+                    onTap: () async {
+                      if (product.url.isNotEmpty) {
+                        final uri = Uri.parse(product.url);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Could not open product page'),
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
+                          );
+                        }
+                      }
+                    },
                   );
                 },
               ),

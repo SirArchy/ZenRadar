@@ -3,6 +3,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zenradar/widgets/product_card_new.dart';
 import '../models/matcha_product.dart';
 import '../services/database_service.dart';
 import '../services/search_history_service.dart';
@@ -10,7 +11,6 @@ import '../services/recommendation_service.dart';
 import '../services/backend_service.dart';
 import '../services/settings_service.dart';
 import '../services/subscription_service.dart';
-import '../widgets/product_card.dart';
 import '../widgets/product_filters.dart';
 import '../widgets/mobile_filter_modal.dart';
 import '../widgets/matcha_icon.dart';
@@ -1895,7 +1895,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
             MediaQuery.of(context).size.width > 600
                 ? 3
                 : 2, // 3 columns on wide screens, 2 on narrow
-        childAspectRatio: 0.75, // Adjust to control card height vs width
+        childAspectRatio: 1, // Adjust to control card height vs width
         crossAxisSpacing: 4,
         mainAxisSpacing: 4,
       ),

@@ -38,8 +38,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _loadSettings();
     _checkAuthStatus();
-    _loadSiteProductCounts();
-    _loadSubscriptionStatus();
+    _loadSubscriptionStatus().then((_) {
+      // Load site product counts after subscription status is loaded
+      _loadSiteProductCounts();
+    });
   }
 
   Future<void> _loadSettings() async {
@@ -106,6 +108,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             isPremium || debugMode; // Include debug mode in premium status
         _debugPremiumMode = debugMode;
       });
+
+      // Reload site product counts when subscription status changes
+      _loadSiteProductCounts();
     } catch (e) {
       print('Error loading subscription status: $e');
     }
@@ -521,11 +526,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
             const SizedBox(height: 8),
-
-            // Subscription limits info
-            _buildSubscriptionLimitsInfo(),
-            const SizedBox(height: 16),
-
             // Server mode: Show available sites info
             Container(
               width: double.infinity,
@@ -1795,38 +1795,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  /// Build subscription limits information widget
-  Widget _buildSubscriptionLimitsInfo() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color:
-            _isPremium
-                ? (isDark
-                    ? Colors.green.shade800.withAlpha(120)
-                    : Colors.green.shade50)
-                : (isDark
-                    ? Colors.orange.shade800.withAlpha(120)
-                    : Colors.orange.shade50),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color:
-              _isPremium
-                  ? (isDark
-                      ? Colors.green.shade600.withAlpha(150)
-                      : Colors.green.shade200)
-                  : (isDark
-                      ? Colors.orange.shade600.withAlpha(150)
-                      : Colors.orange.shade200),
-        ),
-      ),
-    );
-  }
-
   /// Show upgrade dialog
   void _showUpgradeDialog() {
+    var isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1856,7 +1827,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
+                  color: isDark ? Colors.amber.shade50 : Colors.amber.shade800,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.amber.shade200),
                 ),
@@ -1864,10 +1835,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Icon(Icons.info, color: Colors.amber.shade700, size: 16),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Payment integration coming soon! Follow development for updates.',
-                        style: TextStyle(fontSize: 12),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color:
+                              isDark
+                                  ? Colors.grey.shade800.withAlpha(150)
+                                  : Colors.grey.shade50,
+                        ),
                       ),
                     ),
                   ],

@@ -41,6 +41,21 @@ service cloud.firestore {
       allow read: if request.auth != null && 
         resource.data.userId == request.auth.uid;
     }
+
+    // Allow authenticated users to persist per-user settings (e.g. trial state)
+    // Users may only read/write their own document under user_settings/{uid}
+    match /user_settings/{userId} {
+      // Read allowed only for the authenticated owner
+      allow get, list: if request.auth != null && request.auth.uid == userId;
+
+      // Create only allowed when the document's userId matches the requester
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.userId == request.auth.uid;
+
+      // Updates and deletes allowed only for the owner
+      allow update, delete: if request.auth != null && request.auth.uid == userId;
+    }
     
     // Deny all other access
     match /{document=**} {

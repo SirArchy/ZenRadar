@@ -1062,4 +1062,104 @@ class FirestoreService {
       return [];
     }
   }
+
+  /// Get user settings from Firestore (for trial persistence)
+  Future<Map<String, dynamic>?> getUserSettings() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        if (kDebugMode) {
+          print('No authenticated user for user settings');
+        }
+        return null;
+      }
+
+      final doc =
+          await firestore.collection('user_settings').doc(user.uid).get();
+
+      if (doc.exists) {
+        if (kDebugMode) {
+          print('✅ Loaded user settings from Firestore');
+        }
+        return doc.data();
+      } else {
+        if (kDebugMode) {
+          print('No user settings found in Firestore');
+        }
+        return null;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error loading user settings from Firestore: $e');
+      }
+      return null;
+    }
+  }
+
+  /// Save user settings to Firestore (for trial persistence)
+  Future<void> saveUserSettings(Map<String, dynamic> settings) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        if (kDebugMode) {
+          print('No authenticated user - cannot save user settings');
+        }
+        return;
+      }
+
+      // Add user ID and timestamp
+      final settingsWithMeta = {
+        ...settings,
+        'userId': user.uid,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      };
+
+      await firestore
+          .collection('user_settings')
+          .doc(user.uid)
+          .set(settingsWithMeta, SetOptions(merge: true));
+
+      if (kDebugMode) {
+        print('✅ Saved user settings to Firestore');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error saving user settings to Firestore: $e');
+      }
+      rethrow;
+    }
+  }
+
+  /// Update specific user setting fields in Firestore
+  Future<void> updateUserSettings(Map<String, dynamic> updates) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        if (kDebugMode) {
+          print('No authenticated user - cannot update user settings');
+        }
+        return;
+      }
+
+      // Add timestamp to updates
+      final updatesWithMeta = {
+        ...updates,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      };
+
+      await firestore
+          .collection('user_settings')
+          .doc(user.uid)
+          .update(updatesWithMeta);
+
+      if (kDebugMode) {
+        print('✅ Updated user settings in Firestore');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error updating user settings in Firestore: $e');
+      }
+      rethrow;
+    }
+  }
 }

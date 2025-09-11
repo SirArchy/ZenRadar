@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:zenradar/screens/onboarding_screen_new.dart';
 import '../services/settings_service.dart';
 import '../services/auth_service.dart';
+import '../services/subscription_service.dart';
 import 'main_screen.dart';
 import 'auth_screen.dart';
 
@@ -63,6 +64,15 @@ class _AppInitializerState extends State<AppInitializer> {
       setState(() {
         _loadingText = 'Almost ready...';
       });
+
+      // Sync trial status from Firestore if user is authenticated
+      try {
+        await SubscriptionService.instance
+            .isPremiumUser(); // This triggers sync
+      } catch (e) {
+        print('Warning: Could not sync trial status: $e');
+        // Continue with app initialization even if sync fails
+      }
 
       // Add small delay to prevent flash
       await Future.delayed(const Duration(milliseconds: 200));

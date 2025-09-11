@@ -28,6 +28,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _hasMoreData = true;
   final bool _isLoadingMore = false;
+  bool _isPremium = false;
 
   // Public method to refresh activities (can be called from parent)
   void refreshActivities() {
@@ -43,6 +44,8 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
 
   Future<void> _loadSettings() async {
     try {
+      // Load subscription status
+      _isPremium = await SubscriptionService.instance.isPremiumUser();
       setState(() {});
       await _loadActivities();
     } catch (e) {
@@ -416,22 +419,23 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          // Free mode notice
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(
-              'Free Mode: Showing last 24 scans',
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
-                fontWeight: FontWeight.w500,
+          // Free mode notice - only show for non-premium users
+          if (!_isPremium)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                'Free Mode: Showing last 24 scans',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

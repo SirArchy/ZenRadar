@@ -238,6 +238,33 @@ class _ProductDetailCardState extends State<ProductDetailCard> {
                             : _buildPlaceholderBackground(context),
                   ),
                 ),
+
+                // Out of Stock X overlay - center of image
+                if (!widget.product.isInStock && !widget.product.isDiscontinued)
+                  Center(
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.9),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 48,
+                        weight: 800,
+                      ),
+                    ),
+                  ),
+
                 // Favorite button - top left of image
                 if (widget.onFavoriteToggle != null)
                   Positioned(left: 12, top: 12, child: _buildFavoriteButton()),
@@ -267,7 +294,7 @@ class _ProductDetailCardState extends State<ProductDetailCard> {
                                     ? TextDecoration.lineThrough
                                     : null,
                           ),
-                          maxLines: 2,
+                          maxLines: 1, // Changed from 2 to 1 for ellipsis
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -277,42 +304,33 @@ class _ProductDetailCardState extends State<ProductDetailCard> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Site name
-                  Text(
-                    widget.product.siteName ?? widget.product.site,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Category badge
+                  // Category badge (moved up, right under name)
                   if (widget.product.category != null) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
+                        horizontal: 16, // Bigger padding
+                        vertical: 8, // Bigger padding
                       ),
                       decoration: BoxDecoration(
                         color: Theme.of(
                           context,
                         ).colorScheme.secondaryContainer.withValues(alpha: 0.7),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(
+                          20,
+                        ), // Bigger radius
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           CategoryIcon(
                             category: widget.product.category!,
-                            size: 16,
+                            size: 18, // Bigger icon
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 10),
                           Text(
                             widget.product.category!,
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 16, // Bigger text
                               fontWeight: FontWeight.w600,
                               color:
                                   Theme.of(
@@ -323,48 +341,23 @@ class _ProductDetailCardState extends State<ProductDetailCard> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                   ],
 
-                  // Stock status and price row
+                  // Site name (moved below category)
+                  Text(
+                    widget.product.siteName ?? widget.product.site,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12), // Reduced space
+                  // Price and Last Updated row
                   Row(
                     children: [
-                      // Stock status
-                      Icon(
-                        widget.product.isDiscontinued
-                            ? Icons.cancel
-                            : widget.product.isInStock
-                            ? Icons.check_circle
-                            : Icons.cancel,
-                        size: 18,
-                        color:
-                            widget.product.isDiscontinued
-                                ? Colors.grey
-                                : widget.product.isInStock
-                                ? Colors.green
-                                : Colors.red,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        widget.product.isDiscontinued
-                            ? 'Discontinued'
-                            : widget.product.isInStock
-                            ? 'In Stock'
-                            : 'Out of Stock',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color:
-                              widget.product.isDiscontinued
-                                  ? Colors.grey.shade600
-                                  : widget.product.isInStock
-                                  ? Colors.green.shade700
-                                  : Colors.red.shade700,
-                        ),
-                      ),
-                      const Spacer(),
-
-                      // Price
+                      // Price (left side)
                       if (widget.product.price != null) ...[
                         if (_isConvertingPrice)
                           const SizedBox(
@@ -373,30 +366,33 @@ class _ProductDetailCardState extends State<ProductDetailCard> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         else
-                          Text(
-                            _convertedPrice ?? widget.product.price!,
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
+                          Expanded(
+                            child: Text(
+                              _convertedPrice ?? widget.product.price!,
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                             ),
                           ),
                       ],
+
+                      // Last Updated (right side)
+                      if (!widget.hideLastChecked &&
+                          widget.product.price != null) ...[
+                        const SizedBox(width: 16),
+                        Text(
+                          _formatDateTime(widget.product.lastChecked),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
-
-                  // Last updated
-                  if (!widget.hideLastChecked) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      'Updated ${_formatDateTime(widget.product.lastChecked)}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
 
                   // Extra info
                   if (widget.extraInfo != null) ...[
@@ -451,6 +447,33 @@ class _ProductDetailCardState extends State<ProductDetailCard> {
                           : _buildPlaceholderBackground(context),
                 ),
               ),
+
+              // Out of Stock X overlay - center of image
+              if (!widget.product.isInStock && !widget.product.isDiscontinued)
+                Center(
+                  child: Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.9),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 42,
+                      weight: 800,
+                    ),
+                  ),
+                ),
+
               // Favorite button - top left
               if (widget.onFavoriteToggle != null)
                 Positioned(left: 12, top: 12, child: _buildFavoriteButton()),
@@ -478,47 +501,36 @@ class _ProductDetailCardState extends State<ProductDetailCard> {
                           ? TextDecoration.lineThrough
                           : null,
                 ),
-                maxLines: 2,
+                maxLines: 1, // Changed from 2 to 1 for ellipsis
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 8),
 
-              // Site name
-              Text(
-                widget.product.siteName ?? widget.product.site,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Category badge
+              // Category badge (moved up, right under name)
               if (widget.product.category != null) ...[
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
+                    horizontal: 12, // Bigger padding
+                    vertical: 6, // Bigger padding
                   ),
                   decoration: BoxDecoration(
                     color: Theme.of(
                       context,
                     ).colorScheme.secondaryContainer.withValues(alpha: 0.7),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(18), // Bigger radius
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       CategoryIcon(
                         category: widget.product.category!,
-                        size: 14,
+                        size: 16, // Bigger icon
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 8),
                       Text(
                         widget.product.category!,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 14, // Bigger text
                           fontWeight: FontWeight.w600,
                           color:
                               Theme.of(
@@ -532,51 +544,21 @@ class _ProductDetailCardState extends State<ProductDetailCard> {
                 const SizedBox(height: 12),
               ],
 
-              // Stock status
+              // Site name (moved below category)
+              Text(
+                widget.product.siteName ?? widget.product.site,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8), // Reduced space
+              // Price and Last Updated row
               Row(
                 children: [
-                  Icon(
-                    widget.product.isDiscontinued
-                        ? Icons.cancel
-                        : widget.product.isInStock
-                        ? Icons.check_circle
-                        : Icons.cancel,
-                    size: 16,
-                    color:
-                        widget.product.isDiscontinued
-                            ? Colors.grey
-                            : widget.product.isInStock
-                            ? Colors.green
-                            : Colors.red,
-                  ),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      widget.product.isDiscontinued
-                          ? 'Discontinued'
-                          : widget.product.isInStock
-                          ? 'In Stock'
-                          : 'Out of Stock',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color:
-                            widget.product.isDiscontinued
-                                ? Colors.grey.shade600
-                                : widget.product.isInStock
-                                ? Colors.green.shade700
-                                : Colors.red.shade700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              // Price
-              if (widget.product.price != null) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
+                  // Price (left side)
+                  if (widget.product.price != null) ...[
                     if (_isConvertingPrice)
                       const SizedBox(
                         width: 16,
@@ -584,30 +566,33 @@ class _ProductDetailCardState extends State<ProductDetailCard> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     else
-                      Text(
-                        _convertedPrice ?? widget.product.price!,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
+                      Expanded(
+                        child: Text(
+                          _convertedPrice ?? widget.product.price!,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                         ),
                       ),
                   ],
-                ),
-              ],
 
-              // Last updated
-              if (!widget.hideLastChecked) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Updated ${_formatDateTime(widget.product.lastChecked)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ],
+                  // Last Updated (right side)
+                  if (!widget.hideLastChecked &&
+                      widget.product.price != null) ...[
+                    const SizedBox(width: 12),
+                    Text(
+                      _formatDateTime(widget.product.lastChecked),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
 
               // Extra info
               if (widget.extraInfo != null) ...[
