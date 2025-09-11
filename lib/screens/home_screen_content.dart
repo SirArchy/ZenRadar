@@ -11,6 +11,7 @@ import '../services/recommendation_service.dart';
 import '../services/backend_service.dart';
 import '../services/settings_service.dart';
 import '../services/subscription_service.dart';
+import '../services/image_cache_manager.dart';
 import '../widgets/product_filters.dart';
 import '../widgets/mobile_filter_modal.dart';
 import '../widgets/matcha_icon.dart';
@@ -93,6 +94,11 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   void refreshProducts() {
     _loadProducts();
     _loadSettings(); // Reload settings to get updated currency preference
+
+    // Manage image cache size periodically
+    Future.microtask(() async {
+      await ImageCacheManager.instance.manageCacheSize();
+    });
   }
 
   // Helper to persist filter to shared_preferences
@@ -206,6 +212,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       await _loadFilterOptions();
       _loadSearchEnhancements();
       _checkTutorialStatus();
+
+      // Initialize image cache manager
+      await ImageCacheManager.instance.initialize();
     });
   }
 
@@ -658,6 +667,22 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
       // Apply sorting after loading products
       _applySorting();
+
+      // Preload images for the newly loaded products (in background)
+      Future.microtask(() async {
+        final imageUrls =
+            result.products
+                .where(
+                  (product) =>
+                      product.imageUrl != null && product.imageUrl!.isNotEmpty,
+                )
+                .map((product) => product.imageUrl!)
+                .toList();
+
+        if (imageUrls.isNotEmpty) {
+          await ImageCacheManager.instance.preloadVisibleProducts(imageUrls);
+        }
+      });
     } catch (e) {
       print('Error loading products: $e');
       setState(() {
@@ -1859,11 +1884,14 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   Widget _buildProductsList() {
     if (_isLoading) {
       return GridView.builder(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.75, // Adjust to control card height vs width
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount:
+              MediaQuery.of(context).size.width > 600
+                  ? 3
+                  : 2, // 3 columns on wide screens, 2 on narrow
+          childAspectRatio: 0.85, // Adjust to control card height vs width
+          crossAxisSpacing: 4,
+          mainAxisSpacing: 4,
         ),
         padding: const EdgeInsets.all(8),
         itemCount: 6, // Show 6 skeleton cards while loading
@@ -1895,7 +1923,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
             MediaQuery.of(context).size.width > 600
                 ? 3
                 : 2, // 3 columns on wide screens, 2 on narrow
-        childAspectRatio: 1, // Adjust to control card height vs width
+        childAspectRatio: 0.85, // Adjust to control card height vs width
         crossAxisSpacing: 4,
         mainAxisSpacing: 4,
       ),

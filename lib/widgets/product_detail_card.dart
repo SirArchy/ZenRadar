@@ -5,7 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/matcha_product.dart';
 import '../services/product_price_converter.dart';
 import 'category_icon.dart';
-import 'platform_image.dart';
+import 'enhanced_platform_image.dart';
 
 class ProductDetailCard extends StatefulWidget {
   final MatchaProduct product;

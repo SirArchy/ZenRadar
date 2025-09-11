@@ -7,6 +7,7 @@ import '../services/subscription_service.dart';
 import '../services/cache_service.dart';
 import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
+import '../services/image_cache_service.dart';
 import '../models/scan_activity.dart';
 
 class PreloadService {
@@ -105,6 +106,7 @@ class PreloadService {
         _preloadWebsiteAnalytics(isPremium),
         _preloadRecentActivity(isPremium),
         _preloadFastSummaries(),
+        _preloadProductImages(isPremium),
       ];
 
       // Wait for all to complete, but don't let one failure block others
@@ -217,6 +219,55 @@ class PreloadService {
       print('⚡ Fast summaries preload completed');
     } catch (e) {
       print('❌ Fast summaries preload failed: $e');
+      // Don't rethrow - let other preload tasks continue
+    }
+  }
+
+  /// Preload product images for faster loading
+  Future<void> _preloadProductImages(bool isPremium) async {
+    try {
+      print('🖼️ Preloading product images...');
+
+      final imageCache = ImageCacheService.instance;
+      final firestoreService = FirestoreService.instance;
+
+      // Get recent products with images
+      final limit = isPremium ? 100 : 50; // Limit based on subscription tier
+      final paginatedProducts = await firestoreService.getProductsPaginated(
+        page: 1,
+        itemsPerPage: limit,
+        sortBy: 'lastChecked',
+        sortAscending: false,
+      );
+      final products = paginatedProducts.products;
+
+      // Extract image URLs
+      final imageUrls =
+          products
+              .where(
+                (product) =>
+                    product.imageUrl != null && product.imageUrl!.isNotEmpty,
+              )
+              .map((product) => product.imageUrl!)
+              .toList();
+
+      if (imageUrls.isNotEmpty) {
+        print('📸 Found ${imageUrls.length} product images to preload');
+
+        // Preload images with concurrency control
+        await imageCache.preloadProductImages(
+          imageUrls,
+          maxConcurrent:
+              isPremium ? 5 : 3, // Premium users get higher concurrency
+          cacheDuration: const Duration(days: 7),
+        );
+
+        print('✓ Preloaded ${imageUrls.length} product images');
+      } else {
+        print('⚠️ No product images found to preload');
+      }
+    } catch (e) {
+      print('❌ Product image preload failed: $e');
       // Don't rethrow - let other preload tasks continue
     }
   }
@@ -352,6 +403,21 @@ class PreloadService {
 
     // Clear relevant caches
     await CacheService.clearCache('recent_activities_preload');
+
+    // Clear image cache if needed
+    try {
+      final imageCacheSize =
+          await ImageCacheService.instance.getCacheSizeInfo();
+      final totalSizeMB = double.parse(imageCacheSize['totalSizeMB'] as String);
+
+      // Clear image cache if it's getting too large (>100MB)
+      if (totalSizeMB > 100) {
+        print('🧹 Image cache is large (${totalSizeMB}MB), cleaning up...');
+        await ImageCacheService.instance.cleanupExpiredCache();
+      }
+    } catch (e) {
+      print('⚠️ Error checking image cache size: $e');
+    }
 
     // Restart preloading
     _hasCompletedInitialPreload = false;
