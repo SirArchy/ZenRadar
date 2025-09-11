@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -37,6 +39,10 @@ class _PlatformImageState extends State<PlatformImage> {
   void initState() {
     super.initState();
     _currentUrl = _processImageUrl(widget.imageUrl);
+
+    if (kDebugMode && widget.imageUrl != _currentUrl) {
+      print('🔍 URL Processing: ${widget.imageUrl} -> $_currentUrl');
+    }
   }
 
   String _processImageUrl(String url) {
@@ -67,41 +73,51 @@ class _PlatformImageState extends State<PlatformImage> {
     // Ensure Firebase Storage URLs use the correct format
     // Only process if it wasn't already fixed above
     else if (processedUrl.contains('storage.googleapis.com')) {
-      // Fix potential missing .firebasestorage.app in Firebase Storage URLs
-      final regex = RegExp(
-        r'storage\.googleapis\.com/([^/\.]+)(?!/[^/]*\.firebasestorage\.app)',
-      );
-      final newUrl = processedUrl.replaceAllMapped(regex, (match) {
-        final bucketName = match.group(1);
-        if (bucketName != null &&
-            !bucketName.contains('.firebasestorage.app')) {
-          return 'storage.googleapis.com/$bucketName.firebasestorage.app';
-        }
-        return match.group(0)!;
-      });
+      // Check if the URL already has the correct .firebasestorage.app format
+      // Look for pattern: storage.googleapis.com/bucket-name.firebasestorage.app/
+      if (!processedUrl.contains('.firebasestorage.app/')) {
+        // Fix potential missing .firebasestorage.app in Firebase Storage URLs
+        final regex = RegExp(r'storage\.googleapis\.com/([^/]+)/');
+        final match = regex.firstMatch(processedUrl);
 
-      if (newUrl != processedUrl) {
+        if (match != null) {
+          final bucketPart = match.group(1);
+          if (bucketPart != null &&
+              !bucketPart.endsWith('.firebasestorage.app')) {
+            final newUrl = processedUrl.replaceFirst(
+              'storage.googleapis.com/$bucketPart/',
+              'storage.googleapis.com/$bucketPart.firebasestorage.app/',
+            );
+
+            if (kDebugMode) {
+              print(
+                '🔧 Added .firebasestorage.app suffix: $processedUrl -> $newUrl',
+              );
+            }
+            processedUrl = newUrl;
+          }
+        }
+      } else {
         if (kDebugMode) {
           print(
-            '🔧 Added .firebasestorage.app suffix: $processedUrl -> $newUrl',
+            '✅ URL already has correct Firebase Storage format: $processedUrl',
           );
         }
-        processedUrl = newUrl;
       }
     }
 
-    return processedUrl;
-  }
-
-  void _retry() {
-    if (_retryCount < _maxRetries) {
-      setState(() {
-        _retryCount++;
-        // Add a cache-busting parameter to force retry
-        final processedUrl = _processImageUrl(widget.imageUrl);
-        _currentUrl = '$processedUrl?retry=$_retryCount';
-      });
+    // On web, try to use HTTPS if available
+    if (kIsWeb && processedUrl.startsWith('http://')) {
+      final httpsUrl = processedUrl.replaceFirst('http://', 'https://');
+      if (kDebugMode) {
+        print(
+          '🔒 Converting HTTP to HTTPS for web: $processedUrl -> $httpsUrl',
+        );
+      }
+      processedUrl = httpsUrl;
     }
+
+    return processedUrl;
   }
 
   @override
@@ -117,10 +133,12 @@ class _PlatformImageState extends State<PlatformImage> {
         headers:
             widget.httpHeaders ??
             {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET',
-              'User-Agent': 'Mozilla/5.0 (compatible; ZenRadar/1.0)',
+              'User-Agent':
+                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
               'Accept': 'image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+              'Accept-Language': 'en-US,en;q=0.9',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache',
             },
         loadingBuilder:
             widget.placeholder != null
@@ -135,7 +153,8 @@ class _PlatformImageState extends State<PlatformImage> {
                   // Enhanced error handling for web with CORS detection and retry
                   if (kDebugMode) {
                     if (error.toString().contains('CORS') ||
-                        error.toString().contains('statusCode: 0')) {
+                        error.toString().contains('statusCode: 0') ||
+                        error.toString().contains('Cross-Origin')) {
                       print(
                         '🖼️ Web image CORS error for ${widget.imageUrl}: Cross-origin request blocked. Retry attempt: $_retryCount',
                       );
@@ -144,6 +163,13 @@ class _PlatformImageState extends State<PlatformImage> {
                       print(
                         '🖼️ Web image encoding error for ${widget.imageUrl}: Image file appears to be corrupted or in unsupported format',
                       );
+                    } else if (error.toString().contains('404') ||
+                        error.toString().contains(
+                          'NetworkImageLoadException',
+                        )) {
+                      print(
+                        '🖼️ Web image load error for ${widget.imageUrl}: Image not found or network error',
+                      );
                     } else {
                       print(
                         '🖼️ Web image load error for ${widget.imageUrl}: $error',
@@ -151,12 +177,59 @@ class _PlatformImageState extends State<PlatformImage> {
                     }
                   }
 
-                  // Attempt retry for CORS issues
+                  // For CORS issues on web, try using a CORS proxy service
                   if ((error.toString().contains('CORS') ||
-                          error.toString().contains('statusCode: 0')) &&
+                          error.toString().contains('statusCode: 0') ||
+                          error.toString().contains('Cross-Origin')) &&
                       _retryCount < _maxRetries) {
-                    // Delay retry to allow CORS settings to propagate
-                    Future.delayed(const Duration(seconds: 2), _retry);
+                    // Try with a different approach based on retry count
+                    Future.delayed(const Duration(milliseconds: 500), () {
+                      if (mounted) {
+                        setState(() {
+                          _retryCount++;
+
+                          if (_retryCount == 1) {
+                            // First retry: Add cache busting parameter
+                            final timestamp =
+                                DateTime.now().millisecondsSinceEpoch;
+                            _currentUrl =
+                                '${_processImageUrl(widget.imageUrl)}?t=$timestamp';
+                            if (kDebugMode) {
+                              print(
+                                '🔄 Retry $_retryCount with cache busting: $_currentUrl',
+                              );
+                            }
+                          } else {
+                            // Second retry: Try removing any double domains that might still exist
+                            String fallbackUrl = _processImageUrl(
+                              widget.imageUrl,
+                            );
+                            // Extra safety check for double domains
+                            if (fallbackUrl.contains(
+                              '.firebasestorage.app.firebasestorage.app',
+                            )) {
+                              fallbackUrl = fallbackUrl.replaceAll(
+                                '.firebasestorage.app.firebasestorage.app',
+                                '.firebasestorage.app',
+                              );
+                            }
+                            final timestamp =
+                                DateTime.now().millisecondsSinceEpoch;
+                            _currentUrl =
+                                '$fallbackUrl?v=$_retryCount&t=$timestamp';
+                            if (kDebugMode) {
+                              print(
+                                '🔄 Retry $_retryCount with cleaned URL: $_currentUrl',
+                              );
+                            }
+                          }
+                        });
+                      }
+                    });
+
+                    // Return a loading indicator while retrying
+                    return widget.placeholder?.call(context, widget.imageUrl) ??
+                        const CircularProgressIndicator(strokeWidth: 2);
                   }
 
                   return widget.errorWidget!(context, widget.imageUrl, error);

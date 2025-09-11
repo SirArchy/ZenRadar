@@ -7,6 +7,9 @@ const { getStorage } = require('firebase-admin/storage');
 // Import specialized crawlers
 const HoriishichimeienSpecializedCrawler = require('./crawlers/horiishichimeien-crawler');
 const PoppateaSpecializedCrawler = require('./crawlers/poppatea-crawler');
+const YoshienSpecializedCrawler = require('./crawlers/yoshien-crawler');
+const NakamuraTokichiSpecializedCrawler = require('./crawlers/nakamura-tokichi-crawler');
+const EmeriSpecializedCrawler = require('./crawlers/emeri-crawler');
 
 /**
  * Cloud-based crawler service for matcha websites
@@ -23,6 +26,9 @@ class CrawlerService {
     // Initialize specialized crawlers
     this.horiishichimeienCrawler = new HoriishichimeienSpecializedCrawler(logger);
     this.poppateaCrawler = new PoppateaSpecializedCrawler(logger);
+    this.yoshienCrawler = new YoshienSpecializedCrawler(logger);
+    this.nakamuraTokichiCrawler = new NakamuraTokichiSpecializedCrawler(logger);
+    this.emeriCrawler = new EmeriSpecializedCrawler(logger);
     
     // Site configurations - complete list matching Flutter app
     this.siteConfigs = {
@@ -320,6 +326,87 @@ class CrawlerService {
         
         const duration = Date.now() - startTime;
         this.logger.info('Poppatea specialized crawl completed', {
+          site: siteKey,
+          productsFound: crawlResult.products.length,
+          stockUpdates,
+          duration: `${duration}ms`
+        });
+        
+        return {
+          site: siteKey,
+          products: crawlResult.products,
+          stockUpdates,
+          duration,
+          timestamp: new Date().toISOString()
+        };
+      }
+
+      if (siteKey === 'yoshien') {
+        this.logger.info('Using Yoshien specialized crawler');
+        const crawlResult = await this.yoshienCrawler.crawl(config.categoryUrl, config);
+        
+        let stockUpdates = 0;
+        for (const product of crawlResult.products) {
+          const wasUpdated = await this.saveProduct(product);
+          if (wasUpdated) stockUpdates++;
+        }
+        
+        const duration = Date.now() - startTime;
+        this.logger.info('Yoshien specialized crawl completed', {
+          site: siteKey,
+          productsFound: crawlResult.products.length,
+          stockUpdates,
+          duration: `${duration}ms`
+        });
+        
+        return {
+          site: siteKey,
+          products: crawlResult.products,
+          stockUpdates,
+          duration,
+          timestamp: new Date().toISOString()
+        };
+      }
+
+      if (siteKey === 'tokichi') {
+        this.logger.info('Using Nakamura Tokichi specialized crawler');
+        const crawlResult = await this.nakamuraTokichiCrawler.crawl(config.categoryUrl, config);
+        
+        let stockUpdates = 0;
+        for (const product of crawlResult.products) {
+          const wasUpdated = await this.saveProduct(product);
+          if (wasUpdated) stockUpdates++;
+        }
+        
+        const duration = Date.now() - startTime;
+        this.logger.info('Nakamura Tokichi specialized crawl completed', {
+          site: siteKey,
+          productsFound: crawlResult.products.length,
+          stockUpdates,
+          duration: `${duration}ms`
+        });
+        
+        return {
+          site: siteKey,
+          products: crawlResult.products,
+          stockUpdates,
+          duration,
+          timestamp: new Date().toISOString()
+        };
+      }
+
+      if (siteKey === 'enjoyemeri') {
+        this.logger.info('Using Emeri specialized crawler');
+        const crawlResult = await this.emeriCrawler.crawl(config.categoryUrl, config);
+        
+        let stockUpdates = 0;
+        for (const product of crawlResult.products) {
+          const wasUpdated = await this.saveProduct(product);
+          if (wasUpdated) stockUpdates++;
+        }
+        
+        const duration = Date.now() - startTime;
+        this.logger.info('Emeri specialized crawl completed', {
           site: siteKey,
           productsFound: crawlResult.products.length,
           stockUpdates,

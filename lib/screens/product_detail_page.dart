@@ -13,7 +13,7 @@ import '../services/backend_service.dart';
 import '../services/subscription_service.dart';
 import '../widgets/improved_price_chart.dart';
 import '../widgets/improved_stock_chart.dart';
-import '../widgets/product_card.dart';
+import '../widgets/product_detail_card.dart';
 import 'subscription_upgrade_screen.dart';
 
 class ProductDetailPage extends StatefulWidget {
@@ -471,52 +471,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Widget _buildProductHeader() {
-    return Stack(
-      children: [
-        ProductCard(
-          product: widget.product,
-          onTap: () => _launchUrl(widget.product.url),
-          preferredCurrency: _selectedCurrency,
-          isFavorite: _isFavorite,
-          onFavoriteToggle: _toggleFavorite,
-          hideLastChecked:
-              true, // Hide last checked to prevent overlap with open URL button
-        ),
-        // Overlay the open URL button in the bottom right corner
-        Positioned(
-          right: 16,
-          bottom: 28, // Position to replace the "last checked" section
-          child: _buildOpenUrlButton(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildOpenUrlButton() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: InkWell(
-        onTap: () => _launchUrl(widget.product.url),
-        borderRadius: BorderRadius.circular(24),
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Icon(
-            Icons.open_in_new,
-            color: Theme.of(context).colorScheme.primary,
-            size: 20,
-          ),
-        ),
-      ),
+    return ProductDetailCard(
+      product: widget.product,
+      onTap: () => _launchUrl(widget.product.url),
+      preferredCurrency: _selectedCurrency,
+      isFavorite: _isFavorite,
+      onFavoriteToggle: _toggleFavorite,
+      hideLastChecked: false,
     );
   }
 

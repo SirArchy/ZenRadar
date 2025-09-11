@@ -12,7 +12,6 @@ import '../services/theme_service.dart';
 import '../services/favorite_notification_service.dart';
 import '../services/notification_service.dart';
 import '../services/subscription_service.dart';
-import '../services/payment_service.dart';
 import '../widgets/matcha_icon.dart';
 import 'auth_screen.dart';
 import 'subscription_upgrade_screen.dart';
@@ -103,7 +102,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       setState(() {
         _currentTier = tier;
-        _isPremium = isPremium;
+        _isPremium =
+            isPremium || debugMode; // Include debug mode in premium status
         _debugPremiumMode = debugMode;
       });
     } catch (e) {
@@ -1378,11 +1378,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // Override the subscription service for debug purposes
       await SubscriptionService.instance.setDebugPremiumMode(enabled);
 
-      if (mounted) {
-        setState(() {
-          _isPremium = enabled;
-        });
+      // Reload subscription status to get updated values
+      await _loadSubscriptionStatus();
 
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -1549,6 +1548,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// Build subscription settings card
   Widget _buildSubscriptionCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final effectiveTier = _isPremium ? SubscriptionTier.premium : _currentTier;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -1572,11 +1574,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _isPremium ? Colors.amber.shade50 : Colors.grey.shade50,
+                color:
+                    _isPremium
+                        ? (isDark
+                            ? Colors.amber.shade900.withAlpha(100)
+                            : Colors.amber.shade50)
+                        : (isDark
+                            ? Colors.grey.shade800.withAlpha(150)
+                            : Colors.grey.shade50),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color:
-                      _isPremium ? Colors.amber.shade200 : Colors.grey.shade200,
+                      _isPremium
+                          ? (isDark
+                              ? Colors.amber.shade600.withAlpha(150)
+                              : Colors.amber.shade200)
+                          : (isDark
+                              ? Colors.grey.shade600.withAlpha(150)
+                              : Colors.grey.shade200),
                 ),
               ),
               child: Column(
@@ -1588,19 +1603,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _isPremium ? Icons.star : Icons.person,
                         color:
                             _isPremium
-                                ? Colors.amber.shade700
-                                : Colors.grey.shade600,
+                                ? (isDark
+                                    ? Colors.amber.shade300
+                                    : Colors.amber.shade700)
+                                : (isDark
+                                    ? Colors.grey.shade400
+                                    : Colors.grey.shade600),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        '${_currentTier.displayName} Plan',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color:
-                              _isPremium
-                                  ? Colors.amber.shade800
-                                  : Colors.grey.shade700,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Text(
+                              '${effectiveTier.displayName} Plan',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color:
+                                    _isPremium
+                                        ? (isDark
+                                            ? Colors.amber.shade200
+                                            : Colors.amber.shade800)
+                                        : (isDark
+                                            ? Colors.grey.shade300
+                                            : Colors.grey.shade700),
+                              ),
+                            ),
+                            if (_debugPremiumMode) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.shade800.withAlpha(200),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'DEBUG',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ],
@@ -1619,8 +1669,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         icon: const Icon(Icons.upgrade),
                         label: const Text('Upgrade to Premium'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.amber,
-                          foregroundColor: Colors.amber.shade900,
+                          backgroundColor:
+                              isDark ? Colors.amber.shade700 : Colors.amber,
+                          foregroundColor:
+                              isDark ? Colors.white : Colors.amber.shade900,
                         ),
                       ),
                     ),
@@ -1628,10 +1680,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-
-            // Check frequency settings
-            const SizedBox(height: 16),
-            _buildCheckFrequencySettings(),
           ],
         ),
       ),
@@ -1668,6 +1716,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// Build individual feature row
   Widget _buildFeatureRow(String feature, String value, bool isPremium) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -1675,97 +1725,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Icon(
             isPremium ? Icons.check_circle : Icons.info,
             size: 16,
-            color: isPremium ? Colors.green : Colors.orange,
+            color:
+                isPremium
+                    ? (isDark ? Colors.green.shade300 : Colors.green)
+                    : (isDark ? Colors.orange.shade300 : Colors.orange),
           ),
           const SizedBox(width: 8),
           Text(feature, style: const TextStyle(fontWeight: FontWeight.w500)),
           const Spacer(),
           Text(
             value,
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+            style: TextStyle(
+              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+              fontSize: 13,
+            ),
           ),
         ],
       ),
     );
   }
 
-  /// Build check frequency settings
-  Widget _buildCheckFrequencySettings() {
-    final minFrequencyHours = _currentTier.minCheckFrequencyMinutes ~/ 60;
-    final currentFrequencyHours = _userSettings.checkFrequencyMinutes ~/ 60;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Check Frequency',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey.shade700,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    'Current: Every $currentFrequencyHours hours',
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  const Spacer(),
-                  if (!_isPremium && currentFrequencyHours < minFrequencyHours)
-                    Icon(
-                      Icons.warning,
-                      size: 16,
-                      color: Colors.orange.shade700,
-                    ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _isPremium
-                    ? 'Premium: Check as frequently as every hour'
-                    : 'Free: Minimum $minFrequencyHours hour intervals',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-              ),
-              if (!_isPremium) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Upgrade to Premium for hourly checks',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.orange.shade700,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   /// Build tier badge showing current subscription status
   Widget _buildTierBadge() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final effectiveTier = _isPremium ? SubscriptionTier.premium : _currentTier;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: _isPremium ? Colors.amber : Colors.grey.shade300,
+        color:
+            _isPremium
+                ? (isDark ? Colors.amber.shade700.withAlpha(180) : Colors.amber)
+                : (isDark
+                    ? Colors.grey.shade600.withAlpha(150)
+                    : Colors.grey.shade300),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _isPremium ? Colors.amber.shade700 : Colors.grey.shade500,
+          color:
+              _isPremium
+                  ? (isDark ? Colors.amber.shade500 : Colors.amber.shade700)
+                  : (isDark ? Colors.grey.shade500 : Colors.grey.shade500),
         ),
       ),
       child: Row(
@@ -1774,15 +1773,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Icon(
             _isPremium ? Icons.star : Icons.person,
             size: 16,
-            color: _isPremium ? Colors.amber.shade800 : Colors.grey.shade600,
+            color:
+                _isPremium
+                    ? (isDark ? Colors.amber.shade200 : Colors.amber.shade900)
+                    : (isDark ? Colors.grey.shade300 : Colors.grey.shade600),
           ),
           const SizedBox(width: 4),
           Text(
-            _currentTier.displayName,
+            effectiveTier.displayName,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: _isPremium ? Colors.amber.shade800 : Colors.grey.shade600,
+              color:
+                  _isPremium
+                      ? (isDark ? Colors.amber.shade100 : Colors.amber.shade900)
+                      : (isDark ? Colors.grey.shade300 : Colors.grey.shade600),
             ),
           ),
         ],
@@ -1792,8 +1797,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// Build subscription limits information widget
   Widget _buildSubscriptionLimitsInfo() {
-    final unlockedSitesAmount = _currentTier.maxVendors;
-    final enabledSitesCount = _userSettings.enabledSites.length;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -1802,111 +1805,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
         color:
             _isPremium
                 ? (isDark
-                    ? Colors.green.shade900.withAlpha(75)
+                    ? Colors.green.shade800.withAlpha(120)
                     : Colors.green.shade50)
                 : (isDark
-                    ? Colors.orange.shade900.withAlpha(75)
+                    ? Colors.orange.shade800.withAlpha(120)
                     : Colors.orange.shade50),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color:
               _isPremium
-                  ? (isDark ? Colors.green.shade700 : Colors.green.shade200)
-                  : (isDark ? Colors.orange.shade700 : Colors.orange.shade200),
+                  ? (isDark
+                      ? Colors.green.shade600.withAlpha(150)
+                      : Colors.green.shade200)
+                  : (isDark
+                      ? Colors.orange.shade600.withAlpha(150)
+                      : Colors.orange.shade200),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                _isPremium ? Icons.check_circle : Icons.info,
-                size: 16,
-                color:
-                    _isPremium
-                        ? (isDark
-                            ? Colors.green.shade400
-                            : Colors.green.shade700)
-                        : (isDark
-                            ? Colors.orange.shade400
-                            : Colors.orange.shade700),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                _isPremium
-                    ? 'Premium - Unlimited Sites'
-                    : 'Free Tier - Limited Sites',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color:
-                      _isPremium
-                          ? (isDark
-                              ? Colors.green.shade300
-                              : Colors.green.shade700)
-                          : (isDark
-                              ? Colors.orange.shade300
-                              : Colors.orange.shade700),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          if (!_isPremium) ...[
-            Text(
-              'Sites enabled: $unlockedSitesAmount / $enabledSitesCount',
-              style: TextStyle(
-                color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(height: 4),
-          ],
-          Text(
-            _isPremium
-                ? 'Monitor all supported matcha websites simultaneously'
-                : 'Upgrade to Premium to monitor all sites',
-            style: TextStyle(
-              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-              fontSize: 12,
-            ),
-          ),
-          if (!_isPremium) ...[
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: _showUpgradeDialog,
-                style: TextButton.styleFrom(
-                  backgroundColor:
-                      isDark
-                          ? Colors.orange.shade800.withAlpha(75)
-                          : Colors.orange.shade100,
-                  foregroundColor:
-                      isDark ? Colors.orange.shade300 : Colors.orange.shade800,
-                ),
-                child: const Text('Upgrade to Premium'),
-              ),
-            ),
-          ] else ...[
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: _manageSubscription,
-                style: TextButton.styleFrom(
-                  backgroundColor:
-                      isDark
-                          ? Colors.green.shade800.withAlpha(75)
-                          : Colors.green.shade100,
-                  foregroundColor:
-                      isDark ? Colors.green.shade300 : Colors.green.shade700,
-                ),
-                child: const Text('Manage Subscription'),
-              ),
-            ),
-          ],
-        ],
       ),
     );
   }
@@ -2016,23 +1930,5 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
-  }
-
-  /// Manage subscription through Stripe Customer Portal
-  Future<void> _manageSubscription() async {
-    try {
-      await PaymentService.instance.openSubscriptionManagement(
-        returnUrl: 'https://your-app.com/settings',
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error opening subscription management: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
   }
 }

@@ -68,10 +68,14 @@ class PoppateaSpecializedCrawler {
                 let productImage = null;
                 try {
                     // Extract all matching images and find the best one for this product
-                    const allImageMatches = [...html.matchAll(/<img[^>]+src="(https:\/\/poppatea\.com\/cdn\/shop\/files\/[^"]*\.jpg[^"]*)"[^>]*>/gi)];
+                    const allImageMatches = [...html.matchAll(/<img[^>]+src="((?:https:)?\/\/poppatea\.com\/cdn\/shop\/files\/[^"]*\.jpg[^"]*)"[^>]*>/gi)];
                     
                     for (const match of allImageMatches) {
-                        const imgUrl = match[1];
+                        let imgUrl = match[1];
+                        // Normalize protocol-relative URLs
+                        if (imgUrl.startsWith('//')) {
+                            imgUrl = 'https:' + imgUrl;
+                        }
                         const imgName = imgUrl.toLowerCase();
                         
                         // Match specific product images based on URL content

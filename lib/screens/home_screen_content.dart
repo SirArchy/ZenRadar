@@ -846,58 +846,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
             ),
           ),
           const SizedBox(width: 8),
-          Stack(
-            children: [
-              IconButton(
-                icon: Icon(
-                  _showFilters ? Icons.filter_alt : Icons.filter_alt_outlined,
-                  color:
-                      _showFilters
-                          ? Theme.of(context).colorScheme.primary
-                          : null,
-                ),
-                onPressed: () {
-                  final screenWidth = MediaQuery.of(context).size.width;
-                  final isMobile = screenWidth < 768;
-
-                  if (isMobile) {
-                    _showMobileFilterModal();
-                  } else {
-                    setState(() {
-                      _showFilters = !_showFilters;
-                      if (_showFilters) {
-                        _showSearchSuggestions = false;
-                        _searchFocusNode.unfocus();
-                      }
-                    });
-                  }
-                },
-              ),
-              if (_getActiveFilterCount() > 0)
-                Positioned(
-                  right: 6,
-                  top: 6,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.error,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 16,
-                      minHeight: 16,
-                    ),
-                    child: Text(
-                      '${_getActiveFilterCount()}',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onError,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
+          Stack(children: [
             ],
           ),
         ],
@@ -906,95 +855,197 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   }
 
   Widget _buildCollapsibleFilterSection() {
-    return Column(
-      children: [
-        // Header with toggle button - make entire row clickable
-        InkWell(
-          onTap: () {
-            setState(() {
-              _isFilterSectionExpanded = !_isFilterSectionExpanded;
-            });
-          },
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.tune,
-                  size: 20,
-                  color: Theme.of(context).colorScheme.onSurface.withAlpha(179),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Theme.of(
+              context,
+            ).colorScheme.surfaceContainer.withValues(alpha: 0.7),
+            Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header with toggle button - make entire row clickable
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _isFilterSectionExpanded = !_isFilterSectionExpanded;
+                });
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'Filters & Sort',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withAlpha(179),
-                  ),
-                ),
-                const Spacer(),
-                if (_getActiveFilterCount() > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withAlpha(51),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${_getActiveFilterCount()} active',
-                      style: TextStyle(
-                        fontSize: 12,
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.tune_rounded,
+                        size: 20,
                         color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                  ),
-                const SizedBox(width: 8),
-                AnimatedRotation(
-                  turns: _isFilterSectionExpanded ? 0.5 : 0,
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(
-                    Icons.expand_more,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withAlpha(179),
-                  ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Filters & Sort',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (_getActiveFilterCount() > 0)
+                      AnimatedScale(
+                        scale: _getActiveFilterCount() > 0 ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Theme.of(context).colorScheme.primary,
+                                Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.8),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.3),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.check_circle_rounded,
+                                size: 14,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${_getActiveFilterCount()} active',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color:
+                                      Theme.of(context).colorScheme.onPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 12),
+                    AnimatedRotation(
+                      turns: _isFilterSectionExpanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOutCubic,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.expand_more_rounded,
+                          color: Theme.of(context).colorScheme.onSurface,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
 
-        // Collapsible content
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          height: _isFilterSectionExpanded ? null : 0,
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 250),
-            opacity: _isFilterSectionExpanded ? 1.0 : 0.0,
+          // Collapsible content
+          AnimatedSize(
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOutCubic,
             child:
                 _isFilterSectionExpanded
                     ? Column(
                       children: [
-                        _buildStockStatusChips(),
-                        _buildSortingOptions(),
-                        _buildBulkActions(),
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 16),
+                          height: 1,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.transparent,
+                                Theme.of(
+                                  context,
+                                ).colorScheme.outline.withValues(alpha: 0.3),
+                                Colors.transparent,
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        AnimatedOpacity(
+                          duration: const Duration(milliseconds: 300),
+                          opacity: _isFilterSectionExpanded ? 1.0 : 0.0,
+                          child: Column(
+                            children: [
+                              _buildStockStatusChips(),
+                              _buildSortingOptions(),
+                              _buildAdvancedOptions(),
+                              _buildBulkActions(),
+                            ],
+                          ),
+                        ),
                       ],
                     )
                     : const SizedBox.shrink(),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1003,222 +1054,131 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     final isSmallScreen = screenWidth < 400;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  FilterChip(
-                    label: Text(
-                      'All',
-                      style: TextStyle(
-                        fontSize: isSmallScreen ? 12 : 14,
-                        color:
-                            Theme.of(context).brightness == Brightness.light
-                                ? Colors.black87
-                                : Colors.white,
-                      ),
-                    ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isSmallScreen ? 6 : 8,
-                      vertical: isSmallScreen ? 2 : 4,
-                    ),
-                    selected: _filter.inStock == null && !_filter.favoritesOnly,
-                    onSelected: (_) async {
-                      // Clear stock filter and favorites filter, keep other filters intact
-                      setState(() {
-                        _filter = _filter.copyWith(
-                          clearInStock: true,
-                          favoritesOnly: false,
-                        );
-                        _currentPage = 1;
-                        _hasMoreProducts = true;
-                      });
-                      await _saveFilterToPrefs(_filter);
-                      _loadProducts();
-                    },
-                    selectedColor:
-                        Theme.of(context).brightness == Brightness.light
-                            ? Colors.green.shade50
-                            : Colors.green.withAlpha((0.2 * 255).toInt()),
-                    checkmarkColor:
-                        Theme.of(context).brightness == Brightness.light
-                            ? Colors.green.shade600
-                            : Colors.green,
-                  ),
-                  const SizedBox(width: 8),
-                  FutureBuilder<int>(
-                    future: _getFavoriteCount(),
-                    builder: (context, snapshot) {
-                      final favoriteCount = snapshot.data ?? 0;
-                      final showCounter = !_isPremium && favoriteCount > 0;
-
-                      return FilterChip(
-                        label: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.favorite, size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Favorites',
-                              style: TextStyle(
-                                fontSize: isSmallScreen ? 12 : 14,
-                                color:
-                                    Theme.of(context).brightness ==
-                                            Brightness.light
-                                        ? Colors.black87
-                                        : Colors.white,
-                              ),
-                            ),
-                            if (showCounter) ...[
-                              const SizedBox(width: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color:
-                                      _filter.favoritesOnly
-                                          ? Colors.white.withAlpha(75)
-                                          : Theme.of(
-                                            context,
-                                          ).colorScheme.primary.withAlpha(50),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  '$favoriteCount/${_currentTier.maxFavorites}',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color:
-                                        _filter.favoritesOnly
-                                            ? Colors.white
-                                            : Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isSmallScreen ? 6 : 8,
-                          vertical: isSmallScreen ? 2 : 4,
-                        ),
-                        selected: _filter.favoritesOnly,
-                        onSelected: (isSelected) async {
-                          setState(() {
-                            _filter = _filter.copyWith(
-                              favoritesOnly: isSelected,
-                              // When favorites is selected, clear inStock filter to show both in/out of stock favorites
-                              inStock: isSelected ? null : _filter.inStock,
-                            );
-                            _currentPage = 1;
-                            _hasMoreProducts = true;
-                          });
-                          await _saveFilterToPrefs(_filter);
-                          _loadProducts();
-                        },
-                        selectedColor:
-                            Theme.of(context).brightness == Brightness.light
-                                ? Colors.pink.shade50
-                                : Colors.pink.withAlpha((0.2 * 255).toInt()),
-                        checkmarkColor:
-                            Theme.of(context).brightness == Brightness.light
-                                ? Colors.pink.shade600
-                                : Colors.pink,
-                      );
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  FilterChip(
-                    label: Text(
-                      'In Stock',
-                      style: TextStyle(
-                        fontSize: isSmallScreen ? 12 : 14,
-                        color:
-                            Theme.of(context).brightness == Brightness.light
-                                ? Colors.black87
-                                : Colors.white,
-                      ),
-                    ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isSmallScreen ? 6 : 8,
-                      vertical: isSmallScreen ? 2 : 4,
-                    ),
-                    selected: _filter.inStock == true,
-                    onSelected: (isSelected) async {
-                      setState(() {
-                        _filter = _filter.copyWith(
-                          inStock: isSelected ? true : null,
-                          clearInStock: !isSelected,
-                          // When stock filter is selected, clear favorites filter
-                          favoritesOnly:
-                              isSelected ? false : _filter.favoritesOnly,
-                        );
-                        _currentPage = 1;
-                        _hasMoreProducts = true;
-                      });
-                      await _saveFilterToPrefs(_filter);
-                      _loadProducts();
-                    },
-                    selectedColor:
-                        Theme.of(context).brightness == Brightness.light
-                            ? Colors.green.shade50
-                            : Colors.green.withAlpha((0.2 * 255).toInt()),
-                    checkmarkColor:
-                        Theme.of(context).brightness == Brightness.light
-                            ? Colors.green.shade600
-                            : Colors.green,
-                  ),
-                  const SizedBox(width: 8),
-                  FilterChip(
-                    label: Text(
-                      'Out of Stock',
-                      style: TextStyle(
-                        fontSize: isSmallScreen ? 12 : 14,
-                        color:
-                            Theme.of(context).brightness == Brightness.light
-                                ? Colors.black87
-                                : Colors.white,
-                      ),
-                    ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isSmallScreen ? 6 : 8,
-                      vertical: isSmallScreen ? 2 : 4,
-                    ),
-                    selected: _filter.inStock == false,
-                    onSelected: (isSelected) async {
-                      setState(() {
-                        _filter = _filter.copyWith(
-                          inStock: isSelected ? false : null,
-                          clearInStock: !isSelected,
-                          // When stock filter is selected, clear favorites filter
-                          favoritesOnly:
-                              isSelected ? false : _filter.favoritesOnly,
-                        );
-                        _currentPage = 1;
-                        _hasMoreProducts = true;
-                      });
-                      await _saveFilterToPrefs(_filter);
-                      _loadProducts();
-                    },
-                    selectedColor:
-                        Theme.of(context).brightness == Brightness.light
-                            ? Colors.red.shade50
-                            : Colors.red.withAlpha((0.2 * 255).toInt()),
-                    checkmarkColor:
-                        Theme.of(context).brightness == Brightness.light
-                            ? Colors.red.shade600
-                            : Colors.red,
-                  ),
-                ],
+          Row(
+            children: [
+              Icon(
+                Icons.inventory_2_rounded,
+                size: 16,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
+              const SizedBox(width: 6),
+              Text(
+                'Stock Status',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildEnhancedFilterChip(
+                  label: 'All Items',
+                  icon: Icons.apps_rounded,
+                  isSelected: _filter.inStock == null && !_filter.favoritesOnly,
+                  selectedColor: Colors.blue,
+                  onSelected: (_) async {
+                    setState(() {
+                      _filter = _filter.copyWith(
+                        clearInStock: true,
+                        favoritesOnly: false,
+                      );
+                      _currentPage = 1;
+                      _hasMoreProducts = true;
+                    });
+                    await _saveFilterToPrefs(_filter);
+                    _loadProducts();
+                  },
+                  isSmallScreen: isSmallScreen,
+                ),
+                const SizedBox(width: 10),
+                FutureBuilder<int>(
+                  future: _getFavoriteCount(),
+                  builder: (context, snapshot) {
+                    final favoriteCount = snapshot.data ?? 0;
+                    return _buildEnhancedFilterChip(
+                      label: 'Favorites',
+                      icon: Icons.favorite_rounded,
+                      isSelected: _filter.favoritesOnly,
+                      selectedColor: Colors.pink,
+                      badge:
+                          !_isPremium && favoriteCount > 0
+                              ? '$favoriteCount/${_currentTier.maxFavorites}'
+                              : null,
+                      onSelected: (isSelected) async {
+                        setState(() {
+                          _filter = _filter.copyWith(
+                            favoritesOnly: isSelected,
+                            inStock: isSelected ? null : _filter.inStock,
+                          );
+                          _currentPage = 1;
+                          _hasMoreProducts = true;
+                        });
+                        await _saveFilterToPrefs(_filter);
+                        _loadProducts();
+                      },
+                      isSmallScreen: isSmallScreen,
+                    );
+                  },
+                ),
+                const SizedBox(width: 10),
+                _buildEnhancedFilterChip(
+                  label: 'In Stock',
+                  icon: Icons.check_circle_rounded,
+                  isSelected: _filter.inStock == true,
+                  selectedColor: Colors.green,
+                  onSelected: (isSelected) async {
+                    setState(() {
+                      _filter = _filter.copyWith(
+                        inStock: isSelected ? true : null,
+                        clearInStock: !isSelected,
+                        favoritesOnly:
+                            isSelected ? false : _filter.favoritesOnly,
+                      );
+                      _currentPage = 1;
+                      _hasMoreProducts = true;
+                    });
+                    await _saveFilterToPrefs(_filter);
+                    _loadProducts();
+                  },
+                  isSmallScreen: isSmallScreen,
+                ),
+                const SizedBox(width: 10),
+                _buildEnhancedFilterChip(
+                  label: 'Out of Stock',
+                  icon: Icons.cancel_rounded,
+                  isSelected: _filter.inStock == false,
+                  selectedColor: Colors.red,
+                  onSelected: (isSelected) async {
+                    setState(() {
+                      _filter = _filter.copyWith(
+                        inStock: isSelected ? false : null,
+                        clearInStock: !isSelected,
+                        favoritesOnly:
+                            isSelected ? false : _filter.favoritesOnly,
+                      );
+                      _currentPage = 1;
+                      _hasMoreProducts = true;
+                    });
+                    await _saveFilterToPrefs(_filter);
+                    _loadProducts();
+                  },
+                  isSmallScreen: isSmallScreen,
+                ),
+              ],
             ),
           ),
         ],
@@ -1231,86 +1191,472 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     final isSmallScreen = screenWidth < 400;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.sort,
-            size: isSmallScreen ? 18 : 20,
-            color: Theme.of(context).colorScheme.onSurface.withAlpha(180),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'Sort by:',
-            style: TextStyle(
-              fontSize: isSmallScreen ? 12 : 14,
-              fontWeight: FontWeight.w500,
-              color: Theme.of(context).colorScheme.onSurface.withAlpha(180),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildSortChip('Name', 'name', isSmallScreen),
-                  const SizedBox(width: 8),
-                  _buildSortChip('Price', 'price', isSmallScreen),
-                  const SizedBox(width: 8),
-                  _buildSortChip('Category', 'category', isSmallScreen),
-                ],
+          Row(
+            children: [
+              Icon(
+                Icons.sort_rounded,
+                size: 16,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
-            ),
+              const SizedBox(width: 6),
+              Text(
+                'Sort Options',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+              const Spacer(),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _sortAscending = !_sortAscending;
+                    });
+                    _applySorting();
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outline.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AnimatedRotation(
+                          turns: _sortAscending ? 0 : 0.5,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOutCubic,
+                          child: Icon(
+                            Icons.arrow_upward_rounded,
+                            size: 16,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _sortAscending ? 'Asc' : 'Desc',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          IconButton(
-            onPressed: () {
-              setState(() {
-                _sortAscending = !_sortAscending;
-              });
-              _applySorting();
-            },
-            icon: Icon(
-              _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
-              size: isSmallScreen ? 18 : 20,
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildEnhancedSortChip(
+                  'Name',
+                  'name',
+                  Icons.text_fields_rounded,
+                  isSmallScreen,
+                ),
+                const SizedBox(width: 10),
+                _buildEnhancedSortChip(
+                  'Price',
+                  'price',
+                  Icons.euro_rounded,
+                  isSmallScreen,
+                ),
+                const SizedBox(width: 10),
+                _buildEnhancedSortChip(
+                  'Category',
+                  'category',
+                  Icons.category_rounded,
+                  isSmallScreen,
+                ),
+              ],
             ),
-            tooltip: _sortAscending ? 'Sort Ascending' : 'Sort Descending',
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSortChip(String label, String sortKey, bool isSmallScreen) {
-    final isSelected = _sortBy == sortKey;
+  Widget _buildAdvancedOptions() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 400;
 
-    return FilterChip(
-      label: Text(
-        label,
-        style: TextStyle(
-          fontSize: isSmallScreen ? 11 : 13,
-          color:
-              isSelected
-                  ? Theme.of(context).colorScheme.onPrimary
-                  : Theme.of(context).colorScheme.onSurface,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  final isMobile = screenWidth < 768;
+                  if (isMobile) {
+                    _showMobileFilterModal();
+                  } else {
+                    setState(() {
+                      _showFilters = !_showFilters;
+                      if (_showFilters) {
+                        _showSearchSuggestions = false;
+                        _searchFocusNode.unfocus();
+                      }
+                    });
+                  }
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOutCubic,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isSmallScreen ? 12 : 16,
+                    vertical: isSmallScreen ? 8 : 10,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient:
+                        _showFilters
+                            ? LinearGradient(
+                              colors: [
+                                Theme.of(context).colorScheme.primary,
+                                Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.8),
+                              ],
+                            )
+                            : null,
+                    color:
+                        !_showFilters
+                            ? Theme.of(context).colorScheme.surfaceContainerHigh
+                                .withValues(alpha: 0.7)
+                            : null,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color:
+                          _showFilters
+                              ? Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.3)
+                              : Theme.of(
+                                context,
+                              ).colorScheme.outline.withValues(alpha: 0.2),
+                      width: _showFilters ? 2 : 1,
+                    ),
+                    boxShadow:
+                        _showFilters
+                            ? [
+                              BoxShadow(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.25),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                            : [],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _showFilters
+                            ? Icons.filter_alt
+                            : Icons.filter_alt_outlined,
+                        size: isSmallScreen ? 16 : 18,
+                        color:
+                            _showFilters
+                                ? Colors.white
+                                : Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withAlpha(180),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Advanced Options',
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 13 : 15,
+                          fontWeight: FontWeight.w600,
+                          color:
+                              _showFilters
+                                  ? Colors.white
+                                  : Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnhancedFilterChip({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required Color selectedColor,
+    required ValueChanged<bool> onSelected,
+    required bool isSmallScreen,
+    String? badge,
+  }) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOutCubic,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => onSelected(!isSelected),
+          borderRadius: BorderRadius.circular(20),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOutCubic,
+            padding: EdgeInsets.symmetric(
+              horizontal: isSmallScreen ? 12 : 16,
+              vertical: isSmallScreen ? 8 : 10,
+            ),
+            decoration: BoxDecoration(
+              gradient:
+                  isSelected
+                      ? LinearGradient(
+                        colors: [
+                          selectedColor.withValues(alpha: 0.9),
+                          selectedColor.withValues(alpha: 0.7),
+                        ],
+                      )
+                      : null,
+              color:
+                  !isSelected
+                      ? Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.7)
+                      : null,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color:
+                    isSelected
+                        ? selectedColor.withValues(alpha: 0.3)
+                        : Theme.of(
+                          context,
+                        ).colorScheme.outline.withValues(alpha: 0.2),
+                width: isSelected ? 2 : 1,
+              ),
+              boxShadow:
+                  isSelected
+                      ? [
+                        BoxShadow(
+                          color: selectedColor.withValues(alpha: 0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                      : [],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color:
+                        isSelected
+                            ? Colors.white.withValues(alpha: 0.2)
+                            : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: isSmallScreen ? 14 : 16,
+                    color:
+                        isSelected
+                            ? Colors.white
+                            : Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 12 : 13,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    color:
+                        isSelected
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                if (badge != null) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color:
+                          isSelected
+                              ? Colors.white.withValues(alpha: 0.25)
+                              : selectedColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      badge,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? Colors.white : selectedColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
-      selected: isSelected,
-      onSelected: (selected) {
-        if (selected) {
-          setState(() {
-            _sortBy = sortKey;
-          });
-          _applySorting();
-        }
-      },
-      padding: EdgeInsets.symmetric(
-        horizontal: isSmallScreen ? 6 : 8,
-        vertical: isSmallScreen ? 2 : 4,
+    );
+  }
+
+  Widget _buildEnhancedSortChip(
+    String label,
+    String sortKey,
+    IconData icon,
+    bool isSmallScreen,
+  ) {
+    final isSelected = _sortBy == sortKey;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOutCubic,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              _sortBy = sortKey;
+            });
+            _applySorting();
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOutCubic,
+            padding: EdgeInsets.symmetric(
+              horizontal: isSmallScreen ? 12 : 16,
+              vertical: isSmallScreen ? 8 : 10,
+            ),
+            decoration: BoxDecoration(
+              gradient:
+                  isSelected
+                      ? LinearGradient(
+                        colors: [
+                          Theme.of(context).colorScheme.primary,
+                          Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.8),
+                        ],
+                      )
+                      : null,
+              color:
+                  !isSelected
+                      ? Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.7)
+                      : null,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color:
+                    isSelected
+                        ? Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.3)
+                        : Theme.of(
+                          context,
+                        ).colorScheme.outline.withValues(alpha: 0.2),
+                width: isSelected ? 2 : 1,
+              ),
+              boxShadow:
+                  isSelected
+                      ? [
+                        BoxShadow(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.25),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                      : [],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color:
+                        isSelected
+                            ? Colors.white.withValues(alpha: 0.2)
+                            : Colors.transparent,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: isSmallScreen ? 14 : 16,
+                    color:
+                        isSelected
+                            ? Colors.white
+                            : Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 11 : 13,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    color:
+                        isSelected
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      selectedColor: Theme.of(context).colorScheme.primary,
-      checkmarkColor: Theme.of(context).colorScheme.onPrimary,
     );
   }
 
@@ -1512,8 +1858,15 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
   Widget _buildProductsList() {
     if (_isLoading) {
-      return ListView.builder(
-        itemCount: 5,
+      return GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.75, // Adjust to control card height vs width
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+        ),
+        padding: const EdgeInsets.all(8),
+        itemCount: 6, // Show 6 skeleton cards while loading
         itemBuilder: (context, index) => const SkeletonProductCard(),
       );
     }
@@ -1535,9 +1888,20 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       );
     }
 
-    return ListView.builder(
+    return GridView.builder(
       controller: _scrollController,
-      itemCount: _products.length + (_isLoadingMore ? 3 : 0),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount:
+            MediaQuery.of(context).size.width > 600
+                ? 3
+                : 2, // 3 columns on wide screens, 2 on narrow
+        childAspectRatio: 0.75, // Adjust to control card height vs width
+        crossAxisSpacing: 4,
+        mainAxisSpacing: 4,
+      ),
+      padding: const EdgeInsets.all(8),
+      itemCount:
+          _products.length + (_isLoadingMore ? 4 : 0), // Show 4 loading cards
       itemBuilder: (context, index) {
         if (index >= _products.length) {
           return const SkeletonProductCard();

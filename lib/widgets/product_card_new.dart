@@ -263,192 +263,169 @@ class _ProductCardState extends State<ProductCard> {
                 ),
               ),
 
-              // Middle section: Details list (flexible height)
+              // Middle section: Details list (about 50% of height)
               Expanded(
                 flex: 3,
                 child: Padding(
-                  padding: const EdgeInsets.all(10.0),
+                  padding: const EdgeInsets.all(12.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Top details - flexible to take available space
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Product Name (bold, larger font)
-                            Text(
-                              widget.product.name,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onSurface,
-                                decoration:
-                                    widget.product.isDiscontinued
-                                        ? TextDecoration.lineThrough
-                                        : null,
-                                height: 1.1,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 3),
-
-                            // Product Website (smaller, link-style text)
-                            Text(
-                              widget.product.siteName ?? widget.product.site,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.w500,
-                                height: 1.1,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 3),
-
-                            // Product Category (badge style)
-                            if (widget.product.category != null) ...[
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .primaryContainer
-                                      .withValues(alpha: 0.7),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    CategoryIcon(
-                                      category: widget.product.category,
-                                      size: 10,
-                                    ),
-                                    const SizedBox(width: 3),
-                                    Flexible(
-                                      child: Text(
-                                        widget.product.category!,
-                                        style: TextStyle(
-                                          color:
-                                              Theme.of(
-                                                context,
-                                              ).colorScheme.onPrimaryContainer,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                            ],
-
-                            // Stock Status (with icons)
-                            Row(
-                              children: [
-                                Icon(
+                      // Top details
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Product Name (bold, larger font)
+                          Text(
+                            widget.product.name,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                              decoration:
                                   widget.product.isDiscontinued
-                                      ? Icons.not_interested
-                                      : widget.product.isInStock
-                                      ? Icons.check_circle
-                                      : Icons.cancel,
-                                  size: 10,
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+
+                          // Product Website (smaller, link-style text)
+                          Text(
+                            widget.product.siteName ?? widget.product.site,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+
+                          // Product Category (badge style)
+                          if (widget.product.category != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer
+                                    .withValues(alpha: 0.7),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CategoryIcon(
+                                    category: widget.product.category,
+                                    size: 12,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    widget.product.category!,
+                                    style: TextStyle(
+                                      color:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onPrimaryContainer,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          const SizedBox(height: 8),
+
+                          // Stock Status (with icons)
+                          Row(
+                            children: [
+                              Icon(
+                                widget.product.isDiscontinued
+                                    ? Icons.not_interested
+                                    : widget.product.isInStock
+                                    ? Icons.check_circle
+                                    : Icons.cancel,
+                                size: 14,
+                                color:
+                                    widget.product.isDiscontinued
+                                        ? Colors.grey
+                                        : widget.product.isInStock
+                                        ? Colors.green
+                                        : Colors.red,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                widget.product.isDiscontinued
+                                    ? 'Discontinued'
+                                    : widget.product.isInStock
+                                    ? 'In Stock'
+                                    : 'Out of Stock',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
                                   color:
                                       widget.product.isDiscontinued
                                           ? Colors.grey
                                           : widget.product.isInStock
-                                          ? Colors.green
-                                          : Colors.red,
+                                          ? Colors.green.shade700
+                                          : Colors.red.shade700,
                                 ),
-                                const SizedBox(width: 3),
-                                Flexible(
-                                  child: Text(
-                                    widget.product.isDiscontinued
-                                        ? 'Discontinued'
-                                        : widget.product.isInStock
-                                        ? 'In Stock'
-                                        : 'Out of Stock',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w500,
-                                      color:
-                                          widget.product.isDiscontinued
-                                              ? Colors.grey
-                                              : widget.product.isInStock
-                                              ? Colors.green.shade700
-                                              : Colors.red.shade700,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            // Last Updated - only show if there's space
-                            if (!widget.hideLastChecked) ...[
-                              const SizedBox(height: 1),
-                              Text(
-                                'Updated ${_formatDateTime(widget.product.lastChecked)}',
-                                style: TextStyle(
-                                  fontSize: 8,
-                                  color: Colors.grey.shade600,
-                                  fontWeight: FontWeight.w400,
-                                  height: 1.0,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 6),
+
+                          // Last Updated (smaller, gray text)
+                          if (!widget.hideLastChecked)
+                            Text(
+                              'Updated ${_formatDateTime(widget.product.lastChecked)}',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                        ],
                       ),
 
-                      // Bottom section: Price (always at bottom, fixed height)
+                      // Bottom section: Price (bold, larger font, left-aligned)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
                         children: [
                           if (widget.product.price != null)
                             Row(
                               children: [
                                 if (_isConvertingPrice)
                                   const SizedBox(
-                                    width: 14,
-                                    height: 14,
+                                    width: 16,
+                                    height: 16,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
                                     ),
                                   )
                                 else
-                                  Flexible(
-                                    child: Text(
-                                      _convertedPrice ?? widget.product.price!,
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold,
-                                        color:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                  Text(
+                                    _convertedPrice ?? widget.product.price!,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
                                     ),
                                   ),
                               ],
                             ),
 
                           if (widget.extraInfo != null) ...[
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 6),
                             widget.extraInfo!,
                           ],
                         ],

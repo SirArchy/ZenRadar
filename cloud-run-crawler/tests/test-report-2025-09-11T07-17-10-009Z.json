@@ -1,0 +1,19 @@
+{
+  "timestamp": "2025-09-11T07:17:10.083Z",
+  "summary": {
+    "total": 10,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0
+  },
+  "results": {
+    "passed": [
+      {
+        "file": "test_yoshien_crawler.js",
+        "duration": "1.51"
+      }
+    ],
+    "failed": [],
+    "skipped": []
+  }
+}

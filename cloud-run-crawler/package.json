@@ -4,10 +4,15 @@
   "description": "Cloud Run service for crawling matcha websites",
   "main": "src/index.js",
   "scripts": {
-  "start": "node --experimental-global-webcrypto src/index.js",
-  "dev": "nodemon --experimental-global-webcrypto src/index.js",
-  "test": "jest"
-},
+    "start": "node --experimental-global-webcrypto src/index.js",
+    "dev": "nodemon --experimental-global-webcrypto src/index.js",
+    "test": "jest",
+    "test:crawlers": "node test_all_crawlers.js",
+    "test:crawler": "node test_all_crawlers.js",
+    "test:yoshien": "node test_yoshien_crawler.js",
+    "test:emeri": "node test_emeri_crawler.js",
+    "test:list": "node test_all_crawlers.js --list"
+  },
   "dependencies": {
     "axios": "^1.6.2",
     "cheerio": "^1.0.0-rc.12",

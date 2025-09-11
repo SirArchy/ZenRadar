@@ -127,7 +127,7 @@ class _SkeletonLoadingState extends State<SkeletonLoading>
   }
 }
 
-/// Enhanced skeleton card for product cards with more realistic layout
+/// Enhanced skeleton card for product cards with grid layout design
 class SkeletonProductCard extends StatelessWidget {
   const SkeletonProductCard({super.key});
 
@@ -136,40 +136,54 @@ class SkeletonProductCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.all(8.0),
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Product image and main info
-            Row(
-              children: [
-                SkeletonLoading(
-                  isLoading: true,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: 70,
-                    height: 70,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Top section: Image placeholder (takes about 50% of height)
+          Expanded(
+            flex: 3,
+            child: SkeletonLoading(
+              isLoading: true,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHigh,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
+              ),
+            ),
+          ),
+
+          // Middle section: Details (takes about 50% of height)
+          Expanded(
+            flex: 3,
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Top details
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Product name
+                      // Product name (2 lines)
                       SkeletonLoading(
                         isLoading: true,
                         borderRadius: BorderRadius.circular(6),
                         child: Container(
-                          height: 18,
+                          height: 14,
                           width: double.infinity,
                           decoration: BoxDecoration(
                             color: theme.colorScheme.surfaceContainerHigh,
@@ -177,28 +191,73 @@ class SkeletonProductCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 4),
+                      SkeletonLoading(
+                        isLoading: true,
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          height: 14,
+                          width: 120,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHigh,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 8),
-                      // Product subtitle/brand
+
+                      // Website name
                       SkeletonLoading(
                         isLoading: true,
                         borderRadius: BorderRadius.circular(4),
                         child: Container(
-                          height: 14,
-                          width: 140,
+                          height: 12,
+                          width: 80,
                           decoration: BoxDecoration(
                             color: theme.colorScheme.surfaceContainerHigh,
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      // Price
+                      const SizedBox(height: 6),
+
+                      // Category badge
+                      SkeletonLoading(
+                        isLoading: true,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          height: 18,
+                          width: 60,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHigh,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+
+                      // Stock status
                       SkeletonLoading(
                         isLoading: true,
                         borderRadius: BorderRadius.circular(4),
                         child: Container(
-                          height: 16,
-                          width: 80,
+                          height: 11,
+                          width: 65,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHigh,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+
+                      // Last updated
+                      SkeletonLoading(
+                        isLoading: true,
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          height: 10,
+                          width: 90,
                           decoration: BoxDecoration(
                             color: theme.colorScheme.surfaceContainerHigh,
                             borderRadius: BorderRadius.circular(4),
@@ -207,78 +266,25 @@ class SkeletonProductCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
 
-            // Stock status and action buttons row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Stock status chip
-                SkeletonLoading(
-                  isLoading: true,
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    height: 28,
-                    width: 90,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(16),
+                  // Bottom: Price
+                  SkeletonLoading(
+                    isLoading: true,
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      height: 16,
+                      width: 70,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
                     ),
                   ),
-                ),
-                // Last update time
-                SkeletonLoading(
-                  isLoading: true,
-                  borderRadius: BorderRadius.circular(4),
-                  child: Container(
-                    height: 14,
-                    width: 70,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-
-            const SizedBox(height: 12),
-
-            // Category tags
-            Row(
-              children: [
-                SkeletonLoading(
-                  isLoading: true,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    height: 24,
-                    width: 60,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                SkeletonLoading(
-                  isLoading: true,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    height: 24,
-                    width: 45,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

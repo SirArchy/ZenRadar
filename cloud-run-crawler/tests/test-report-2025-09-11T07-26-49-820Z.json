@@ -1,0 +1,56 @@
+{
+  "timestamp": "2025-09-11T07:26:49.820Z",
+  "summary": {
+    "total": 10,
+    "passed": 9,
+    "failed": 0,
+    "skipped": 1
+  },
+  "results": {
+    "passed": [
+      {
+        "file": "test_emeri_crawler.js",
+        "duration": "1.33"
+      },
+      {
+        "file": "test_horiishichimeien_crawler.js",
+        "duration": "1.78"
+      },
+      {
+        "file": "test_ippodo_tea_crawler.js",
+        "duration": "1.30"
+      },
+      {
+        "file": "test_marukyu_koyamaen_crawler.js",
+        "duration": "2.27"
+      },
+      {
+        "file": "test_matcha_karu_crawler.js",
+        "duration": "0.59"
+      },
+      {
+        "file": "test_nakamura_tokichi_crawler.js",
+        "duration": "2.97"
+      },
+      {
+        "file": "test_poppatea_crawler.js",
+        "duration": "0.55"
+      },
+      {
+        "file": "test_sazentea_crawler.js",
+        "duration": "1.07"
+      },
+      {
+        "file": "test_sho_cha_crawler.js",
+        "duration": "25.00"
+      }
+    ],
+    "failed": [],
+    "skipped": [
+      {
+        "file": "test_yoshien_crawler.js",
+        "reason": "Test file not found"
+      }
+    ]
+  }
+}
