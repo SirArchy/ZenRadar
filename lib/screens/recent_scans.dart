@@ -481,6 +481,13 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     final isToday = DateTime.now().difference(activity.timestamp).inDays == 0;
     final timeFormat = isToday ? DateFormat('HH:mm') : dateFormat;
 
+    // Debug logging to verify activity data
+    print('🃏 Building activity card: ${activity.id}');
+    print('   - hasStockUpdates: ${activity.hasStockUpdates}');
+    print('   - itemsScanned: ${activity.itemsScanned}');
+    print('   - details: ${activity.details}');
+    print('   - crawlRequestId: ${activity.crawlRequestId}');
+
     return GestureDetector(
       onTap:
           activity.hasStockUpdates
@@ -987,16 +994,25 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     final hasStockUpdates = stockUpdates > 0;
     final requestId = crawlRequest['id'] ?? 'unknown';
 
-    print('🔄 Converting crawl request to ScanActivity:');
+    // More accurate status determination - if it has completedAt, it's completed
+    String actualStatus = status;
+    if (completedAt != null && status == 'running') {
+      actualStatus = 'completed';
+      print(
+        '� Status corrected from "running" to "completed" (has completedAt)',
+      );
+    }
+
+    print('�🔄 Converting crawl request to ScanActivity:');
     print('   - requestId: $requestId');
     print('   - hasStockUpdates: $hasStockUpdates');
     print('   - stockUpdates count: $stockUpdates');
     print('   - totalProducts: $totalProducts');
-    print('   - status: $status');
+    print('   - status: $status -> $actualStatus');
 
     // Build detailed status message based on actual data
     String details;
-    switch (status) {
+    switch (actualStatus) {
       case 'completed':
         details =
             'Scanned $totalProducts products across $sitesProcessed sites';

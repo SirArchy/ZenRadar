@@ -106,50 +106,55 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
 
               // Tab bar for Sign In / Sign Up
               Container(
+                padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: colorScheme.outline.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
                 ),
                 child: TabBar(
                   controller: _tabController,
                   indicator: BoxDecoration(
                     color: colorScheme.primary,
                     borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colorScheme.primary.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
+                  indicatorSize: TabBarIndicatorSize.tab,
                   labelColor: colorScheme.onPrimary,
                   unselectedLabelColor: colorScheme.onSurfaceVariant,
                   dividerColor: Colors.transparent,
-                  labelPadding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
+                  labelPadding: EdgeInsets.zero,
+                  indicatorPadding: EdgeInsets.zero,
                   tabs: [
                     Tab(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         child: const Text(
                           'Sign In',
                           style: TextStyle(
                             fontSize: 16,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
                     ),
                     Tab(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         child: const Text(
                           'Sign Up',
                           style: TextStyle(
                             fontSize: 16,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),

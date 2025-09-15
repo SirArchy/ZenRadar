@@ -32,11 +32,13 @@ class EmeriSpecializedCrawler {
     
     try {
       const targetUrl = categoryUrl || this.categoryUrl;
+      // Use default config if none provided
+      const crawlerConfig = config || this.getConfig();
       const response = await axios.get(targetUrl, this.requestConfig);
       const $ = cheerio.load(response.data);
 
       const products = [];
-      const productElements = $(config.productSelector || '.product-card');
+      const productElements = $(crawlerConfig.productSelector || '.product-card');
       
       this.logger.info('Found Emeri product containers', {
         count: productElements.length
@@ -54,7 +56,7 @@ class EmeriSpecializedCrawler {
 
           // Extract product URL
           let productUrl = null;
-          const linkElement = productElement.find(config.linkSelector || 'a');
+          const linkElement = productElement.find(crawlerConfig.linkSelector || 'a');
           if (linkElement.length) {
             const href = linkElement.attr('href');
             if (href) {
@@ -63,7 +65,7 @@ class EmeriSpecializedCrawler {
           }
 
           // Extract price
-          const priceElement = productElement.find(config.priceSelector || '.price');
+          const priceElement = productElement.find(crawlerConfig.priceSelector || '.price');
           const rawPrice = priceElement.text().trim();
           const price = this.cleanPrice(rawPrice);
 
@@ -74,7 +76,7 @@ class EmeriSpecializedCrawler {
           const productId = this.generateProductId(productUrl || targetUrl, name);
 
           // Extract image URL
-          const imageUrl = this.extractImageUrl(productElement, config);
+          const imageUrl = this.extractImageUrl(productElement, crawlerConfig);
 
           const product = {
             id: productId,

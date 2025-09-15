@@ -34,7 +34,12 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSubscriptionStatus();
+    _initializeScreen();
+  }
+
+  /// Initialize screen by loading subscription status first, then data
+  Future<void> _initializeScreen() async {
+    await _loadSubscriptionStatus();
     _loadProgressively();
   }
 
@@ -48,6 +53,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
           _selectedTimeRange = 'day';
         }
       });
+      print('🔐 Subscription status loaded: isPremium = $_isPremium');
     } catch (e) {
       print('Error loading subscription status: $e');
     }
@@ -127,6 +133,10 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
 
       // Filter analytics for free users
       List<WebsiteStockAnalytics> filteredAnalytics = analytics;
+      print(
+        '🔍 Filtering analytics: isPremium = $_isPremium, total sites = ${analytics.length}',
+      );
+
       if (!_isPremium) {
         final freeSites = [
           'ippodo',
@@ -139,6 +149,13 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
             analytics
                 .where((analytics) => freeSites.contains(analytics.siteKey))
                 .toList();
+        print(
+          '🆓 Free user - filtered to ${filteredAnalytics.length} sites: ${filteredAnalytics.map((a) => a.siteKey).toList()}',
+        );
+      } else {
+        print(
+          '💎 Premium user - showing all ${analytics.length} sites: ${analytics.map((a) => a.siteKey).toList()}',
+        );
       }
 
       setState(() {
@@ -209,6 +226,10 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
 
       // Filter analytics for free users
       List<WebsiteStockAnalytics> filteredAnalytics = analytics;
+      print(
+        '🔍 [FullAnalytics] Filtering analytics: isPremium = $_isPremium, total sites = ${analytics.length}',
+      );
+
       if (!_isPremium) {
         final freeSites = [
           'ippodo',
@@ -221,6 +242,13 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
             analytics
                 .where((analytics) => freeSites.contains(analytics.siteKey))
                 .toList();
+        print(
+          '🆓 [FullAnalytics] Free user - filtered to ${filteredAnalytics.length} sites',
+        );
+      } else {
+        print(
+          '💎 [FullAnalytics] Premium user - showing all ${analytics.length} sites',
+        );
       }
 
       setState(() {

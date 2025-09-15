@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_print, use_build_context_synchronously
 
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -82,6 +83,18 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
   // Collapsible filter section state
   bool _isFilterSectionExpanded = true;
+  bool _showFilterSection = true; // Controls visibility based on scroll
+
+  // Animation controllers for filter section
+  late AnimationController _filterAnimationController;
+  late AnimationController _filterSlideController;
+  late Animation<double> _filterOpacityAnimation;
+  late Animation<Offset> _filterSlideAnimation;
+
+  // Scroll detection for auto-hiding filters
+  double _lastScrollPosition = 0.0;
+  bool _isScrollingDown = false;
+  Timer? _hideFilterTimer;
 
   // Tutorial state
   bool _showTutorialOverlay = false;
@@ -172,6 +185,39 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
     // Register this instance
     HomeScreenContent._currentInstance = this;
+
+    // Initialize animation controllers for filter section
+    _filterAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _filterSlideController = AnimationController(
+      duration: const Duration(milliseconds: 250),
+      vsync: this,
+    );
+
+    // Set up animations
+    _filterOpacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _filterAnimationController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    _filterSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, -0.3),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _filterSlideController,
+        curve: Curves.easeOutBack,
+      ),
+    );
+
+    // Start animations
+    _filterAnimationController.forward();
+    _filterSlideController.forward();
 
     // Listen to subscription service changes
     SubscriptionService.instance.addListener(_onSubscriptionChanged);
@@ -373,6 +419,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   }
 
   @override
+  @override
   void dispose() {
     // Unregister this instance
     if (HomeScreenContent._currentInstance == this) {
@@ -381,6 +428,13 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
     // Remove subscription service listener
     SubscriptionService.instance.removeListener(_onSubscriptionChanged);
+
+    // Cancel any pending timers
+    _hideFilterTimer?.cancel();
+
+    // Dispose animation controllers
+    _filterAnimationController.dispose();
+    _filterSlideController.dispose();
 
     _searchController.dispose();
     _searchFocusNode.dispose();
@@ -431,7 +485,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
       if (!result.success) {
         // Handle subscription limit or other errors
-        if (result.limitReached && result.validationResult != null) {
+        if (result.limitReached &&
+            result.validationResult != null &&
+            !_isPremium) {
           _showUpgradeDialog(result.validationResult!);
         } else {
           _showErrorSnackBar(result.error ?? 'Failed to update favorite');
@@ -694,9 +750,102 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
   // Scroll listener for endless loading
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent * 0.8) {
+    final currentPosition = _scrollController.position.pixels;
+    final maxExtent = _scrollController.position.maxScrollExtent;
+
+    // Load more products when near the bottom
+    if (currentPosition >= maxExtent * 0.8) {
       _loadProducts(loadMore: true);
+    }
+
+    // Close search suggestions and filter section when scrolling
+    bool needsUpdate = false;
+
+    // Close search suggestions when scrolling
+    if (_showSearchSuggestions) {
+      setState(() {
+        _showSearchSuggestions = false;
+      });
+      _searchFocusNode.unfocus();
+      needsUpdate = true;
+    }
+
+    // Close filter section when scrolling down significantly
+    if (_isFilterSectionExpanded && currentPosition > 100) {
+      setState(() {
+        _isFilterSectionExpanded = false;
+      });
+      needsUpdate = true;
+    }
+
+    // If we already updated state, don't continue with animation logic
+    if (needsUpdate) {
+      _lastScrollPosition = currentPosition;
+      return;
+    }
+
+    // Cancel any pending hide timer
+    _hideFilterTimer?.cancel();
+
+    // Detect scroll direction and auto-hide/show filter section
+    if (currentPosition > _lastScrollPosition && currentPosition > 150) {
+      // Scrolling down - hide filter section with delay
+      if (!_isScrollingDown) {
+        _isScrollingDown = true;
+        _hideFilterTimer = Timer(const Duration(milliseconds: 500), () {
+          _hideFilterSection();
+        });
+      }
+    } else if (currentPosition < _lastScrollPosition) {
+      // Scrolling up - show filter section immediately
+      if (_isScrollingDown) {
+        _isScrollingDown = false;
+        _showFilterSectionAnimated();
+      }
+    }
+
+    _lastScrollPosition = currentPosition;
+  }
+
+  void _hideFilterSection() {
+    if (!_showFilterSection) return;
+
+    setState(() {
+      _showFilterSection = false;
+    });
+
+    _filterAnimationController.reverse();
+    _filterSlideController.reverse();
+  }
+
+  void _showFilterSectionAnimated() {
+    if (_showFilterSection && _isFilterSectionExpanded) return;
+
+    setState(() {
+      _showFilterSection = true;
+    });
+
+    _filterAnimationController.forward();
+    _filterSlideController.forward();
+  }
+
+  void _toggleFilterSection() {
+    setState(() {
+      _isFilterSectionExpanded = !_isFilterSectionExpanded;
+      // Dismiss search suggestions when opening filters
+      if (_isFilterSectionExpanded) {
+        _showSearchSuggestions = false;
+        _searchFocusNode.unfocus();
+        _showFilterSection = true;
+      }
+    });
+
+    if (_isFilterSectionExpanded) {
+      _filterAnimationController.forward();
+      _filterSlideController.forward();
+    } else {
+      _filterAnimationController.reverse();
+      _filterSlideController.reverse();
     }
   }
 
@@ -729,25 +878,61 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      isDismissible: true, // Allow dismissal by tapping outside
+      enableDrag: true, // Allow dragging to dismiss
       builder:
-          (context) => DraggableScrollableSheet(
-            initialChildSize: 0.8,
-            minChildSize: 0.5,
-            maxChildSize: 0.95,
-            builder:
-                (context, scrollController) => MobileFilterModal(
-                  filter: _filter,
-                  availableSites: _availableSites,
-                  availableCategories: _availableCategories,
-                  priceRange: _priceRange,
-                  onFilterChanged: (newFilter) {
-                    setState(() {
-                      _showSearchSuggestions = false;
-                    });
-                    _onFilterChanged(newFilter);
-                  },
-                  onClose: () => Navigator.of(context).pop(),
+          (context) => GestureDetector(
+            onTap:
+                () =>
+                    Navigator.of(context).pop(), // Dismiss when tapping outside
+            child: Container(
+              color: Colors.transparent,
+              child: GestureDetector(
+                onTap: () {}, // Prevent dismissal when tapping inside the modal
+                child: DraggableScrollableSheet(
+                  initialChildSize: 0.8,
+                  minChildSize: 0.5,
+                  maxChildSize: 0.95,
+                  builder:
+                      (context, scrollController) =>
+                          NotificationListener<ScrollNotification>(
+                            onNotification: (ScrollNotification notification) {
+                              // Auto-dismiss after significant scrolling
+                              if (notification is ScrollEndNotification) {
+                                final scrollExtent =
+                                    notification.metrics.extentAfter +
+                                    notification.metrics.extentBefore;
+                                if (scrollExtent > 200) {
+                                  // If scrolled more than 200 pixels
+                                  Future.delayed(
+                                    const Duration(milliseconds: 1500),
+                                    () {
+                                      if (Navigator.of(context).canPop()) {
+                                        Navigator.of(context).pop();
+                                      }
+                                    },
+                                  );
+                                }
+                              }
+                              return false;
+                            },
+                            child: MobileFilterModal(
+                              filter: _filter,
+                              availableSites: _availableSites,
+                              availableCategories: _availableCategories,
+                              priceRange: _priceRange,
+                              onFilterChanged: (newFilter) {
+                                setState(() {
+                                  _showSearchSuggestions = false;
+                                });
+                                _onFilterChanged(newFilter);
+                              },
+                              onClose: () => Navigator.of(context).pop(),
+                            ),
+                          ),
                 ),
+              ),
+            ),
           ),
     );
   }
@@ -787,287 +972,247 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Stack(
-      children: [
-        Column(
-          children: [
-            _buildSearchBar(),
-            // Site filter and category filters shown above all other content (desktop only)
-            if (_showFilters &&
-                !_showSearchSuggestions &&
-                MediaQuery.of(context).size.width >= 768)
-              Flexible(
-                child: ProductFilters(
-                  filter: _filter,
-                  availableSites: _availableSites,
-                  availableCategories: _availableCategories,
-                  priceRange: _priceRange,
-                  onFilterChanged: (newFilter) {
-                    setState(() {
-                      _showSearchSuggestions = false;
-                    });
-                    _onFilterChanged(newFilter);
-                  },
+    return GestureDetector(
+      onTap: () {
+        // Dismiss search suggestions when tapping outside
+        if (_showSearchSuggestions) {
+          setState(() {
+            _showSearchSuggestions = false;
+          });
+          _searchFocusNode.unfocus();
+        }
+        // Hide filter section when tapping outside (but not if tapping the filter button itself)
+        if (_isFilterSectionExpanded && _showFilterSection) {
+          setState(() {
+            _isFilterSectionExpanded = false;
+          });
+          _filterAnimationController.reverse();
+          _filterSlideController.reverse();
+        }
+      },
+      child: Stack(
+        children: [
+          Column(
+            children: [
+              _buildSearchBarWithFilters(),
+              // Site filter and category filters shown above all other content (desktop only)
+              if (_showFilters &&
+                  !_showSearchSuggestions &&
+                  MediaQuery.of(context).size.width >= 768)
+                Flexible(
+                  child: ProductFilters(
+                    filter: _filter,
+                    availableSites: _availableSites,
+                    availableCategories: _availableCategories,
+                    priceRange: _priceRange,
+                    onFilterChanged: (newFilter) {
+                      setState(() {
+                        _showSearchSuggestions = false;
+                      });
+                      _onFilterChanged(newFilter);
+                    },
+                  ),
                 ),
-              ),
-            // Stock status chips and sorting shown after filters
-            _buildCollapsibleFilterSection(),
-            Expanded(child: _buildProductsList()),
-          ],
-        ),
-        // Search suggestions overlay
-        if (_showSearchSuggestions)
-          Positioned(
-            top: 80, // Position below search bar
-            left: 16,
-            right: 16,
-            child: Material(
-              elevation: 8,
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.4,
+              // Collapsible filter section with animations
+              if (_showFilterSection && _isFilterSectionExpanded)
+                SlideTransition(
+                  position: _filterSlideAnimation,
+                  child: FadeTransition(
+                    opacity: _filterOpacityAnimation,
+                    child: _buildCollapsibleFilterContent(),
+                  ),
                 ),
-                child: _buildSearchSuggestions(),
+              Expanded(child: _buildProductsList()),
+            ],
+          ),
+          // Search suggestions overlay
+          if (_showSearchSuggestions)
+            Positioned(
+              top: 80, // Position below search bar
+              left: 16,
+              right: 16,
+              child: Material(
+                elevation: 8,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.4,
+                  ),
+                  child: _buildSearchSuggestions(),
+                ),
               ),
             ),
-          ),
 
-        // Tutorial overlay
-        if (_showTutorialOverlay)
-          Positioned.fill(
-            child: SwipeTutorialOverlay(onDismiss: _dismissTutorial),
+          // Tutorial overlay
+          if (_showTutorialOverlay)
+            Positioned.fill(
+              child: SwipeTutorialOverlay(onDismiss: _dismissTutorial),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBarWithFilters() {
+    final activeFilterCount = _getActiveFilterCount();
+
+    return Column(
+      children: [
+        // Search bar with filter button
+        Container(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    hintText: 'Search products...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon:
+                        _searchQuery.isNotEmpty
+                            ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: _clearSearch,
+                            )
+                            : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onChanged: _onSearchChanged,
+                  onSubmitted: _onSearchSubmitted,
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Filter toggle button with badge
+              Stack(
+                children: [
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _toggleFilterSection,
+                      borderRadius: BorderRadius.circular(12),
+                      child: AnimatedScale(
+                        duration: const Duration(milliseconds: 200),
+                        scale: activeFilterCount > 0 ? 1.05 : 1.0,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color:
+                                _isFilterSectionExpanded
+                                    ? Theme.of(
+                                      context,
+                                    ).colorScheme.primaryContainer
+                                    : Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainer,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color:
+                                  _isFilterSectionExpanded
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.outline
+                                          .withValues(alpha: 0.5),
+                            ),
+                            boxShadow:
+                                activeFilterCount > 0
+                                    ? [
+                                      BoxShadow(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary
+                                            .withValues(alpha: 0.2),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ]
+                                    : null,
+                          ),
+                          child: AnimatedRotation(
+                            duration: const Duration(milliseconds: 200),
+                            turns: _isFilterSectionExpanded ? 0.25 : 0.0,
+                            child: Icon(
+                              Icons.tune,
+                              color:
+                                  _isFilterSectionExpanded
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Badge showing active filter count
+                  if (activeFilterCount > 0)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        constraints: const BoxConstraints(minWidth: 18),
+                        height: 18,
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: Text(
+                          activeFilterCount.toString(),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
           ),
+        ),
       ],
     );
   }
 
-  Widget _buildSearchBar() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              focusNode: _searchFocusNode,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: 'Search products...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon:
-                    _searchQuery.isNotEmpty
-                        ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: _clearSearch,
-                        )
-                        : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onChanged: _onSearchChanged,
-              onSubmitted: _onSearchSubmitted,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Stack(children: [
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCollapsibleFilterSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Theme.of(
-              context,
-            ).colorScheme.surfaceContainer.withValues(alpha: 0.7),
-            Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+  Widget _buildCollapsibleFilterContent() {
+    return GestureDetector(
+      onTap: () {
+        // Prevent tap-outside behavior when tapping inside the filter section
+      },
       child: Column(
         children: [
-          // Header with toggle button - make entire row clickable
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                setState(() {
-                  _isFilterSectionExpanded = !_isFilterSectionExpanded;
-                });
-              },
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.tune_rounded,
-                        size: 20,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Filters & Sort',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (_getActiveFilterCount() > 0)
-                      AnimatedScale(
-                        scale: _getActiveFilterCount() > 0 ? 1.0 : 0.0,
-                        duration: const Duration(milliseconds: 200),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Theme.of(context).colorScheme.primary,
-                                Theme.of(
-                                  context,
-                                ).colorScheme.primary.withValues(alpha: 0.8),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.primary.withValues(alpha: 0.3),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.check_circle_rounded,
-                                size: 14,
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${_getActiveFilterCount()} active',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color:
-                                      Theme.of(context).colorScheme.onPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    const SizedBox(width: 12),
-                    AnimatedRotation(
-                      turns: _isFilterSectionExpanded ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOutCubic,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest
-                              .withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.expand_more_rounded,
-                          color: Theme.of(context).colorScheme.onSurface,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                  Colors.transparent,
+                ],
               ),
             ),
           ),
-
-          // Collapsible content
-          AnimatedSize(
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeInOutCubic,
-            child:
-                _isFilterSectionExpanded
-                    ? Column(
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 16),
-                          height: 1,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.transparent,
-                                Theme.of(
-                                  context,
-                                ).colorScheme.outline.withValues(alpha: 0.3),
-                                Colors.transparent,
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        AnimatedOpacity(
-                          duration: const Duration(milliseconds: 300),
-                          opacity: _isFilterSectionExpanded ? 1.0 : 0.0,
-                          child: Column(
-                            children: [
-                              _buildStockStatusChips(),
-                              _buildSortingOptions(),
-                              _buildAdvancedOptions(),
-                              _buildBulkActions(),
-                            ],
-                          ),
-                        ),
-                      ],
-                    )
-                    : const SizedBox.shrink(),
+          const SizedBox(height: 16),
+          AnimatedOpacity(
+            duration: const Duration(milliseconds: 300),
+            opacity: _isFilterSectionExpanded ? 1.0 : 0.0,
+            child: Column(
+              children: [
+                _buildStockStatusChips(),
+                _buildSortingOptions(),
+                _buildAdvancedOptions(),
+                _buildBulkActions(),
+              ],
+            ),
           ),
         ],
       ),
@@ -1881,15 +2026,90 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     );
   }
 
+  /// Calculate responsive cross axis count based on screen width
+  int _getResponsiveCrossAxisCount(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    if (screenWidth > 1200) {
+      return 4; // Very wide screens: 4 columns
+    } else if (screenWidth > 800) {
+      return 3; // Wide screens: 3 columns
+    } else if (screenWidth > 500) {
+      return 2; // Medium screens: 2 columns
+    } else {
+      return 2; // Narrow screens: still 2 columns (but with adjusted aspect ratio)
+    }
+  }
+
+  /// Calculate responsive aspect ratio based on screen width and content density
+  double _getResponsiveAspectRatio(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Base aspect ratio adjustments based on screen characteristics
+    double baseAspectRatio;
+
+    if (screenWidth > 1200) {
+      // Very wide screens: cards are large enough for standard ratio
+      baseAspectRatio = 0.95;
+    } else if (screenWidth > 800) {
+      // Wide screens (tablets): slightly taller cards
+      baseAspectRatio = 0.8;
+    } else if (screenWidth > 500) {
+      // Medium screens: taller cards to fit content
+      baseAspectRatio = 0.75;
+    } else if (screenWidth > 400) {
+      // Narrow screens: much taller to accommodate content
+      baseAspectRatio = 0.70;
+    } else {
+      // Very narrow screens: tallest ratio to prevent overflow
+      baseAspectRatio = 0.65;
+    }
+
+    // Additional adjustments based on content density
+    // Check if we have products with more complex content
+    if (_products.isNotEmpty) {
+      // Calculate content complexity score
+      double contentComplexityFactor = 1.0;
+
+      // Check for products with categories (adds badge)
+      final productsWithCategories =
+          _products.where((p) => p.category != null).length;
+      final categoryRatio = productsWithCategories / _products.length;
+
+      // Check for products with prices (adds price display)
+      final productsWithPrices = _products.where((p) => p.price != null).length;
+      final priceRatio = productsWithPrices / _products.length;
+
+      // Check for long product names (might wrap to multiple lines)
+      final productsWithLongNames =
+          _products.where((p) => p.name.length > 30).length;
+      final longNameRatio = productsWithLongNames / _products.length;
+
+      // Adjust complexity factor based on content
+      if (categoryRatio > 0.5) {
+        contentComplexityFactor -= 0.05; // More categories = need more height
+      }
+      if (priceRatio > 0.8) {
+        contentComplexityFactor -= 0.03; // Most have prices = need more height
+      }
+      if (longNameRatio > 0.3) {
+        contentComplexityFactor -= 0.05; // Long names = need more height
+      }
+
+      // Apply content complexity adjustment
+      baseAspectRatio *= contentComplexityFactor;
+    }
+
+    // Ensure aspect ratio stays within reasonable bounds
+    return baseAspectRatio.clamp(0.5, 1.0);
+  }
+
   Widget _buildProductsList() {
     if (_isLoading) {
       return GridView.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount:
-              MediaQuery.of(context).size.width > 600
-                  ? 3
-                  : 2, // 3 columns on wide screens, 2 on narrow
-          childAspectRatio: 0.85, // Adjust to control card height vs width
+          crossAxisCount: _getResponsiveCrossAxisCount(context),
+          childAspectRatio: _getResponsiveAspectRatio(context),
           crossAxisSpacing: 4,
           mainAxisSpacing: 4,
         ),
@@ -1919,11 +2139,8 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     return GridView.builder(
       controller: _scrollController,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount:
-            MediaQuery.of(context).size.width > 600
-                ? 3
-                : 2, // 3 columns on wide screens, 2 on narrow
-        childAspectRatio: 0.85, // Adjust to control card height vs width
+        crossAxisCount: _getResponsiveCrossAxisCount(context),
+        childAspectRatio: _getResponsiveAspectRatio(context),
         crossAxisSpacing: 4,
         mainAxisSpacing: 4,
       ),
@@ -2041,22 +2258,30 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
       if (nonFavoriteProducts.isEmpty) return;
 
-      // Check subscription limits before starting bulk operation
-      final validationResult =
-          await SubscriptionService.instance.canAddMoreFavorites();
-      final availableSlots =
-          validationResult.maxAllowed - validationResult.currentCount;
+      List<MatchaProduct> productsToAdd;
 
-      if (!validationResult.canAdd) {
-        _showUpgradeDialog(validationResult);
-        return;
+      // Skip subscription validation for premium users
+      if (!_isPremium) {
+        // Check subscription limits before starting bulk operation
+        final validationResult =
+            await SubscriptionService.instance.canAddMoreFavorites();
+        final availableSlots =
+            validationResult.maxAllowed - validationResult.currentCount;
+
+        if (!validationResult.canAdd) {
+          _showUpgradeDialog(validationResult);
+          return;
+        }
+
+        // Limit products to add based on available slots for free users
+        productsToAdd =
+            availableSlots < nonFavoriteProducts.length
+                ? nonFavoriteProducts.take(availableSlots).toList()
+                : nonFavoriteProducts;
+      } else {
+        // For premium users, add all products without limits
+        productsToAdd = nonFavoriteProducts;
       }
-
-      // Limit products to add based on available slots
-      final productsToAdd =
-          availableSlots < nonFavoriteProducts.length
-              ? nonFavoriteProducts.take(availableSlots).toList()
-              : nonFavoriteProducts;
 
       // Show loading indicator
       if (mounted) {
@@ -2091,8 +2316,8 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
         if (result.success) {
           successCount++;
-        } else if (result.limitReached) {
-          // Stop adding if we hit the limit
+        } else if (result.limitReached && !_isPremium) {
+          // Stop adding if we hit the limit (only for non-premium users)
           if (result.validationResult != null) {
             _showUpgradeDialog(result.validationResult!);
           }
@@ -2251,6 +2476,11 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   /// Show upgrade dialog when subscription limits are reached
   void _showUpgradeDialog(FavoriteValidationResult validationResult) {
     if (!mounted) return;
+
+    // Don't show upgrade dialog for premium users
+    if (_isPremium || validationResult.tier == SubscriptionTier.premium) {
+      return;
+    }
 
     showDialog(
       context: context,

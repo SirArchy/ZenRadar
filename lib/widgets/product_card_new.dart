@@ -169,8 +169,6 @@ class _ProductCardState extends State<ProductCard> {
   Widget build(BuildContext context) {
     final bool isUnavailable =
         !widget.product.isInStock || widget.product.isDiscontinued;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isWideScreen = screenWidth > 600;
 
     return Card(
       margin: const EdgeInsets.all(8.0),
@@ -181,244 +179,20 @@ class _ProductCardState extends State<ProductCard> {
         borderRadius: BorderRadius.circular(12),
         child: Opacity(
           opacity: isUnavailable ? 0.7 : 1.0,
-          child: isWideScreen ? _buildWideLayout() : _buildNarrowLayout(),
+          child: _buildLayout(),
         ),
       ),
     );
   }
 
-  // Layout for wide screens (tablets/desktop) - adjusted for grid
-  Widget _buildWideLayout() {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Image section (left side, flexible width for grid)
-          Expanded(
-            flex: 2,
-            child: Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(12),
-                    bottomLeft: Radius.circular(12),
-                  ),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: double.infinity,
-                    child:
-                        widget.product.imageUrl != null
-                            ? PlatformImageFactory.product(
-                              imageUrl: widget.product.imageUrl!,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: double.infinity,
-                              loadingWidget:
-                                  (context) => _buildImageLoading(context),
-                              errorWidget: (context) {
-                                final url = widget.product.imageUrl!;
-                                if (!_loggedImageErrors.contains(url)) {
-                                  _loggedImageErrors.add(url);
-                                  print('Failed to load product image: $url');
-                                }
-                                return _buildImageErrorFallback(context, url);
-                              },
-                            )
-                            : _buildPlaceholderBackground(context),
-                  ),
-                ),
-
-                // Out of Stock X overlay - center of image
-                if (!widget.product.isInStock && !widget.product.isDiscontinued)
-                  Center(
-                    child: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.9),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 30,
-                        weight: 800,
-                      ),
-                    ),
-                  ),
-
-                // Favorite button - top left of image
-                if (widget.onFavoriteToggle != null)
-                  Positioned(left: 8, top: 8, child: _buildFavoriteButton()),
-              ],
-            ),
-          ),
-
-          // Content section (right side, flexible)
-          Expanded(
-            flex: 3,
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Top section
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Product name
-                      Text(
-                        widget.product.name,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
-                          decoration:
-                              widget.product.isDiscontinued
-                                  ? TextDecoration.lineThrough
-                                  : null,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-
-                      // Category badge
-                      if (widget.product.category != null) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .secondaryContainer
-                                .withValues(alpha: 0.7),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CategoryIcon(
-                                category: widget.product.category!,
-                                size: 12,
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  widget.product.category!,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                    color:
-                                        Theme.of(
-                                          context,
-                                        ).colorScheme.onSecondaryContainer,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                      ],
-
-                      // Site name
-                      Text(
-                        widget.product.siteName ?? widget.product.site,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-
-                  // Bottom section
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Price
-                      if (widget.product.price != null) ...[
-                        if (_isConvertingPrice)
-                          const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        else
-                          Text(
-                            _convertedPrice ?? widget.product.price!,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                      ],
-
-                      // Last Updated
-                      if (!widget.hideLastChecked) ...[
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.history,
-                              size: 10,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              _formatDateTime(widget.product.lastChecked),
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: Colors.grey.shade600,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-
-                      // Extra info
-                      if (widget.extraInfo != null) ...[
-                        const SizedBox(height: 4),
-                        widget.extraInfo!,
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // Layout for narrow screens (phones)
-  Widget _buildNarrowLayout() {
+  Widget _buildLayout() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Image section (top, fixed height)
-        SizedBox(
-          height: 140,
+        // Image section (top, aspect ratio based)
+        AspectRatio(
+          aspectRatio: 1.2, // 1.2:1 ratio (width:height)
           child: Stack(
             children: [
               ClipRRect(
@@ -484,143 +258,121 @@ class _ProductCardState extends State<ProductCard> {
           ),
         ),
 
-        // Content section (bottom)
-        Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Product name
-              Text(
-                widget.product.name,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                  decoration:
-                      widget.product.isDiscontinued
-                          ? TextDecoration.lineThrough
-                          : null,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 6),
-
-              // Category badge
-              if (widget.product.category != null) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+        // Content section (bottom) - with flexible layout
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Product name
+                Text(
+                  widget.product.name,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    decoration:
+                        widget.product.isDiscontinued
+                            ? TextDecoration.lineThrough
+                            : null,
                   ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.secondaryContainer.withValues(alpha: 0.7),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CategoryIcon(
-                        category: widget.product.category!,
-                        size: 12,
-                      ),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          widget.product.category!,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color:
-                                Theme.of(
-                                  context,
-                                ).colorScheme.onSecondaryContainer,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),
-              ],
 
-              // Site name
-              Text(
-                widget.product.siteName ?? widget.product.site,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 6),
-
-              // Price and Last Updated row
-              Row(
-                children: [
-                  // Price (left side)
-                  if (widget.product.price != null) ...[
-                    if (_isConvertingPrice)
-                      const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    else
-                      Expanded(
-                        child: Text(
-                          _convertedPrice ?? widget.product.price!,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                // Category badge
+                if (widget.product.category != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.secondaryContainer.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CategoryIcon(
+                          category: widget.product.category!,
+                          size: 12,
                         ),
-                      ),
-                  ],
-
-                  // Last Updated (right side)
-                  if (!widget.hideLastChecked &&
-                      widget.product.price != null) ...[
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.history,
-                            size: 10,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(width: 2),
-                          Text(
-                            _formatDateTime(widget.product.lastChecked),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            widget.product.category!,
                             style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey.shade600,
-                              fontWeight: FontWeight.w400,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.onSecondaryContainer,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
+                  const SizedBox(height: 6),
                 ],
-              ),
 
-              // Extra info
-              if (widget.extraInfo != null) ...[
-                const SizedBox(height: 6),
-                widget.extraInfo!,
+                // Site name
+                Text(
+                  widget.product.siteName ?? widget.product.site,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+
+                // Extra info
+                if (widget.extraInfo != null) ...[
+                  const SizedBox(height: 6),
+                  widget.extraInfo!,
+                ],
+
+                // Spacer to push price to bottom
+                const Spacer(),
+
+                // Price row (always at bottom)
+                if (widget.product.price != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Row(
+                      children: [
+                        if (_isConvertingPrice)
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        else
+                          Expanded(
+                            child: Text(
+                              _convertedPrice ?? widget.product.price!,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
               ],
-            ],
+            ),
           ),
         ),
       ],
@@ -653,20 +405,5 @@ class _ProductCardState extends State<ProductCard> {
         ),
       ),
     );
-  }
-
-  String _formatDateTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inDays > 0) {
-      return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} hour${difference.inHours == 1 ? '' : 's'} ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} minute${difference.inMinutes == 1 ? '' : 's'} ago';
-    } else {
-      return 'Just now';
-    }
   }
 }

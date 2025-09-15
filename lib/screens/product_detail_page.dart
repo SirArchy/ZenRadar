@@ -294,7 +294,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
       if (!result.success) {
         // Handle subscription limit or other errors
-        if (result.limitReached && result.validationResult != null) {
+        if (result.limitReached &&
+            result.validationResult != null &&
+            !_isPremium) {
           _showUpgradeDialog(result.validationResult!);
         } else {
           _showErrorSnackBar(result.error ?? 'Failed to update favorite');
@@ -1286,6 +1288,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   /// Show upgrade dialog when subscription limits are reached
   void _showUpgradeDialog(FavoriteValidationResult validationResult) {
     if (!mounted) return;
+
+    // Don't show upgrade dialog for premium users
+    if (_isPremium || validationResult.tier == SubscriptionTier.premium) {
+      return;
+    }
 
     showDialog(
       context: context,

@@ -186,6 +186,25 @@ class ShoChaSpecializedCrawler {
           const src = img.attr('src') || img.attr('data-src');
           if (src) {
             imageUrl = src.startsWith('http') ? src : this.baseUrl + src;
+            
+            // Clean up the URL and ensure it's properly encoded
+            if (imageUrl) {
+              // Remove any extra parameters that might cause issues
+              imageUrl = imageUrl.split('?')[0];
+              
+              // Ensure proper URL encoding for special characters
+              try {
+                // Decode first in case it's double-encoded, then encode properly
+                const decoded = decodeURIComponent(imageUrl);
+                imageUrl = encodeURI(decoded);
+              } catch (e) {
+                // If there's an encoding error, use the original URL
+                this.logger.warn('URL encoding error for image', { 
+                  originalUrl: imageUrl, 
+                  error: e.message 
+                });
+              }
+            }
             break;
           }
         }
