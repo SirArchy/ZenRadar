@@ -236,7 +236,7 @@ class FirebaseMessagingService {
       final endpoint = '$functionsUrl/registerFCMToken';
 
       if (kDebugMode) {
-        print('� FCM: Sending token to server: $endpoint');
+        print('FCM: Sending token to server: $endpoint');
         print('📤 FCM: User ID: $userId, Platform: $platform');
       }
 

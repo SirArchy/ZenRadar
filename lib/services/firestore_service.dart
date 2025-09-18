@@ -1141,16 +1141,18 @@ class FirestoreService {
         return;
       }
 
-      // Add timestamp to updates
+      // Add userId and timestamp to updates (required by Firestore rules)
       final updatesWithMeta = {
         ...updates,
+        'userId': user.uid,
         'lastUpdated': FieldValue.serverTimestamp(),
       };
 
+      // Use set with merge: true to create document if it doesn't exist
       await firestore
           .collection('user_settings')
           .doc(user.uid)
-          .update(updatesWithMeta);
+          .set(updatesWithMeta, SetOptions(merge: true));
 
       if (kDebugMode) {
         print('✅ Updated user settings in Firestore');

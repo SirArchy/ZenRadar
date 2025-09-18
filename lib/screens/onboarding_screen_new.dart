@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../services/settings_service.dart';
 import '../services/background_service.dart';
 import '../services/notification_service.dart';
+import '../services/subscription_service.dart';
 import 'auth_screen.dart';
 import 'main_screen.dart';
 import 'premium_upgrade_screen.dart';
@@ -437,21 +438,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
         );
 
-        // If user successfully authenticated, show premium upgrade screen
+        // If user successfully authenticated, show premium upgrade screen only for free users
         if (authResult == true && mounted) {
-          await Navigator.of(context).push<void>(
-            MaterialPageRoute(
-              builder:
-                  (context) => PremiumUpgradeScreen(
-                    onContinue: () {
-                      Navigator.of(context).pop();
-                    },
-                    onUpgrade: () {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-            ),
-          );
+          // Check if user needs to see upgrade screen (only free users without trial)
+          final subscriptionService = SubscriptionService.instance;
+          final isPremium = await subscriptionService.isPremiumUser();
+          final isTrialActive = await subscriptionService.isTrialActive();
+
+          // Only show upgrade screen to users who are not premium and don't have active trial
+          if (!isPremium && !isTrialActive) {
+            await Navigator.of(context).push<void>(
+              MaterialPageRoute(
+                builder:
+                    (context) => PremiumUpgradeScreen(
+                      onContinue: () {
+                        Navigator.of(context).pop();
+                      },
+                      onUpgrade: () {
+                        Navigator.of(context).pop();
+                      },
+                    ),
+              ),
+            );
+          }
         } else if (authResult == false && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

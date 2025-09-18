@@ -684,16 +684,40 @@ class UserSettings {
   }
 
   /// Get maximum allowed favorites for current tier
-  int get maxAllowedFavorites => subscriptionTier.maxFavorites;
+  int get maxAllowedFavorites {
+    // Use premium limits if user is premium (including active trial)
+    if (isPremium) {
+      return SubscriptionTierExtension.maxFavoritesForPremium;
+    }
+    return SubscriptionTierExtension.maxFavoritesForFree;
+  }
 
   /// Get maximum allowed vendors for current tier
-  int get maxAllowedVendors => subscriptionTier.maxVendors;
+  int get maxAllowedVendors {
+    // Use premium limits if user is premium (including active trial)
+    if (isPremium) {
+      return SubscriptionTierExtension.maxVendorsForPremium;
+    }
+    return SubscriptionTierExtension.maxVendorsForFree;
+  }
 
   /// Get minimum allowed check frequency for current tier
-  int get minAllowedCheckFrequency => subscriptionTier.minCheckFrequencyMinutes;
+  int get minAllowedCheckFrequency {
+    // Use premium limits if user is premium (including active trial)
+    if (isPremium) {
+      return SubscriptionTierExtension.minCheckFrequencyMinutesForPremium;
+    }
+    return SubscriptionTierExtension.minCheckFrequencyMinutesForFree;
+  }
 
   /// Get history limit days for current tier
-  int get historyLimitDays => subscriptionTier.historyLimitDays;
+  int get historyLimitDays {
+    // Use premium limits if user is premium (including active trial)
+    if (isPremium) {
+      return SubscriptionTierExtension.historyLimitDaysForPremium;
+    }
+    return SubscriptionTierExtension.historyLimitDaysForFree;
+  }
 
   /// Check if user can add more favorites
   bool canAddFavorites(int currentFavoriteCount) {

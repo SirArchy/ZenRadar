@@ -9,6 +9,10 @@ class EmeriSpecializedCrawler {
     this.baseUrl = 'https://enjoyemeri.com';
     this.categoryUrl = 'https://www.enjoyemeri.com/collections/shop-all';
     
+    // Initialize Firebase Storage
+    const { getStorage } = require('firebase-admin/storage');
+    this.storage = getStorage();
+    
     // Default request configuration
     this.requestConfig = {
       timeout: 30000,
@@ -75,8 +79,42 @@ class EmeriSpecializedCrawler {
           // Generate product ID
           const productId = this.generateProductId(productUrl || targetUrl, name);
 
-          // Extract image URL
-          const imageUrl = this.extractImageUrl(productElement, crawlerConfig);
+          // Extract and process image URL
+          let imageUrl = null;
+          
+          // First, try to use existing Firebase Storage image
+          const fileName = `product-images/enjoyemeri/${productId}.jpg`;
+          const file = this.storage.bucket().file(fileName);
+          
+          try {
+            const [exists] = await file.exists();
+            if (exists) {
+              // Image already exists, use the Firebase Storage URL
+              const bucketName = this.storage.bucket().name;
+              const cleanBucketName = bucketName.replace('.firebasestorage.app', '');
+              imageUrl = `https://storage.googleapis.com/${cleanBucketName}.firebasestorage.app/${fileName}`;
+              this.logger.info('Using existing image from Firebase Storage', { 
+                productId, 
+                imageUrl 
+              });
+            } else {
+              // Image doesn't exist, try to download from source
+              const rawImageUrl = this.extractImageUrl(productElement, crawlerConfig);
+              if (rawImageUrl) {
+                imageUrl = await this.downloadAndStoreImage(rawImageUrl, productId);
+              }
+            }
+          } catch (existsError) {
+            this.logger.warn('Failed to check Firebase Storage, trying source download', { 
+              productId, 
+              error: existsError.message 
+            });
+            // Fallback to download from source
+            const rawImageUrl = this.extractImageUrl(productElement, crawlerConfig);
+            if (rawImageUrl) {
+              imageUrl = await this.downloadAndStoreImage(rawImageUrl, productId);
+            }
+          }
 
           const product = {
             id: productId,
@@ -194,7 +232,7 @@ class EmeriSpecializedCrawler {
       priceSelector: '.price',
       stockSelector: '.price',
       linkSelector: 'a',
-      imageSelector: '.product-media__image, .product-card__image img',
+      imageSelector: 'img.product-media__image, .product-card__image img',
       stockKeywords: ['add to cart', 'buy now', 'purchase'],
       outOfStockKeywords: ['out of stock', 'sold out'],
       currency: 'CAD',
@@ -208,11 +246,13 @@ class EmeriSpecializedCrawler {
    */
   extractImageUrl(productElement, config) {
     const selectors = [
-      '.product-media__image img',
+      'img.product-media__image',  // Images with product-media__image class directly
+      '.product-media__image img', // Original selector as fallback
       '.product-card__image img',
       '.product-image img',
       '.card__media img',
-      'img[src*="products/"]'
+      'img[src*="cdn/shop/files/"]', // Emeri uses cdn/shop/files instead of products
+      'img[alt*="Matcha"], img[alt*="Bowl"], img[alt*="Whisk"]' // Alt text based matching
     ];
     
     for (const selector of selectors) {
@@ -235,39 +275,25 @@ class EmeriSpecializedCrawler {
         }
 
         if (imageUrl) {
-          // Handle relative URLs
+          // Handle protocol-relative URLs (common in Emeri)
           if (imageUrl.startsWith('//')) {
             imageUrl = 'https:' + imageUrl;
           } else if (imageUrl.startsWith('/')) {
             imageUrl = this.baseUrl + imageUrl;
-          } else if (!imageUrl.startsWith('http')) {
-            imageUrl = this.baseUrl + '/' + imageUrl;
           }
-          
-          // Handle Shopify image size parameters
-          if (imageUrl.includes('_x.')) {
-            imageUrl = imageUrl.replace(/_\d+x\./, '_800x.');
-          }
-          
-          // Remove query parameters
-          imageUrl = imageUrl.split('?')[0];
-          
-          // Validate URL format
-          try {
-            new URL(imageUrl);
-            this.logger.info('Extracted Emeri image URL', { 
-              imageUrl, 
+
+          // Validate URL
+          if (imageUrl.includes('cdn.shop') || imageUrl.includes('enjoyemeri')) {
+            // Remove width parameter for higher quality
+            const cleanUrl = imageUrl.split('?')[0] + '?width=800'; // Set consistent width
+            
+            this.logger.info('Found Emeri product image', {
               selector,
-              originalSrc: img.attr('src')
+              imageUrl: cleanUrl,
+              alt: img.attr('alt')
             });
-            return imageUrl;
-          } catch (e) {
-            this.logger.warn('Invalid Emeri image URL format', { 
-              imageUrl, 
-              selector,
-              error: e.message
-            });
-            continue;
+            
+            return cleanUrl;
           }
         }
       }
@@ -410,6 +436,187 @@ class EmeriSpecializedCrawler {
     ];
     
     return matchaKeywords.some(keyword => searchText.includes(keyword));
+  }
+
+  /**
+   * Download and store image to Firebase Storage
+   */
+  async downloadAndStoreImage(imageUrl, productId) {
+    const axios = require('axios');
+    const sharp = require('sharp');
+    
+    try {
+      if (!imageUrl || imageUrl.includes('data:') || imageUrl.includes('placeholder')) {
+        return null;
+      }
+
+      // Check if image already exists in Firebase Storage
+      const fileName = `product-images/enjoyemeri/${productId}.jpg`;
+      const file = this.storage.bucket().file(fileName);
+      
+      try {
+        const [exists] = await file.exists();
+        if (exists) {
+          // Image already exists, return the existing URL
+          const bucketName = this.storage.bucket().name;
+          const cleanBucketName = bucketName.replace('.firebasestorage.app', '');
+          const publicUrl = `https://storage.googleapis.com/${cleanBucketName}.firebasestorage.app/${fileName}`;
+          this.logger.info('Using existing image from storage', { 
+            productId, 
+            siteKey: 'enjoyemeri', 
+            publicUrl 
+          });
+          return publicUrl;
+        }
+      } catch (existsError) {
+        this.logger.warn('Failed to check if image exists, proceeding to download', { 
+          productId, 
+          siteKey: 'enjoyemeri', 
+          error: existsError.message 
+        });
+      }
+
+      // Make URL absolute if relative
+      let absoluteUrl = imageUrl;
+      if (imageUrl.startsWith('//')) {
+        absoluteUrl = 'https:' + imageUrl;
+      } else if (imageUrl.startsWith('/')) {
+        absoluteUrl = this.baseUrl + imageUrl;
+      }
+
+      // Validate URL format before attempting download
+      try {
+        new URL(absoluteUrl);
+      } catch (urlError) {
+        this.logger.warn('Invalid image URL format', { productId, siteKey: 'enjoyemeri', imageUrl: absoluteUrl });
+        // Try to return existing image URL if validation fails
+        return await this.tryExistingImageUrl(productId);
+      }
+
+      this.logger.info('Downloading image', { 
+        productId, 
+        siteKey: 'enjoyemeri', 
+        imageUrl: absoluteUrl 
+      });
+
+      // Download image with improved error handling
+      const response = await axios({
+        method: 'GET',
+        url: absoluteUrl,
+        responseType: 'arraybuffer',
+        timeout: 20000,
+        maxRedirects: 5,
+        headers: {
+          'User-Agent': 'ZenRadar Bot 1.0 (+https://zenradar.app)',
+          'Accept': 'image/*',
+        }
+      });
+
+      // Validate response
+      if (!response.data || response.data.length === 0) {
+        this.logger.warn('Empty image response', { productId, siteKey: 'enjoyemeri', imageUrl: absoluteUrl });
+        return await this.tryExistingImageUrl(productId);
+      }
+
+      // Check if response is actually an image
+      const contentType = response.headers['content-type'];
+      if (contentType && !contentType.startsWith('image/')) {
+        this.logger.warn('Response is not an image', { 
+          productId, 
+          siteKey: 'enjoyemeri', 
+          imageUrl: absoluteUrl, 
+          contentType 
+        });
+        return await this.tryExistingImageUrl(productId);
+      }
+
+      // Compress image using Sharp
+      let compressedImageBuffer;
+      try {
+        compressedImageBuffer = await sharp(response.data)
+          .resize(400, 400, { 
+            fit: 'inside', 
+            withoutEnlargement: true 
+          })
+          .jpeg({ 
+            quality: 85,
+            progressive: true 
+          })
+          .toBuffer();
+      } catch (sharpError) {
+        this.logger.warn('Failed to process image with Sharp', {
+          productId,
+          siteKey: 'enjoyemeri',
+          imageUrl: absoluteUrl,
+          error: sharpError.message
+        });
+        return await this.tryExistingImageUrl(productId);
+      }
+
+      // Upload to Firebase Storage
+      await file.save(compressedImageBuffer, {
+        metadata: {
+          contentType: 'image/jpeg',
+          cacheControl: 'public, max-age=86400',
+        }
+      });
+
+      // Make file publicly accessible
+      await file.makePublic();
+
+      // Return public URL
+      const bucketName = this.storage.bucket().name;
+      const cleanBucketName = bucketName.replace('.firebasestorage.app', '');
+      const publicUrl = `https://storage.googleapis.com/${cleanBucketName}.firebasestorage.app/${fileName}`;
+      
+      this.logger.info('Image uploaded successfully', { 
+        productId, 
+        siteKey: 'enjoyemeri',
+        publicUrl,
+        originalSize: response.data.length,
+        compressedSize: compressedImageBuffer.length
+      });
+
+      return publicUrl;
+
+    } catch (error) {
+      this.logger.error('Failed to download and store image', {
+        productId,
+        siteKey: 'enjoyemeri',
+        imageUrl,
+        error: error.message
+      });
+      // Try to return existing image URL if download fails
+      return await this.tryExistingImageUrl(productId);
+    }
+  }
+
+  /**
+   * Try to construct existing image URL if image exists in storage
+   */
+  async tryExistingImageUrl(productId) {
+    try {
+      const fileName = `product-images/enjoyemeri/${productId}.jpg`;
+      const file = this.storage.bucket().file(fileName);
+      const [exists] = await file.exists();
+      
+      if (exists) {
+        const bucketName = this.storage.bucket().name;
+        const cleanBucketName = bucketName.replace('.firebasestorage.app', '');
+        const publicUrl = `https://storage.googleapis.com/${cleanBucketName}.firebasestorage.app/${fileName}`;
+        this.logger.info('Fallback: Using existing image from storage', { 
+          productId, 
+          publicUrl 
+        });
+        return publicUrl;
+      }
+    } catch (error) {
+      this.logger.warn('Failed to check for existing image fallback', {
+        productId,
+        error: error.message
+      });
+    }
+    return null;
   }
 }
 

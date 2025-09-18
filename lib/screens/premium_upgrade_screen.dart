@@ -464,10 +464,34 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
   Future<void> _startFreeTrial() async {
     setState(() => _isLoading = true);
     try {
-      await PaymentService.instance.startFreeTrial();
+      final trialStarted = await PaymentService.instance.startFreeTrial();
       if (mounted) {
-        widget.onUpgrade?.call();
-        Navigator.pop(context);
+        if (trialStarted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                '🎉 7-day free trial started! Enjoy premium features!',
+              ),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
+          // Call only one callback to avoid double navigation
+          if (widget.onUpgrade != null) {
+            widget.onUpgrade!();
+          } else if (widget.onContinue != null) {
+            widget.onContinue!();
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Unable to start trial. You may have already used it.',
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

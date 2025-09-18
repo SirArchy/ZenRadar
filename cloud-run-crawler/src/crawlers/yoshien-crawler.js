@@ -36,6 +36,7 @@ class YoshienSpecializedCrawler {
       const $ = cheerio.load(response.data);
 
       const products = [];
+      const seenProductIds = new Set(); // Track processed product IDs to prevent duplicates
       const productElements = $(config.productSelector || '.cs-product-tile');
       
       this.logger.info('Found Yoshien product containers', {
@@ -62,6 +63,20 @@ class YoshienSpecializedCrawler {
             }
           }
 
+          // Generate product ID early to check for duplicates
+          const productId = this.generateProductId(productUrl || targetUrl, name);
+          
+          // Skip if we've already processed this product
+          if (seenProductIds.has(productId)) {
+            this.logger.info('Skipping duplicate Yoshien product', {
+              productId,
+              name,
+              containerIndex: i
+            });
+            continue;
+          }
+          seenProductIds.add(productId);
+
           // Extract price
           const priceElement = productElement.find(config.priceSelector || '.price');
           const rawPrice = priceElement.text().trim();
@@ -69,9 +84,6 @@ class YoshienSpecializedCrawler {
 
           // Check stock status
           const isInStock = this.checkStockStatus(productElement);
-
-          // Generate product ID
-          const productId = this.generateProductId(productUrl || targetUrl, name);
 
           // Extract image URL and process it
           let imageUrl = null;
@@ -128,7 +140,9 @@ class YoshienSpecializedCrawler {
       }
 
       this.logger.info('Yoshien crawl completed', {
-        productsFound: products.length
+        productsFound: products.length,
+        totalContainers: productElements.length,
+        uniqueProductIds: seenProductIds.size
       });
 
       return { products };

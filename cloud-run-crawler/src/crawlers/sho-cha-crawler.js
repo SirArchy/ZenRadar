@@ -180,34 +180,83 @@ class ShoChaSpecializedCrawler {
         'img[alt*="tea" i]'
       ];
 
+      // Collect all potential images first
+      const potentialImages = [];
+      
       for (const selector of imageSelectors) {
-        const img = $(selector).first();
-        if (img.length) {
+        $(selector).each((i, element) => {
+          const img = $(element);
           const src = img.attr('src') || img.attr('data-src');
           if (src) {
-            imageUrl = src.startsWith('http') ? src : this.baseUrl + src;
+            let fullImageUrl = src.startsWith('http') ? src : this.baseUrl + src;
             
-            // Clean up the URL and ensure it's properly encoded
-            if (imageUrl) {
-              // Remove any extra parameters that might cause issues
-              imageUrl = imageUrl.split('?')[0];
+            // Clean up the URL
+            fullImageUrl = fullImageUrl.split('?')[0];
+            
+            // Skip GIF images and other animated formats
+            const isAnimatedImage = /\.(gif|webp|svg)(\?|$)/i.test(fullImageUrl);
+            const isStaticImage = /\.(jpg|jpeg|png)(\?|$)/i.test(fullImageUrl);
+            
+            if (!isAnimatedImage && isStaticImage) {
+              const alt = img.attr('alt') || '';
+              const className = img.attr('class') || '';
               
-              // Ensure proper URL encoding for special characters
-              try {
-                // Decode first in case it's double-encoded, then encode properly
-                const decoded = decodeURIComponent(imageUrl);
-                imageUrl = encodeURI(decoded);
-              } catch (e) {
-                // If there's an encoding error, use the original URL
-                this.logger.warn('URL encoding error for image', { 
-                  originalUrl: imageUrl, 
-                  error: e.message 
-                });
-              }
+              // Calculate image relevance score
+              let score = 0;
+              
+              // Prefer images with product-related alt text
+              if (alt.toLowerCase().includes('matcha')) score += 10;
+              if (alt.toLowerCase().includes('tea')) score += 8;
+              if (alt.toLowerCase().includes('product')) score += 6;
+              
+              // Prefer images with product-related classes
+              if (className.includes('product')) score += 5;
+              if (className.includes('main')) score += 3;
+              
+              // Prefer images with product in URL path
+              if (fullImageUrl.includes('product')) score += 4;
+              if (fullImageUrl.includes('matcha')) score += 6;
+              
+              // Penalize likely thumbnails or icons
+              if (fullImageUrl.includes('thumb')) score -= 3;
+              if (fullImageUrl.includes('icon')) score -= 5;
+              if (fullImageUrl.includes('logo')) score -= 10;
+              
+              potentialImages.push({
+                url: fullImageUrl,
+                score: score,
+                selector: selector,
+                alt: alt
+              });
             }
-            break;
           }
+        });
+      }
+      
+      // Sort by score and pick the best image
+      if (potentialImages.length > 0) {
+        potentialImages.sort((a, b) => b.score - a.score);
+        const bestImage = potentialImages[0];
+        imageUrl = bestImage.url;
+        
+        // Ensure proper URL encoding for special characters
+        try {
+          const decoded = decodeURIComponent(imageUrl);
+          imageUrl = encodeURI(decoded);
+        } catch (e) {
+          this.logger.warn('URL encoding error for image', { 
+            originalUrl: imageUrl, 
+            error: e.message 
+          });
         }
+        
+        this.logger.info('Selected best Sho-Cha image', {
+          selectedUrl: imageUrl,
+          score: bestImage.score,
+          selector: bestImage.selector,
+          alt: bestImage.alt,
+          totalCandidates: potentialImages.length
+        });
       }
 
       // Generate product ID

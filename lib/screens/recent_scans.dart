@@ -998,12 +998,10 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     String actualStatus = status;
     if (completedAt != null && status == 'running') {
       actualStatus = 'completed';
-      print(
-        '� Status corrected from "running" to "completed" (has completedAt)',
-      );
+      print('Status corrected from "running" to "completed" (has completedAt)');
     }
 
-    print('�🔄 Converting crawl request to ScanActivity:');
+    print(' Converting crawl request to ScanActivity:');
     print('   - requestId: $requestId');
     print('   - hasStockUpdates: $hasStockUpdates');
     print('   - stockUpdates count: $stockUpdates');

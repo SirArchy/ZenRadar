@@ -462,6 +462,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(child: _buildSummaryCard()),
+          SliverToBoxAdapter(child: _buildTimeRangeSelector()),
           SliverToBoxAdapter(
             child:
                 _isLoadingAnalytics
@@ -529,54 +530,18 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Fixed layout for header row
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // Clean header row without time range selector
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.dashboard_outlined,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _isPremium ? 'Overall Summary' : 'Free Tier Summary',
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                      ),
-                    ],
+                  Icon(
+                    Icons.dashboard_outlined,
+                    color: Theme.of(context).primaryColor,
                   ),
-                  const SizedBox(height: 8),
-                  // Time range selector moved to separate row
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Container(
-                      constraints: const BoxConstraints(maxWidth: 200),
-                      child: InkWell(
-                        onTap: _showTimeRangePicker,
-                        borderRadius: BorderRadius.circular(16),
-                        child: Chip(
-                          label: Text(
-                            _getTimeRangeLabel(_selectedTimeRange),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
-                          backgroundColor:
-                              Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerHighest,
-                          side: BorderSide(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.outline.withAlpha(100),
-                            width: 1,
-                          ),
-                        ),
-                      ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _isPremium ? 'Overall Summary' : 'Free Tier Summary',
+                      style: Theme.of(context).textTheme.headlineSmall,
                     ),
                   ),
                 ],
@@ -657,6 +622,49 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTimeRangeSelector() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Text(
+            'Time Range:',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: InkWell(
+                onTap: _showTimeRangePicker,
+                borderRadius: BorderRadius.circular(16),
+                child: Chip(
+                  label: Text(
+                    _getTimeRangeLabel(_selectedTimeRange),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  backgroundColor:
+                      Theme.of(context).colorScheme.surfaceContainerHighest,
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.outline.withAlpha(100),
+                    width: 1,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

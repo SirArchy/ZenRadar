@@ -189,6 +189,7 @@ class _ProductCardState extends State<ProductCard> {
   Widget _buildLayout() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
         // Image section (top, aspect ratio based)
         AspectRatio(
@@ -259,11 +260,12 @@ class _ProductCardState extends State<ProductCard> {
         ),
 
         // Content section (bottom) - with flexible layout
-        Expanded(
+        Flexible(
           child: Padding(
             padding: const EdgeInsets.all(12.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 // Product name
                 Text(
@@ -344,7 +346,7 @@ class _ProductCardState extends State<ProductCard> {
                 // Spacer to push price to bottom
                 const Spacer(),
 
-                // Price row (always at bottom)
+                // Price row (now at the bottom)
                 if (widget.product.price != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),

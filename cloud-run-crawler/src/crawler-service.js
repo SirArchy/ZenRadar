@@ -10,6 +10,7 @@ const PoppateaSpecializedCrawler = require('./crawlers/poppatea-crawler');
 const YoshienSpecializedCrawler = require('./crawlers/yoshien-crawler');
 const NakamuraTokichiSpecializedCrawler = require('./crawlers/nakamura-tokichi-crawler');
 const EmeriSpecializedCrawler = require('./crawlers/emeri-crawler');
+const ShoChaSpecializedCrawler = require('./crawlers/sho-cha-crawler');
 
 /**
  * Cloud-based crawler service for matcha websites
@@ -29,6 +30,7 @@ class CrawlerService {
     this.yoshienCrawler = new YoshienSpecializedCrawler(logger);
     this.nakamuraTokichiCrawler = new NakamuraTokichiSpecializedCrawler(logger);
     this.emeriCrawler = new EmeriSpecializedCrawler(logger);
+    this.shochaCrawler = new ShoChaSpecializedCrawler(logger);
     
     // Site configurations - complete list matching Flutter app
     this.siteConfigs = {
@@ -422,6 +424,33 @@ class CrawlerService {
         };
       }
 
+      if (siteKey === 'sho-cha') {
+        this.logger.info('Using Sho-Cha specialized crawler');
+        const crawlResult = await this.shochaCrawler.crawl(config.categoryUrl, config);
+        
+        let stockUpdates = 0;
+        for (const product of crawlResult.products) {
+          const wasUpdated = await this.saveProduct(product);
+          if (wasUpdated) stockUpdates++;
+        }
+        
+        const duration = Date.now() - startTime;
+        this.logger.info('Sho-Cha specialized crawl completed', {
+          site: siteKey,
+          productsFound: crawlResult.products.length,
+          stockUpdates,
+          duration: `${duration}ms`
+        });
+        
+        return {
+          site: siteKey,
+          products: crawlResult.products,
+          stockUpdates,
+          duration,
+          timestamp: new Date().toISOString()
+        };
+      }
+
       // Fetch the category page for standard crawling
       const response = await axios.get(config.categoryUrl, this.requestConfig);
       const $ = cheerio.load(response.data);
@@ -442,168 +471,7 @@ class CrawlerService {
       for (let i = 0; i < productElements.length; i++) {
         const productElement = $(productElements[i]);
         
-        try {
-          // Special handling for Sho-Cha site structure
-          if (siteKey === 'sho-cha') {
-            // For Sho-Cha, H1 elements contain product names, but links are separate
-            const name = productElement.text().trim();
-            
-            // Skip if no valid name
-            if (!name || name.length < 2) {
-              continue;
-            }
-            
-            // Find the corresponding teeshop link - improved strategy
-            let productUrl = null;
-            
-            // Strategy 1: Look in immediate parent containers
-            const immediateParent = productElement.parent();
-            let teeshopLink = immediateParent.find('a[href*="/teeshop/"]').first();
-            
-            // Strategy 2: Look in wider container (section, div, article)
-            if (!teeshopLink.length) {
-              const section = productElement.closest('section, div, article, .product-container, .item-container');
-              teeshopLink = section.find('a[href*="/teeshop/"]').first();
-            }
-            
-            // Strategy 3: Look for sibling elements with teeshop links
-            if (!teeshopLink.length) {
-              teeshopLink = productElement.siblings().find('a[href*="/teeshop/"]').first();
-            }
-            
-            // Strategy 4: Look in next/previous sibling containers
-            if (!teeshopLink.length) {
-              const nextElement = productElement.next();
-              teeshopLink = nextElement.find('a[href*="/teeshop/"]').first();
-              
-              if (!teeshopLink.length) {
-                const prevElement = productElement.prev();
-                teeshopLink = prevElement.find('a[href*="/teeshop/"]').first();
-              }
-            }
-            
-            // Strategy 5: Find by matching product name patterns (improved)
-            if (!teeshopLink.length) {
-              const nameSlug = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-              const allTeeshopLinks = $('a[href*="/teeshop/"]');
-              let bestMatch = null;
-              let bestScore = 0;
-              
-              allTeeshopLinks.each((idx, link) => {
-                const href = $(link).attr('href');
-                const linkSlug = href.replace('/teeshop/', '').replace(/[^a-z0-9]/g, '');
-                const linkText = $(link).text().toLowerCase().replace(/[^a-z0-9]/g, '');
-                
-                // Calculate match scores
-                let score = 0;
-                
-                // Direct slug matching (higher score)
-                const commonLength = Math.min(nameSlug.length, linkSlug.length);
-                let commonChars = 0;
-                for (let i = 0; i < commonLength; i++) {
-                  if (nameSlug[i] === linkSlug[i]) {
-                    commonChars++;
-                  } else {
-                    break;
-                  }
-                }
-                score += (commonChars / nameSlug.length) * 10;
-                
-                // Check for key word matches
-                const nameWords = name.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-                const linkWords = href.split(/[-_/]/).filter(w => w.length > 2);
-                
-                for (const nameWord of nameWords) {
-                  for (const linkWord of linkWords) {
-                    if (nameWord.includes(linkWord) || linkWord.includes(nameWord)) {
-                      score += 5;
-                    }
-                  }
-                }
-                
-                // Prefer shorter, more specific matches
-                if (linkSlug.length > 0) {
-                  score += (10 / linkSlug.length);
-                }
-                
-                if (score > bestScore && score > 3) { // Minimum threshold
-                  bestScore = score;
-                  bestMatch = $(link);
-                }
-              });
-              
-              if (bestMatch) {
-                teeshopLink = bestMatch;
-              }
-            }
-            
-            if (teeshopLink.length > 0) {
-              productUrl = config.baseUrl + teeshopLink.attr('href');
-            }
-            
-            if (productUrl) {
-              // Create product object for Sho-Cha
-              const productId = this.generateProductId(productUrl, name, siteKey);
-              
-              // Fetch price from individual product page
-              let price = '';
-              let priceValue = 0;
-              try {
-                const productResponse = await this.fetchWithRetry(productUrl);
-                const product$ = cheerio.load(productResponse.data);
-                
-                // Extract price from product page - try multiple selectors
-                const priceText = product$('.price, .product-price, .cost, .amount, [class*="price"], .currency, .money').first().text();
-                if (priceText) {
-                  price = this.cleanPriceBySite(priceText, siteKey);
-                  priceValue = this.extractPriceValue(price);
-                  this.logger.info('Extracted Sho-Cha price', { name, priceText, price, priceValue });
-                }
-              } catch (error) {
-                this.logger.warn('Failed to fetch Sho-Cha product page for price', { productUrl, error: error.message });
-              }
-              
-              // Try to extract image from the product page
-              let imageUrl = null;
-              try {
-                imageUrl = await this.extractShoChaProductImage(productUrl, productId);
-              } catch (error) {
-                this.logger.warn('Failed to extract Sho-Cha product image', {
-                  productUrl,
-                  error: error.message
-                });
-              }
-              
-              const product = {
-                id: productId,
-                name: name,
-                normalizedName: this.normalizeName(name),
-                site: siteKey,
-                siteName: config.name,
-                price: price,
-                originalPrice: price,
-                priceValue: priceValue,
-                currency: 'EUR',
-                url: productUrl,
-                imageUrl: imageUrl,
-                isInStock: price ? true : false, // In stock if we found a price
-                category: this.detectCategory(name, siteKey),
-                lastChecked: new Date(),
-                lastUpdated: new Date(),
-                firstSeen: new Date(),
-                isDiscontinued: false,
-                missedScans: 0,
-                crawlSource: 'cloud-run'
-              };
-              
-              products.push(product);
-              const wasUpdated = await this.saveProduct(product);
-              if (wasUpdated) stockUpdates++;
-            }
-            
-            continue; // Skip regular processing for Sho-Cha
-          }
-          
+        try {          
           // Regular processing for other sites
           // Extract product name
           let name = this.extractText(productElement, config.nameSelector);
@@ -1450,26 +1318,29 @@ class CrawlerService {
           });
         }
 
-        // Check for price change or track price regularly
+        // Check for price change (only actual changes, not regular tracking)
+        const hasPriceChanged = product.priceValue != null && existingData.priceValue !== product.priceValue;
+        
+        if (hasPriceChanged) {
+          wasUpdated = true;
+          
+          // Log price change
+          this.logger.info('Price changed', {
+            productId: product.id,
+            name: product.name,
+            site: product.site,
+            previousPrice: existingData.priceValue,
+            newPrice: product.priceValue
+          });
+        }
+
+        // Check if we should add price history entry (for tracking, but not for counting as update)
         const shouldTrackPrice = product.priceValue != null && (
-          existingData.priceValue !== product.priceValue || 
+          hasPriceChanged || 
           this.shouldAddPriceHistoryEntry(existingData)
         );
 
         if (shouldTrackPrice) {
-          if (existingData.priceValue !== product.priceValue) {
-            wasUpdated = true;
-            
-            // Log price change
-            this.logger.info('Price changed', {
-              productId: product.id,
-              name: product.name,
-              site: product.site,
-              previousPrice: existingData.priceValue,
-              newPrice: product.priceValue
-            });
-          }
-
           // Add to price history (for both price changes and regular tracking)
           await this.db.collection('price_history').add({
             productId: product.id,
@@ -1497,14 +1368,14 @@ class CrawlerService {
 
         await productRef.update(updateData);
       } else {
-        // New product
+        // New product - don't count as stock update for analytics
         const newProductData = {
           ...product,
           lastPriceHistoryUpdate: product.priceValue != null ? new Date() : null
         };
 
         await productRef.set(newProductData);
-        wasUpdated = true;
+        // Note: wasUpdated remains false for new products to avoid false stock update counts
         
         this.logger.info('New product added', {
           productId: product.id,
