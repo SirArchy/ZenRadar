@@ -683,13 +683,9 @@ class UserSettings {
     return subscriptionExpiresAt!.isBefore(DateTime.now());
   }
 
-  /// Get maximum allowed favorites for current tier
+  /// Get maximum allowed favorites for current tier (unlimited for all users)
   int get maxAllowedFavorites {
-    // Use premium limits if user is premium (including active trial)
-    if (isPremium) {
-      return SubscriptionTierExtension.maxFavoritesForPremium;
-    }
-    return SubscriptionTierExtension.maxFavoritesForFree;
+    return SubscriptionTierExtension.maxFavoritesForPremium; // Always unlimited
   }
 
   /// Get maximum allowed vendors for current tier
@@ -719,9 +715,9 @@ class UserSettings {
     return SubscriptionTierExtension.historyLimitDaysForFree;
   }
 
-  /// Check if user can add more favorites
+  /// Check if user can add more favorites (always true - no limits)
   bool canAddFavorites(int currentFavoriteCount) {
-    return currentFavoriteCount < maxAllowedFavorites;
+    return true; // Remove all favorite limits
   }
 
   /// Check if user can enable more vendors

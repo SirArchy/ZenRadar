@@ -119,45 +119,58 @@ class _ProductFiltersState extends State<ProductFilters> {
       controller: widget.scrollController,
       padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
       physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Handle bar for draggable sheet
-          if (widget.scrollController != null)
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 20),
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.outline.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(
+                context,
+              ).colorScheme.shadow.withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-
-          Row(
-            children: [
-              const Icon(Icons.filter_list),
-              const SizedBox(width: 8),
-              Text(
-                'Filters',
-                style: TextStyle(
-                  fontSize: isSmallScreen ? 16 : 18,
-                  fontWeight: FontWeight.bold,
+          ],
+        ),
+        padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar for draggable sheet
+            if (widget.scrollController != null)
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-              const Spacer(),
-              if (widget.onClose != null)
-                IconButton(
-                  onPressed: widget.onClose,
-                  icon: const Icon(Icons.close),
-                  tooltip: 'Close filters',
-                )
-              else
+
+            Row(
+              children: [
+                const Icon(Icons.filter_list),
+                const SizedBox(width: 8),
+                Text(
+                  'Filters',
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 16 : 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                // Always show clear all button
                 TextButton(
                   onPressed: _clearFilters,
                   child: Text(
@@ -165,48 +178,40 @@ class _ProductFiltersState extends State<ProductFilters> {
                     style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
                   ),
                 ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Site Filter
-          _buildSiteFilter(isSmallScreen),
-          const SizedBox(height: 16),
-
-          // Category Filter
-          if (widget.availableCategories.isNotEmpty) ...[
-            _buildCategoryFilter(isSmallScreen),
-            const SizedBox(height: 16),
-          ],
-
-          // Price Range Filter
-          _buildPriceRangeFilter(isSmallScreen),
-          const SizedBox(height: 16),
-
-          // Favorites Toggle
-          _buildFavoritesToggle(isSmallScreen),
-          const SizedBox(height: 16),
-
-          // Clear all button at bottom for modal version
-          if (widget.onClose != null) ...[
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: _clearFilters,
-                child: Text(
-                  'Clear All Filters',
-                  style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
-                ),
-              ),
+                if (widget.onClose != null)
+                  IconButton(
+                    onPressed: widget.onClose,
+                    icon: const Icon(Icons.close),
+                    tooltip: 'Close filters',
+                  ),
+              ],
             ),
-          ],
+            const SizedBox(height: 16),
 
-          // Bottom padding for safe area
-          SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
-        ],
-      ),
-    );
+            // Site Filter
+            _buildSiteFilter(isSmallScreen),
+            const SizedBox(height: 16),
+
+            // Category Filter
+            if (widget.availableCategories.isNotEmpty) ...[
+              _buildCategoryFilter(isSmallScreen),
+              const SizedBox(height: 16),
+            ],
+
+            // Price Range Filter
+            _buildPriceRangeFilter(isSmallScreen),
+            const SizedBox(height: 16),
+
+            // Favorites Toggle
+            _buildFavoritesToggle(isSmallScreen),
+            const SizedBox(height: 16),
+
+            // Bottom padding for safe area
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+          ],
+        ), // Close Column
+      ), // Close Container
+    ); // Close SingleChildScrollView
   }
 
   Widget _buildSiteFilter(bool isSmallScreen) {
@@ -907,6 +912,7 @@ class _ProductFiltersState extends State<ProductFilters> {
       showDiscontinued:
           _currentFilter.showDiscontinued, // Preserve this as well
       favoritesOnly: false, // Clear favorites filter
+      searchTerm: null, // Explicitly clear search term
     );
     setState(() {
       _currentFilter = clearedFilter;

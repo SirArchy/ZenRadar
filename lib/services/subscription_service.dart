@@ -264,41 +264,29 @@ class SubscriptionService extends ChangeNotifier {
     return settings.isSubscriptionExpired;
   }
 
-  /// Validate if user can add more favorites
+  /// Validate if user can add more favorites (always allowed - no limits)
   Future<FavoriteValidationResult> canAddMoreFavorites() async {
     try {
-      // Debug mode override
-      if (kDebugMode && _debugPremiumMode) {
-        final currentFavoriteCount =
-            await DatabaseService.platformService.getFavoriteProductIds();
-        return FavoriteValidationResult(
-          canAdd: true, // Always true for debug premium mode
-          currentCount: currentFavoriteCount.length,
-          maxAllowed: SubscriptionTierExtension.maxFavoritesForPremium,
-          tier: SubscriptionTier.premium,
-        );
-      }
-
-      final settings = await SettingsService.instance.getSettings();
       final currentFavoriteCount =
           await DatabaseService.platformService.getFavoriteProductIds();
 
-      final canAdd = settings.canAddFavorites(currentFavoriteCount.length);
-
+      // Always allow favorites - no limits
       return FavoriteValidationResult(
-        canAdd: canAdd,
+        canAdd: true,
         currentCount: currentFavoriteCount.length,
-        maxAllowed: settings.maxAllowedFavorites,
-        tier: settings.subscriptionTier,
+        maxAllowed:
+            SubscriptionTierExtension.maxFavoritesForPremium, // Show unlimited
+        tier: await getCurrentTier(),
       );
     } catch (e) {
       if (kDebugMode) {
         print('Error checking favorite limits: $e');
       }
+      // Even on error, allow favorites
       return FavoriteValidationResult(
-        canAdd: false,
+        canAdd: true,
         currentCount: 0,
-        maxAllowed: 0,
+        maxAllowed: SubscriptionTierExtension.maxFavoritesForPremium,
         tier: SubscriptionTier.free,
       );
     }

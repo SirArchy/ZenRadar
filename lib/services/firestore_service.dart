@@ -739,11 +739,430 @@ class FirestoreService {
         }
       }
 
+      // If no updates found using crawlRequestId, try to fallback to timestamp-based search
+      if (stockUpdates.isEmpty) {
+        if (kDebugMode) {
+          print(
+            'No stock updates found with crawlRequestId $crawlRequestId, trying timestamp fallback...',
+          );
+        }
+        return await getStockUpdatesByTimestamp(crawlRequestId);
+      }
+
       return stockUpdates;
     } catch (e) {
       if (kDebugMode) {
         print(
           'Error fetching stock updates for crawl request $crawlRequestId: $e',
+        );
+      }
+      return [];
+    }
+  }
+
+  /// Fallback method: Get stock updates by crawl request timestamp range
+  Future<List<Map<String, dynamic>>> getStockUpdatesByTimestamp(
+    String crawlRequestId,
+  ) async {
+    try {
+      // First get the crawl request to determine the time range
+      final crawlRequestDoc =
+          await firestore
+              .collection('crawl_requests')
+              .doc(crawlRequestId)
+              .get();
+
+      if (!crawlRequestDoc.exists) {
+        if (kDebugMode) {
+          print('Crawl request $crawlRequestId not found');
+        }
+        return [];
+      }
+
+      final crawlData = crawlRequestDoc.data()!;
+      final startTime = crawlData['startedAt'] ?? crawlData['createdAt'];
+      final endTime =
+          crawlData['completedAt'] ?? crawlData['updatedAt'] ?? DateTime.now();
+
+      if (startTime == null) {
+        if (kDebugMode) {
+          print('No start time found for crawl request $crawlRequestId');
+        }
+        return [];
+      }
+
+      DateTime startTimestamp =
+          startTime is DateTime ? startTime : startTime.toDate();
+      DateTime endTimestamp = endTime is DateTime ? endTime : endTime.toDate();
+
+      // Add some buffer time (5 minutes before and after)
+      startTimestamp = startTimestamp.subtract(const Duration(minutes: 5));
+      endTimestamp = endTimestamp.add(const Duration(minutes: 5));
+
+      if (kDebugMode) {
+        print(
+          'Searching for stock updates between $startTimestamp and $endTimestamp',
+        );
+      }
+
+      // Try to query all stock history entries first, then filter by timestamp in memory
+      // This avoids potential indexing issues with timestamp queries
+      QuerySnapshot<Map<String, dynamic>> querySnapshot;
+      try {
+        // First try the indexed timestamp query
+        querySnapshot =
+            await firestore
+                .collection('stock_history')
+                .where('timestamp', isGreaterThanOrEqualTo: startTimestamp)
+                .where('timestamp', isLessThanOrEqualTo: endTimestamp)
+                .orderBy('timestamp', descending: true)
+                .get();
+      } catch (e) {
+        if (kDebugMode) {
+          print('Timestamp query failed, trying to get all recent entries: $e');
+        }
+        // Fallback: get recent entries and filter manually
+        querySnapshot =
+            await firestore
+                .collection('stock_history')
+                .orderBy('timestamp', descending: true)
+                .limit(100) // Get last 100 entries
+                .get();
+      }
+
+      final stockUpdates = <Map<String, dynamic>>[];
+
+      for (final doc in querySnapshot.docs) {
+        final data = doc.data();
+
+        // Check if this entry is within our time range
+        final entryTimestamp = data['timestamp'];
+        DateTime? entryTime;
+        if (entryTimestamp != null) {
+          entryTime =
+              entryTimestamp is DateTime
+                  ? entryTimestamp
+                  : entryTimestamp.toDate();
+
+          // Skip if outside our time range
+          if (entryTime != null &&
+              (entryTime.isBefore(startTimestamp) ||
+                  entryTime.isAfter(endTimestamp))) {
+            continue;
+          }
+        }
+
+        // Get the product details for this stock update
+        final productId = data['productId'] as String;
+        final productDoc =
+            await firestore.collection('products').doc(productId).get();
+
+        if (productDoc.exists) {
+          final productData = productDoc.data()!;
+
+          // Only include products that had stock status changes
+          final previousStatus = data['previousStatus'];
+          final currentStatus = data['isInStock'] ?? false;
+
+          // Include if product went from out of stock to in stock, or is a new product in stock
+          if ((previousStatus == false && currentStatus == true) ||
+              (previousStatus == null && currentStatus == true)) {
+            stockUpdates.add({
+              'productId': productId,
+              'name': productData['name'] ?? 'Unknown',
+              'site': productData['site'] ?? '',
+              'siteName': productData['siteName'] ?? '',
+              'price': productData['price'] ?? '',
+              'priceValue': productData['priceValue'],
+              'currency': productData['currency'] ?? 'EUR',
+              'url': productData['url'] ?? '',
+              'imageUrl': productData['imageUrl'],
+              'isInStock': currentStatus,
+              'previousIsInStock': previousStatus,
+              'timestamp': data['timestamp'],
+              'category': productData['category'] ?? 'Matcha',
+            });
+          }
+        }
+      }
+
+      if (kDebugMode) {
+        print(
+          'Found ${stockUpdates.length} stock updates using timestamp fallback',
+        );
+      }
+
+      return stockUpdates;
+    } catch (e) {
+      if (kDebugMode) {
+        print(
+          'Error fetching stock updates by timestamp for crawl request $crawlRequestId: $e',
+        );
+      }
+      return [];
+    }
+  }
+
+  /// Get price updates for a specific crawl request
+  Future<List<Map<String, dynamic>>> getPriceUpdatesForCrawlRequest(
+    String crawlRequestId,
+  ) async {
+    try {
+      // Get price history entries created during this crawl request
+      final querySnapshot =
+          await firestore
+              .collection('price_history')
+              .where('crawlRequestId', isEqualTo: crawlRequestId)
+              .orderBy('timestamp', descending: true)
+              .get();
+
+      final priceUpdates = <Map<String, dynamic>>[];
+
+      for (final doc in querySnapshot.docs) {
+        final data = doc.data();
+
+        // Get the product details for this price update
+        final productId = data['productId'] as String;
+        final productDoc =
+            await firestore.collection('products').doc(productId).get();
+
+        if (productDoc.exists) {
+          final productData = productDoc.data()!;
+
+          // Include all price changes (price updates are inherently meaningful)
+          priceUpdates.add({
+            'productId': productId,
+            'name': productData['name'] ?? 'Unknown',
+            'site': productData['site'] ?? '',
+            'siteName': productData['siteName'] ?? '',
+            'price': productData['price'] ?? '',
+            'previousPrice': data['previousPrice'] ?? '',
+            'priceValue': productData['priceValue'],
+            'previousPriceValue': data['previousPriceValue'],
+            'currency': productData['currency'] ?? 'EUR',
+            'url': productData['url'] ?? '',
+            'imageUrl': productData['imageUrl'],
+            'isInStock': productData['isInStock'] ?? false,
+            'timestamp': data['timestamp'],
+            'category': productData['category'] ?? 'Matcha',
+            'changeType': 'price',
+          });
+        }
+      }
+
+      // If no updates found using crawlRequestId, try to fallback to timestamp-based search
+      if (priceUpdates.isEmpty) {
+        if (kDebugMode) {
+          print(
+            'No price updates found with crawlRequestId $crawlRequestId, trying timestamp fallback...',
+          );
+        }
+        return await getPriceUpdatesByTimestamp(crawlRequestId);
+      }
+
+      return priceUpdates;
+    } catch (e) {
+      if (kDebugMode) {
+        print(
+          'Error fetching price updates for crawl request $crawlRequestId: $e',
+        );
+      }
+      return [];
+    }
+  }
+
+  /// Fallback method: Get price updates by crawl request timestamp range
+  Future<List<Map<String, dynamic>>> getPriceUpdatesByTimestamp(
+    String crawlRequestId,
+  ) async {
+    try {
+      // First get the crawl request to determine the time range
+      final crawlRequestDoc =
+          await firestore
+              .collection('crawl_requests')
+              .doc(crawlRequestId)
+              .get();
+
+      if (!crawlRequestDoc.exists) {
+        if (kDebugMode) {
+          print('Crawl request $crawlRequestId not found');
+        }
+        return [];
+      }
+
+      final crawlData = crawlRequestDoc.data()!;
+      final startTime = crawlData['startedAt'] ?? crawlData['createdAt'];
+      final endTime =
+          crawlData['completedAt'] ?? crawlData['updatedAt'] ?? DateTime.now();
+
+      if (startTime == null) {
+        if (kDebugMode) {
+          print('No start time found for crawl request $crawlRequestId');
+        }
+        return [];
+      }
+
+      DateTime startTimestamp =
+          startTime is DateTime ? startTime : startTime.toDate();
+      DateTime endTimestamp = endTime is DateTime ? endTime : endTime.toDate();
+
+      // Add some buffer time (5 minutes before and after)
+      startTimestamp = startTimestamp.subtract(const Duration(minutes: 5));
+      endTimestamp = endTimestamp.add(const Duration(minutes: 5));
+
+      if (kDebugMode) {
+        print(
+          'Searching for price updates between $startTimestamp and $endTimestamp',
+        );
+      }
+
+      // Try multiple query strategies to handle different field names and indexing issues
+      QuerySnapshot<Map<String, dynamic>>? querySnapshot;
+
+      // Strategy 1: Try timestamp field with range query
+      try {
+        querySnapshot =
+            await firestore
+                .collection('price_history')
+                .where('timestamp', isGreaterThanOrEqualTo: startTimestamp)
+                .where('timestamp', isLessThanOrEqualTo: endTimestamp)
+                .orderBy('timestamp', descending: true)
+                .get();
+        if (kDebugMode) {
+          print(
+            'Strategy 1 (timestamp range): Found ${querySnapshot.docs.length} entries',
+          );
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('Strategy 1 failed: $e');
+        }
+      }
+
+      // Strategy 2: Try date field with range query (if timestamp failed)
+      if (querySnapshot == null || querySnapshot.docs.isEmpty) {
+        try {
+          querySnapshot =
+              await firestore
+                  .collection('price_history')
+                  .where('date', isGreaterThanOrEqualTo: startTimestamp)
+                  .where('date', isLessThanOrEqualTo: endTimestamp)
+                  .orderBy('date', descending: true)
+                  .get();
+          if (kDebugMode) {
+            print(
+              'Strategy 2 (date range): Found ${querySnapshot.docs.length} entries',
+            );
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('Strategy 2 failed: $e');
+          }
+        }
+      }
+
+      // Strategy 3: Get recent entries and filter manually (last resort)
+      if (querySnapshot == null || querySnapshot.docs.isEmpty) {
+        try {
+          querySnapshot =
+              await firestore
+                  .collection('price_history')
+                  .orderBy('timestamp', descending: true)
+                  .limit(100)
+                  .get();
+          if (kDebugMode) {
+            print(
+              'Strategy 3 (recent entries): Found ${querySnapshot.docs.length} entries',
+            );
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('Strategy 3 also failed: $e');
+          }
+          // Final fallback - try with date field
+          try {
+            querySnapshot =
+                await firestore
+                    .collection('price_history')
+                    .orderBy('date', descending: true)
+                    .limit(100)
+                    .get();
+            if (kDebugMode) {
+              print(
+                'Strategy 3b (recent by date): Found ${querySnapshot.docs.length} entries',
+              );
+            }
+          } catch (e2) {
+            if (kDebugMode) {
+              print('All strategies failed: $e2');
+            }
+            return [];
+          }
+        }
+      }
+
+      final priceUpdates = <Map<String, dynamic>>[];
+
+      for (final doc in querySnapshot.docs) {
+        final data = doc.data();
+
+        // Check if this entry is within our time range (for strategies 3 and 3b)
+        final entryTimestamp = data['timestamp'] ?? data['date'];
+        if (entryTimestamp != null) {
+          DateTime? entryTime;
+          entryTime =
+              entryTimestamp is DateTime
+                  ? entryTimestamp
+                  : entryTimestamp.toDate();
+
+          // Skip if outside our time range when manually filtering
+          if (entryTime != null &&
+              (entryTime.isBefore(startTimestamp) ||
+                  entryTime.isAfter(endTimestamp))) {
+            continue;
+          }
+        }
+
+        // Get the product details for this price update
+        final productId = data['productId'] as String;
+        final productDoc =
+            await firestore.collection('products').doc(productId).get();
+
+        if (productDoc.exists) {
+          final productData = productDoc.data()!;
+
+          // Include all price changes
+          priceUpdates.add({
+            'productId': productId,
+            'name': productData['name'] ?? 'Unknown',
+            'site': productData['site'] ?? '',
+            'siteName': productData['siteName'] ?? '',
+            'price': data['price']?.toString() ?? productData['price'] ?? '',
+            'previousPrice': data['previousPrice']?.toString() ?? '',
+            'priceValue': data['price'] ?? productData['priceValue'],
+            'previousPriceValue': data['previousPriceValue'],
+            'currency': data['currency'] ?? productData['currency'] ?? 'EUR',
+            'url': productData['url'] ?? '',
+            'imageUrl': productData['imageUrl'],
+            'isInStock': data['isInStock'] ?? productData['isInStock'] ?? false,
+            'timestamp': data['timestamp'] ?? data['date'],
+            'category': productData['category'] ?? 'Matcha',
+            'changeType': 'price',
+          });
+        }
+      }
+
+      if (kDebugMode) {
+        print(
+          'Found ${priceUpdates.length} price updates using timestamp fallback',
+        );
+      }
+
+      return priceUpdates;
+    } catch (e) {
+      if (kDebugMode) {
+        print(
+          'Error fetching price updates for crawl request $crawlRequestId: $e',
         );
       }
       return [];

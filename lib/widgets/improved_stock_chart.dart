@@ -25,17 +25,39 @@ class ImprovedStockChart extends StatelessWidget {
     final sortedPoints = List<StockStatusPoint>.from(stockPoints)
       ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
+    // Handle single data point case
+    if (sortedPoints.length == 1) {
+      return _buildSinglePointState(context, sortedPoints.first);
+    }
+
+    // Apply downsampling for better performance and cleaner display
+    final downsampledPoints = _downsampleStockData(sortedPoints);
+
+    // Ensure we have at least 2 points for a proper chart
+    if (downsampledPoints.length < 2) {
+      return _buildInsufficientDataState(context, downsampledPoints);
+    }
+
+    // For monthly view, add a month header
+    if (timeRange == 'month') {
+      return _buildMonthlyChartWithHeader(context, downsampledPoints);
+    }
+
     return SizedBox(
       height: 280,
       child: LineChart(
         LineChartData(
           gridData: _buildGridData(context),
-          titlesData: _buildTitlesData(context, sortedPoints),
+          titlesData: _buildTitlesData(context, downsampledPoints),
           borderData: _buildBorderData(context),
-          lineBarsData: [_buildStockLineData(context, sortedPoints)],
-          lineTouchData: _buildTouchData(context, sortedPoints),
-          minX: sortedPoints.first.timestamp.millisecondsSinceEpoch.toDouble(),
-          maxX: sortedPoints.last.timestamp.millisecondsSinceEpoch.toDouble(),
+          lineBarsData: [_buildStockLineData(context, downsampledPoints)],
+          lineTouchData: _buildTouchData(context, downsampledPoints),
+          minX:
+              downsampledPoints.first.timestamp.millisecondsSinceEpoch
+                  .toDouble(),
+          maxX:
+              downsampledPoints.last.timestamp.millisecondsSinceEpoch
+                  .toDouble(),
           minY: -0.1,
           maxY: 1.1,
           extraLinesData: _buildStockLevels(context),
@@ -44,6 +66,65 @@ class ImprovedStockChart extends StatelessWidget {
         curve: Curves.easeInOut,
       ),
     );
+  }
+
+  // Downsample stock data to prevent too many data points
+  List<StockStatusPoint> _downsampleStockData(List<StockStatusPoint> points) {
+    if (points.length <= 50) {
+      return points; // No need to downsample small datasets
+    }
+
+    int targetPoints;
+    switch (timeRange) {
+      case 'day':
+      case 'today':
+        targetPoints = 24; // Hourly points
+        break;
+      case 'week':
+        targetPoints = 14; // Twice daily
+        break;
+      case 'month':
+        targetPoints = 30; // Daily points
+        break;
+      case 'all':
+      default:
+        targetPoints = 50; // Fixed number for all time
+        break;
+    }
+
+    if (points.length <= targetPoints) return points;
+
+    // Use step-based sampling but preserve state changes
+    final downsampled = <StockStatusPoint>[];
+    final step = (points.length / targetPoints).ceil();
+
+    // Always include first point
+    downsampled.add(points.first);
+
+    // Sample points while preserving state changes
+    bool lastInStock = points.first.isInStock;
+    for (int i = step; i < points.length; i += step) {
+      final point = points[i];
+
+      // Always include state changes
+      if (point.isInStock != lastInStock) {
+        // Include the previous point if it's not already included
+        if (i > 0 && !downsampled.contains(points[i - 1])) {
+          downsampled.add(points[i - 1]);
+        }
+        downsampled.add(point);
+        lastInStock = point.isInStock;
+      } else {
+        downsampled.add(point);
+      }
+    }
+
+    // Always include the last point
+    if (!downsampled.contains(points.last)) {
+      downsampled.add(points.last);
+    }
+
+    return downsampled;
   }
 
   Widget _buildEmptyState(BuildContext context) {
@@ -75,6 +156,143 @@ class ImprovedStockChart extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSinglePointState(BuildContext context, StockStatusPoint point) {
+    final isInStock = point.isInStock;
+    final statusColor = isInStock ? Colors.green : Colors.red;
+    final statusIcon = isInStock ? Icons.check_circle : Icons.cancel;
+    final statusText = isInStock ? 'In Stock' : 'Out of Stock';
+
+    return Container(
+      height: 280,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(statusIcon, size: 64, color: statusColor),
+          const SizedBox(height: 16),
+          Text(
+            statusText,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: statusColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Single data point from ${DateFormat('MMM dd, HH:mm').format(point.timestamp)}',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'More data will be available as additional scans are performed',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(100),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInsufficientDataState(
+    BuildContext context,
+    List<StockStatusPoint> points,
+  ) {
+    return Container(
+      height: 280,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.trending_up,
+            size: 64,
+            color: Theme.of(context).colorScheme.onSurface.withAlpha(100),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Insufficient Data for Chart',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Only ${points.length} data point${points.length == 1 ? '' : 's'} available for this time range',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Chart visualization requires at least 2 data points',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(100),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMonthlyChartWithHeader(
+    BuildContext context,
+    List<StockStatusPoint> downsampledPoints,
+  ) {
+    // Get the month name from the first point
+    final monthName =
+        downsampledPoints.isNotEmpty
+            ? DateFormat('MMMM yyyy').format(downsampledPoints.first.timestamp)
+            : DateFormat('MMMM yyyy').format(DateTime.now());
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Month header
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            monthName,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+        ),
+        // Chart
+        SizedBox(
+          height: 260,
+          child: LineChart(
+            LineChartData(
+              gridData: _buildGridData(context),
+              titlesData: _buildTitlesData(context, downsampledPoints),
+              borderData: _buildBorderData(context),
+              lineBarsData: [_buildStockLineData(context, downsampledPoints)],
+              lineTouchData: _buildTouchData(context, downsampledPoints),
+              minX:
+                  downsampledPoints.first.timestamp.millisecondsSinceEpoch
+                      .toDouble(),
+              maxX:
+                  downsampledPoints.last.timestamp.millisecondsSinceEpoch
+                      .toDouble(),
+              minY: -0.1,
+              maxY: 1.1,
+              extraLinesData: _buildStockLevels(context),
+            ),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          ),
+        ),
+      ],
     );
   }
 
@@ -111,6 +329,7 @@ class ImprovedStockChart extends StatelessWidget {
         sideTitles: SideTitles(
           showTitles: true,
           reservedSize: 80,
+          interval: 1.0, // Only show at Y=0 and Y=1
           getTitlesWidget:
               (value, meta) => _buildStockTitle(context, value, meta),
         ),
@@ -149,16 +368,17 @@ class ImprovedStockChart extends StatelessWidget {
     Color color;
     IconData icon;
 
-    if (value <= 0.25) {
+    // Only show labels at exactly Y=0 and Y=1
+    if (value == 0.0) {
       text = 'Out of Stock';
       color = Colors.red;
       icon = Icons.cancel;
-    } else if (value >= 0.75) {
+    } else if (value == 1.0) {
       text = 'In Stock';
       color = Colors.green;
       icon = Icons.check_circle;
     } else {
-      return const SizedBox.shrink(); // Don't show intermediate values
+      return const SizedBox.shrink(); // Don't show labels for other values
     }
 
     return SideTitleWidget(
@@ -391,19 +611,9 @@ class ImprovedStockChart extends StatelessWidget {
       case 'week':
         return DateFormat('MM/dd').format(date);
       case 'month':
-        return DateFormat('MM/dd').format(date);
-      case 'all':
+        return DateFormat('d').format(date); // Show just day number
       default:
-        final now = DateTime.now();
-        final difference = now.difference(date).inDays;
-
-        if (difference <= 30) {
-          return DateFormat('MM/dd').format(date);
-        } else if (difference <= 365) {
-          return DateFormat('MMM').format(date);
-        } else {
-          return DateFormat('MM/yy').format(date);
-        }
+        return DateFormat('MM/dd').format(date);
     }
   }
 

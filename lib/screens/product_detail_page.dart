@@ -293,14 +293,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       );
 
       if (!result.success) {
-        // Handle subscription limit or other errors
-        if (result.limitReached &&
-            result.validationResult != null &&
-            !_isPremium) {
-          _showUpgradeDialog(result.validationResult!);
-        } else {
-          _showErrorSnackBar(result.error ?? 'Failed to update favorite');
-        }
+        // Handle other errors
+        _showErrorSnackBar(result.error ?? 'Failed to update favorite');
         return;
       }
 
@@ -372,6 +366,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final currency = currencies.firstWhere(
       (c) => c['code'] == _currentCurrency,
       orElse: () => {'symbol': _currentCurrency},
+    );
+    return currency['symbol'] as String;
+  }
+
+  /// Get the original product currency symbol
+  String _getOriginalCurrencySymbol() {
+    final productCurrency = widget.product.currency ?? 'EUR';
+    final currency = currencies.firstWhere(
+      (c) => c['code'] == productCurrency,
+      orElse: () => {'symbol': productCurrency},
     );
     return currency['symbol'] as String;
   }
@@ -746,19 +750,74 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
 
     if (_priceAnalytics == null || _filteredHistory.isEmpty) {
+      // Let the ImprovedPriceChart handle empty state with current price display
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: SizedBox(
-            height: 200,
-            child: Center(
-              child: Text(
-                'No price data available for selected time range',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    'Price History',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildHistoryAccessBadge(),
+                  const Spacer(),
+                  PopupMenuButton<String>(
+                    initialValue: _selectedTimeRange,
+                    onSelected: (value) {
+                      setState(() {
+                        _selectedTimeRange = value;
+                      });
+                    },
+                    itemBuilder:
+                        (context) =>
+                            _isPremium
+                                ? [
+                                  const PopupMenuItem(
+                                    value: 'day',
+                                    child: Text('7 Days'),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'week',
+                                    child: Text('1 Month'),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'month',
+                                    child: Text('1 Year'),
+                                  ),
+                                ]
+                                : [
+                                  const PopupMenuItem(
+                                    value: 'day',
+                                    child: Text('7 Days'),
+                                  ),
+                                ],
+                    child: Chip(
+                      label: Text(_getTimeRangeLabel()),
+                      avatar: const Icon(Icons.access_time, size: 16),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Use the improved price chart with current price display for empty state
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: ImprovedPriceChart(
+                  key: ValueKey(_selectedTimeRange),
+                  priceHistory: _filteredHistory,
+                  currencySymbol: _currentCurrencySymbol,
+                  timeRange: _selectedTimeRange,
+                  product:
+                      widget
+                          .product, // This enables current price display when no history
                 ),
               ),
-            ),
+            ],
           ),
         ),
       );
@@ -802,10 +861,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                   value: 'month',
                                   child: Text('1 Year'),
                                 ),
-                                const PopupMenuItem(
-                                  value: 'all',
-                                  child: Text('All Time'),
-                                ),
                               ]
                               : [
                                 const PopupMenuItem(
@@ -829,6 +884,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 priceHistory: _filteredHistory,
                 currencySymbol: _currentCurrencySymbol,
                 timeRange: _selectedTimeRange,
+                product:
+                    widget.product, // Pass the product for current price access
               ),
             ),
           ],
@@ -851,11 +908,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             const SizedBox(height: 16),
             _buildDetailRow('Site', widget.product.site),
             _buildDetailRow('Category', widget.product.category ?? 'Unknown'),
-            if (_convertedPrice != null)
-              _buildDetailRow(
-                'Current Price',
-                '${_convertedPrice!.toStringAsFixed(2)}$_currentCurrencySymbol',
-              ),
+            _buildDetailRow(
+              'Current Price',
+              _convertedPrice != null
+                  ? '${_convertedPrice!.toStringAsFixed(2)}$_currentCurrencySymbol'
+                  : widget.product.priceValue != null
+                  ? '${widget.product.priceValue!.toStringAsFixed(2)}${_getOriginalCurrencySymbol()}'
+                  : (widget.product.price ?? 'N/A'),
+            ),
             if (widget.product.weight != null)
               _buildDetailRow('Weight', '${widget.product.weight}g'),
             if (widget.product.currency != null)
@@ -934,10 +994,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
     final stockAnalytics = _stockAnalytics;
     if (stockAnalytics == null || stockAnalytics.statusPoints.isEmpty) {
+      // Let the ImprovedStockChart handle empty state display
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
@@ -945,15 +1007,102 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     Icons.inventory_2,
                     color: Theme.of(context).colorScheme.primary,
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Stock History',
-                    style: Theme.of(context).textTheme.titleLarge,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Stock History',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  Flexible(
+                    child: PopupMenuButton<String>(
+                      initialValue: _selectedTimeRange,
+                      onSelected: (value) {
+                        setState(() {
+                          _selectedTimeRange = value;
+                          if (value == 'day') {
+                            _selectedDay = DateTime.now();
+                          } else {
+                            _selectedDay = null;
+                          }
+                        });
+                      },
+                      itemBuilder:
+                          (context) =>
+                              _isPremium
+                                  ? [
+                                    const PopupMenuItem(
+                                      value: 'day',
+                                      child: Text('Today'),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'week',
+                                      child: Text('This Week'),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'month',
+                                      child: Text('This Month'),
+                                    ),
+                                  ]
+                                  : [
+                                    const PopupMenuItem(
+                                      value: 'day',
+                                      child: Text('Last 7 Days'),
+                                    ),
+                                  ],
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withAlpha(20),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primary.withAlpha(100),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              size: 14,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _getTimeRangeLabel(),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 2),
+                            Icon(
+                              Icons.arrow_drop_down,
+                              size: 16,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              const Text('No stock history available yet'),
+              const SizedBox(height: 20),
+              // Use ImprovedStockChart with empty stock points - it will handle the empty state
+              ImprovedStockChart(
+                stockPoints:
+                    const [], // Empty list will show appropriate empty state
+                timeRange: _selectedTimeRange,
+              ),
             ],
           ),
         ),
@@ -1007,10 +1156,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                   const PopupMenuItem(
                                     value: 'month',
                                     child: Text('This Month'),
-                                  ),
-                                  const PopupMenuItem(
-                                    value: 'all',
-                                    child: Text('All Time'),
                                   ),
                                 ]
                                 : [
@@ -1214,10 +1359,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         return 'This Week';
       case 'month':
         return 'This Month';
-      case 'all':
-        return 'All Time';
       default:
-        return 'All Time';
+        return 'This Month';
     }
   }
 
@@ -1244,7 +1387,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         cutoffDate = now.subtract(const Duration(days: 30));
         break;
       default:
-        return stockAnalytics.statusPoints;
+        cutoffDate = now.subtract(const Duration(days: 30)); // Default to month
     }
 
     return stockAnalytics.statusPoints
@@ -1283,65 +1426,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     } else {
       throw 'Could not launch $url';
     }
-  }
-
-  /// Show upgrade dialog when subscription limits are reached
-  void _showUpgradeDialog(FavoriteValidationResult validationResult) {
-    if (!mounted) return;
-
-    // Don't show upgrade dialog for premium users
-    if (_isPremium || validationResult.tier == SubscriptionTier.premium) {
-      return;
-    }
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('${validationResult.tier.displayName} Limit Reached'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(validationResult.message),
-              const SizedBox(height: 16),
-              Text(
-                'Upgrade to Premium for:',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              const Text('• Unlimited favorites'),
-              const Text('• Monitor all vendors'),
-              const Text('• Hourly check frequency'),
-              const Text('• Full history access'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Maybe Later'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder:
-                        (context) => SubscriptionUpgradeScreen(
-                          validationResult: validationResult,
-                          sourceScreen: 'product_detail',
-                        ),
-                  ),
-                );
-              },
-              child: const Text('Upgrade Now'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   /// Build history access badge showing subscription limitations

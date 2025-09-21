@@ -19,8 +19,8 @@ class StockUpdatesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Filter updates to only show products that are newly added or came back in stock
-    final filteredUpdates =
+    // Separate stock updates and price updates
+    final stockUpdates =
         updates.where((update) {
           final previousIsInStock = update['previousIsInStock'];
           final currentIsInStock =
@@ -37,17 +37,24 @@ class StockUpdatesScreen extends StatelessWidget {
             return true;
           }
 
-          // Don't show products that went out of stock or stayed the same
           return false;
         }).toList();
 
+    final priceUpdates =
+        updates.where((update) {
+          return update['changeType'] == 'price';
+        }).toList();
+
+    final hasStockUpdates = stockUpdates.isNotEmpty;
+    final hasPriceUpdates = priceUpdates.isNotEmpty;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New Stock Arrivals'),
+        title: const Text('Product Updates'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body:
-          filteredUpdates.isEmpty
+          (!hasStockUpdates && !hasPriceUpdates)
               ? const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -59,7 +66,7 @@ class StockUpdatesScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 16),
                     Text(
-                      'No new stock arrivals',
+                      'No product updates',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w500,
@@ -68,87 +75,176 @@ class StockUpdatesScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'This shows products that are newly discovered\nor came back in stock.',
+                      'This shows products with stock or price changes.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.grey),
                     ),
                   ],
                 ),
               )
-              : GridView.builder(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount:
-                      MediaQuery.of(context).size.width > 600
-                          ? 3
-                          : 2, // 3 columns on wide screens, 2 on narrow
-                  childAspectRatio: 1,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
+              : SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Stock Updates Section
+                    if (hasStockUpdates) ...[
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.inventory,
+                              color: Colors.green,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'New Stock Arrivals (${stockUpdates.length})',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _buildProductGrid(stockUpdates, context),
+                    ],
+
+                    // Price Updates Section
+                    if (hasPriceUpdates) ...[
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.monetization_on,
+                              color: Colors.orange,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Price Changes (${priceUpdates.length})',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _buildProductGrid(priceUpdates, context),
+                    ],
+                  ],
                 ),
-                padding: const EdgeInsets.all(8),
-                itemCount: filteredUpdates.length,
-                itemBuilder: (context, index) {
-                  final update = filteredUpdates[index];
-
-                  final product = MatchaProduct(
-                    id: update['productId'] ?? '',
-                    name: update['name'] ?? 'Unknown',
-                    normalizedName: update['name'] ?? 'Unknown',
-                    site: update['site'] ?? '',
-                    url: update['url'] ?? '',
-                    isInStock:
-                        update['isInStock'] == 1 || update['isInStock'] == true,
-                    lastChecked:
-                        DateTime.tryParse(update['timestamp'] ?? '') ??
-                        DateTime.now(),
-                    firstSeen:
-                        DateTime.tryParse(update['timestamp'] ?? '') ??
-                        DateTime.now(),
-                    price: update['price']?.toString(),
-                    priceValue:
-                        update['priceValue'] is double
-                            ? update['priceValue']
-                            : double.tryParse(
-                              update['priceValue']?.toString() ?? '',
-                            ),
-                    currency: update['currency']?.toString(),
-                    imageUrl: update['imageUrl']?.toString(),
-                    description: update['description']?.toString(),
-                    category: update['category']?.toString(),
-                    weight:
-                        update['weight'] is int
-                            ? update['weight']
-                            : int.tryParse(update['weight']?.toString() ?? ''),
-                    metadata:
-                        update['metadata'] is Map<String, dynamic>
-                            ? update['metadata']
-                            : null,
-                  );
-
-                  return ProductCard(
-                    product: product,
-                    preferredCurrency: product.currency,
-                    isFavorite: false,
-                    onTap: () async {
-                      if (product.url.isNotEmpty) {
-                        final uri = Uri.parse(product.url);
-                        if (await canLaunchUrl(uri)) {
-                          await launchUrl(
-                            uri,
-                            mode: LaunchMode.externalApplication,
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Could not open product page'),
-                            ),
-                          );
-                        }
-                      }
-                    },
-                  );
-                },
               ),
+    );
+  }
+
+  Widget _buildProductGrid(List<dynamic> productUpdates, BuildContext context) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: MediaQuery.of(context).size.width > 600 ? 3 : 2,
+        childAspectRatio: 0.75, // Adjust to match homescreen cards
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: productUpdates.length,
+      itemBuilder: (context, index) {
+        final update = productUpdates[index];
+        return _buildProductCard(update, context);
+      },
+    );
+  }
+
+  Widget _buildProductCard(dynamic update, BuildContext context) {
+    final product = MatchaProduct(
+      id: update['productId'] ?? '',
+      name: update['name'] ?? 'Unknown',
+      normalizedName: update['name'] ?? 'Unknown',
+      site: update['site'] ?? '',
+      siteName: update['siteName'] ?? '',
+      url: update['url'] ?? '',
+      isInStock: update['isInStock'] == 1 || update['isInStock'] == true,
+      lastChecked:
+          DateTime.tryParse(update['timestamp'] ?? '') ?? DateTime.now(),
+      firstSeen: DateTime.tryParse(update['timestamp'] ?? '') ?? DateTime.now(),
+      price: update['price']?.toString(),
+      priceValue:
+          update['priceValue'] is double
+              ? update['priceValue']
+              : double.tryParse(update['priceValue']?.toString() ?? ''),
+      currency: update['currency']?.toString(),
+      imageUrl: update['imageUrl']?.toString(),
+      description: update['description']?.toString(),
+      category: update['category']?.toString(),
+      weight:
+          update['weight'] is int
+              ? update['weight']
+              : int.tryParse(update['weight']?.toString() ?? ''),
+      metadata:
+          update['metadata'] is Map<String, dynamic>
+              ? update['metadata']
+              : null,
+    );
+
+    // Create extra info widget for price changes
+    Widget? extraInfo;
+    if (update['changeType'] == 'price' &&
+        update['previousPrice'] != null &&
+        update['previousPrice'].toString().isNotEmpty) {
+      extraInfo = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.orange.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.orange.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.trending_up, size: 12, color: Colors.orange),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                'Was: ${update['previousPrice']}',
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: Colors.orange,
+                  fontWeight: FontWeight.w500,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ProductCard(
+      product: product,
+      preferredCurrency: product.currency,
+      isFavorite: false,
+      extraInfo: extraInfo,
+      onTap: () async {
+        if (product.url.isNotEmpty) {
+          final uri = Uri.parse(product.url);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Could not open product page')),
+            );
+          }
+        }
+      },
     );
   }
 }

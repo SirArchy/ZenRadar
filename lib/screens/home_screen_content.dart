@@ -19,7 +19,6 @@ import '../widgets/matcha_icon.dart';
 import '../widgets/skeleton_loading.dart';
 import '../widgets/swipe_tutorial_overlay.dart';
 import 'product_detail_page.dart';
-import 'subscription_upgrade_screen.dart';
 
 class HomeScreenContent extends StatefulWidget {
   final VoidCallback? onRefreshRequested;
@@ -145,7 +144,11 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     } else {
       prefs.remove('filter_maxPrice');
     }
-    prefs.setString('filter_searchTerm', filter.searchTerm ?? '');
+    if (filter.searchTerm?.isNotEmpty == true) {
+      prefs.setString('filter_searchTerm', filter.searchTerm!);
+    } else {
+      prefs.remove('filter_searchTerm');
+    }
 
     debugPrint('Saved filter: ${filter.toString()}');
   }
@@ -166,6 +169,10 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       return ProductFilter();
     }
 
+    // Get search term and ensure it's null if empty
+    final searchTerm = prefs.getString('filter_searchTerm');
+    final cleanSearchTerm = searchTerm?.isNotEmpty == true ? searchTerm : null;
+
     final restoredFilter = ProductFilter(
       inStock:
           prefs.containsKey('filter_inStock')
@@ -182,7 +189,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
           prefs.containsKey('filter_maxPrice')
               ? prefs.getDouble('filter_maxPrice')
               : null,
-      searchTerm: prefs.getString('filter_searchTerm'),
+      searchTerm: cleanSearchTerm,
     );
 
     debugPrint('Restored filter: ${restoredFilter.toString()}');
@@ -541,14 +548,8 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       );
 
       if (!result.success) {
-        // Handle subscription limit or other errors
-        if (result.limitReached &&
-            result.validationResult != null &&
-            !_isPremium) {
-          _showUpgradeDialog(result.validationResult!);
-        } else {
-          _showErrorSnackBar(result.error ?? 'Failed to update favorite');
-        }
+        // Handle other errors
+        _showErrorSnackBar(result.error ?? 'Failed to update favorite');
         return;
       }
 
@@ -790,7 +791,8 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                       product.imageUrl != null && product.imageUrl!.isNotEmpty,
                 )
                 .map((product) => product.imageUrl!)
-                .toList();
+                .toList()
+                .cast<String>();
 
         if (imageUrls.isNotEmpty) {
           await ImageCacheManager.instance.preloadVisibleProducts(imageUrls);
@@ -961,24 +963,49 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   void _onFilterChanged(ProductFilter newFilter) {
     setState(() {
       _filter = newFilter;
+      // Ensure search query and controller stay in sync with filter
+      final newSearchTerm = newFilter.searchTerm ?? '';
+      if (_searchQuery != newSearchTerm) {
+        _searchQuery = newSearchTerm;
+        _searchController.text = newSearchTerm;
+      }
     });
     _saveFilterToPrefs(newFilter);
     _loadProducts();
   }
 
   void _onSearchChanged(String query) {
+    final trimmedQuery = query.trim();
     setState(() {
-      _searchQuery = query;
-      _filter = _filter.copyWith(searchTerm: query.isEmpty ? null : query);
+      _searchQuery = trimmedQuery;
+      _filter = _filter.copyWith(
+        searchTerm: trimmedQuery.isEmpty ? null : trimmedQuery,
+      );
     });
     _saveFilterToPrefs(_filter);
     _loadProducts();
   }
 
   void _clearSearch() {
-    _searchController.clear();
-    _onSearchChanged('');
+    setState(() {
+      _searchController.clear();
+      _searchQuery = '';
+      _filter = _filter.copyWith(searchTerm: null);
+    });
     _searchFocusNode.unfocus();
+    _saveFilterToPrefs(_filter);
+    _loadProducts();
+  }
+
+  void _clearAllFilters() {
+    setState(() {
+      _filter = ProductFilter(); // Reset to empty filter
+      _searchQuery = '';
+      _searchController.clear();
+    });
+    _searchFocusNode.unfocus();
+    _saveFilterToPrefs(_filter);
+    _loadProducts();
   }
 
   /// Show mobile filter modal
@@ -1267,35 +1294,93 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       onTap: () {
         // Prevent tap-outside behavior when tapping inside the filter section
       },
-      child: Column(
-        children: [
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            height: 1,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.transparent,
-                  Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
-                  Colors.transparent,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(
+                context,
+              ).colorScheme.shadow.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // Header with icon and title
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainer.withValues(alpha: 0.5),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  topRight: Radius.circular(12),
+                ),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.1),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.tune,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Filter Options',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${_products.length} products',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+                  ),
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          AnimatedOpacity(
-            duration: const Duration(milliseconds: 500),
-            opacity: _isFilterSectionExpanded ? 1.0 : 0.0,
-            child: Column(
-              children: [
-                _buildStockStatusChips(),
-                _buildSortingOptions(),
-                _buildAdvancedOptions(),
-                _buildBulkActions(),
-              ],
+            // Filter content
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 500),
+              opacity: _isFilterSectionExpanded ? 1.0 : 0.0,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _buildStockStatusChips(),
+                    _buildSortingOptions(),
+                    _buildAdvancedOptions(),
+                    _buildClearAllButton(),
+                    _buildBulkActions(),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2338,6 +2423,44 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     );
   }
 
+  Widget _buildClearAllButton() {
+    // Only show if there are active filters
+    final hasActiveFilters =
+        _filter.inStock != null ||
+        _filter.favoritesOnly ||
+        (_filter.sites?.isNotEmpty ?? false) ||
+        (_filter.categories?.isNotEmpty ?? false) ||
+        _filter.minPrice != null ||
+        _filter.maxPrice != null ||
+        (_filter.searchTerm?.isNotEmpty ?? false);
+
+    if (!hasActiveFilters) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          onPressed: _clearAllFilters,
+          icon: const Icon(Icons.clear_all, size: 18),
+          label: const Text('Clear All Filters'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Theme.of(context).colorScheme.onSurface,
+            side: BorderSide(
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.5),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Add all currently filtered products to favorites
   Future<void> _bulkAddToFavorites() async {
     try {
@@ -2346,30 +2469,8 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
       if (nonFavoriteProducts.isEmpty) return;
 
-      List<MatchaProduct> productsToAdd;
-
-      // Skip subscription validation for premium users
-      if (!_isPremium) {
-        // Check subscription limits before starting bulk operation
-        final validationResult =
-            await SubscriptionService.instance.canAddMoreFavorites();
-        final availableSlots =
-            validationResult.maxAllowed - validationResult.currentCount;
-
-        if (!validationResult.canAdd) {
-          _showUpgradeDialog(validationResult);
-          return;
-        }
-
-        // Limit products to add based on available slots for free users
-        productsToAdd =
-            availableSlots < nonFavoriteProducts.length
-                ? nonFavoriteProducts.take(availableSlots).toList()
-                : nonFavoriteProducts;
-      } else {
-        // For premium users, add all products without limits
-        productsToAdd = nonFavoriteProducts;
-      }
+      // No limits for favorites - add all available products
+      List<MatchaProduct> productsToAdd = nonFavoriteProducts;
 
       // Show loading indicator
       if (mounted) {
@@ -2404,13 +2505,8 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
         if (result.success) {
           successCount++;
-        } else if (result.limitReached && !_isPremium) {
-          // Stop adding if we hit the limit (only for non-premium users)
-          if (result.validationResult != null) {
-            _showUpgradeDialog(result.validationResult!);
-          }
-          break;
         }
+        // No limit checks - favorites are unlimited for all users
       }
 
       // Update local state only for successfully added products
@@ -2559,65 +2655,6 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         );
       }
     }
-  }
-
-  /// Show upgrade dialog when subscription limits are reached
-  void _showUpgradeDialog(FavoriteValidationResult validationResult) {
-    if (!mounted) return;
-
-    // Don't show upgrade dialog for premium users
-    if (_isPremium || validationResult.tier == SubscriptionTier.premium) {
-      return;
-    }
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('${validationResult.tier.displayName} Limit Reached'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(validationResult.message),
-              const SizedBox(height: 16),
-              Text(
-                'Upgrade to Premium for:',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              const Text('• Unlimited favorites'),
-              const Text('• Monitor all vendors'),
-              const Text('• Hourly check frequency'),
-              const Text('• Full history access'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Maybe Later'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder:
-                        (context) => SubscriptionUpgradeScreen(
-                          validationResult: validationResult,
-                          sourceScreen: 'home_favorites',
-                        ),
-                  ),
-                );
-              },
-              child: const Text('Upgrade Now'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   /// Show error message in a snack bar

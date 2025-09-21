@@ -5,21 +5,17 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'firebase_messaging_service.dart';
-import 'subscription_service.dart';
-import '../models/matcha_product.dart';
 
-/// Result class for favorite update operations including subscription validation
+/// Result class for favorite update operations
 class FavoriteUpdateResult {
   final bool success;
   final String? error;
   final bool limitReached;
-  final FavoriteValidationResult? validationResult;
 
   const FavoriteUpdateResult({
     required this.success,
     required this.error,
     required this.limitReached,
-    this.validationResult,
   });
 }
 
@@ -55,24 +51,8 @@ class BackendService {
         );
       }
 
-      // Check subscription limits when adding favorites
-      if (isFavorite) {
-        final favoriteValidation =
-            await SubscriptionService.instance.canAddMoreFavorites();
-        if (!favoriteValidation.canAdd) {
-          if (kDebugMode) {
-            print(
-              '❌ Backend: Favorite limit reached for ${favoriteValidation.tier.displayName} tier',
-            );
-          }
-          return FavoriteUpdateResult(
-            success: false,
-            error: favoriteValidation.message,
-            limitReached: true,
-            validationResult: favoriteValidation,
-          );
-        }
-      }
+      // No subscription limits for favorites - always allow
+      // (Removed favorite limit validation)
 
       final requestData = {
         'userId': user.uid,

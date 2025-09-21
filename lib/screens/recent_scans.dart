@@ -25,10 +25,17 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
   List<ScanActivity> _activities = [];
   bool _isLoading = true;
   int _totalActivities = 0;
+  int _weeklyCount = 0; // Actual weekly count from database
   final ScrollController _scrollController = ScrollController();
   bool _hasMoreData = true;
   final bool _isLoadingMore = false;
   bool _isPremium = false;
+
+  // Filter state
+  bool _showOnlyWithUpdates = false;
+  String _sortBy = 'timestamp'; // 'timestamp', 'updates', 'site'
+  bool _sortAscending = false;
+  bool _showFilters = false;
 
   // Public method to refresh activities (can be called from parent)
   void refreshActivities() {
@@ -117,6 +124,9 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         }
       }
 
+      // Load actual weekly count from database
+      await _loadWeeklyCount();
+
       setState(() {
         _activities = activities;
         _totalActivities = activities.length;
@@ -172,6 +182,9 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       final isPremium = await SubscriptionService.instance.isPremiumUser();
       final limitedActivities =
           isPremium ? serverActivities : serverActivities.take(24).toList();
+
+      // Load actual weekly count from database
+      await _loadWeeklyCount();
 
       setState(() {
         _activities = limitedActivities;
@@ -360,6 +373,9 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         // Statistics header
         _buildStatsHeader(),
 
+        // Filter section
+        _buildFilterSection(),
+
         // Activities list
         Expanded(
           child: RefreshIndicator(
@@ -367,9 +383,12 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              itemCount: _activities.length + (_hasMoreData ? 1 : 0),
+              itemCount:
+                  _getFilteredAndSortedActivities().length +
+                  (_hasMoreData ? 1 : 0),
               itemBuilder: (context, index) {
-                if (index == _activities.length) {
+                final filteredActivities = _getFilteredAndSortedActivities();
+                if (index == filteredActivities.length) {
                   // Loading indicator at the bottom
                   return const Padding(
                     padding: EdgeInsets.all(16),
@@ -377,7 +396,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                   );
                 }
 
-                final activity = _activities[index];
+                final activity = filteredActivities[index];
                 return _buildActivityCard(activity);
               },
             ),
@@ -465,7 +484,561 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     );
   }
 
+  Widget _buildFilterSection() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 400;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Filter toggle button
+          InkWell(
+            onTap: () {
+              setState(() {
+                _showFilters = !_showFilters;
+              });
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.tune_rounded,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Filter & Sort Options',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    _showFilters ? Icons.expand_less : Icons.expand_more,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 12),
+                ],
+              ),
+            ),
+          ),
+
+          // Collapsible filter content
+          if (_showFilters) ...[
+            const SizedBox(height: 16),
+
+            // Updates Filter Section
+            _buildUpdatesFilterChips(isSmallScreen),
+
+            const SizedBox(height: 20),
+
+            // Sorting Section
+            _buildSortingChips(isSmallScreen),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpdatesFilterChips(bool isSmallScreen) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.update_rounded,
+                size: 16,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Filter by Updates',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.7),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildEnhancedFilterChip(
+                  label: 'All Scans',
+                  icon: Icons.scanner_rounded,
+                  isSelected: !_showOnlyWithUpdates,
+                  selectedColor: Colors.blue,
+                  onSelected: (_) {
+                    setState(() {
+                      _showOnlyWithUpdates = false;
+                    });
+                  },
+                  isSmallScreen: isSmallScreen,
+                ),
+                const SizedBox(width: 10),
+                _buildEnhancedFilterChip(
+                  label: 'With Updates Only',
+                  icon: Icons.notifications_active_rounded,
+                  isSelected: _showOnlyWithUpdates,
+                  selectedColor: Colors.orange,
+                  onSelected: (_) {
+                    setState(() {
+                      _showOnlyWithUpdates = true;
+                    });
+                  },
+                  isSmallScreen: isSmallScreen,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSortingChips(bool isSmallScreen) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.sort_rounded,
+                size: 16,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Sort Options',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.7),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildEnhancedSortChip(
+                  'Time',
+                  'timestamp',
+                  Icons.access_time_rounded,
+                  isSmallScreen,
+                ),
+                const SizedBox(width: 10),
+                _buildEnhancedSortChip(
+                  'Updates',
+                  'updates',
+                  Icons.update_rounded,
+                  isSmallScreen,
+                ),
+                const SizedBox(width: 10),
+                _buildEnhancedSortChip(
+                  'Sites',
+                  'site',
+                  Icons.language_rounded,
+                  isSmallScreen,
+                ),
+                const SizedBox(width: 16),
+                // Sort direction toggle
+                _buildSortDirectionChip(isSmallScreen),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnhancedFilterChip({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required Color selectedColor,
+    required ValueChanged<bool> onSelected,
+    required bool isSmallScreen,
+    String? badge,
+  }) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOutCubic,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => onSelected(!isSelected),
+          borderRadius: BorderRadius.circular(20),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOutCubic,
+            padding: EdgeInsets.symmetric(
+              horizontal: isSmallScreen ? 12 : 16,
+              vertical: isSmallScreen ? 8 : 10,
+            ),
+            decoration: BoxDecoration(
+              gradient:
+                  isSelected
+                      ? LinearGradient(
+                        colors: [
+                          selectedColor.withOpacity(0.9),
+                          selectedColor.withOpacity(0.7),
+                        ],
+                      )
+                      : null,
+              color:
+                  !isSelected
+                      ? Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHigh.withOpacity(0.7)
+                      : null,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color:
+                    isSelected
+                        ? selectedColor.withOpacity(0.3)
+                        : Theme.of(
+                          context,
+                        ).colorScheme.outline.withOpacity(0.2),
+                width: isSelected ? 2 : 1,
+              ),
+              boxShadow:
+                  isSelected
+                      ? [
+                        BoxShadow(
+                          color: selectedColor.withOpacity(0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                      : [],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color:
+                        isSelected
+                            ? Colors.white.withOpacity(0.2)
+                            : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: isSmallScreen ? 14 : 16,
+                    color:
+                        isSelected
+                            ? Colors.white
+                            : Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 12 : 13,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    color:
+                        isSelected
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                if (badge != null) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color:
+                          isSelected
+                              ? Colors.white.withOpacity(0.25)
+                              : selectedColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      badge,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? Colors.white : selectedColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEnhancedSortChip(
+    String label,
+    String sortKey,
+    IconData icon,
+    bool isSmallScreen,
+  ) {
+    final isSelected = _sortBy == sortKey;
+    final selectedColor = Colors.purple;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOutCubic,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              if (_sortBy == sortKey) {
+                _sortAscending = !_sortAscending;
+              } else {
+                _sortBy = sortKey;
+                _sortAscending = true;
+              }
+            });
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOutCubic,
+            padding: EdgeInsets.symmetric(
+              horizontal: isSmallScreen ? 12 : 16,
+              vertical: isSmallScreen ? 8 : 10,
+            ),
+            decoration: BoxDecoration(
+              gradient:
+                  isSelected
+                      ? LinearGradient(
+                        colors: [
+                          selectedColor.withOpacity(0.9),
+                          selectedColor.withOpacity(0.7),
+                        ],
+                      )
+                      : null,
+              color:
+                  !isSelected
+                      ? Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHigh.withOpacity(0.7)
+                      : null,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color:
+                    isSelected
+                        ? selectedColor.withOpacity(0.3)
+                        : Theme.of(
+                          context,
+                        ).colorScheme.outline.withOpacity(0.2),
+                width: isSelected ? 2 : 1,
+              ),
+              boxShadow:
+                  isSelected
+                      ? [
+                        BoxShadow(
+                          color: selectedColor.withOpacity(0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                      : [],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color:
+                        isSelected
+                            ? Colors.white.withOpacity(0.2)
+                            : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: isSmallScreen ? 14 : 16,
+                    color:
+                        isSelected
+                            ? Colors.white
+                            : Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 12 : 13,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    color:
+                        isSelected
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                if (isSelected) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                    size: 12,
+                    color: Colors.white,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSortDirectionChip(bool isSmallScreen) {
+    final selectedColor = Colors.indigo;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOutCubic,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              _sortAscending = !_sortAscending;
+            });
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOutCubic,
+            padding: EdgeInsets.symmetric(
+              horizontal: isSmallScreen ? 12 : 16,
+              vertical: isSmallScreen ? 8 : 10,
+            ),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  selectedColor.withOpacity(0.9),
+                  selectedColor.withOpacity(0.7),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: selectedColor.withOpacity(0.3),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: selectedColor.withOpacity(0.25),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(
+                    _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                    size: isSmallScreen ? 14 : 16,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _sortAscending ? 'Ascending' : 'Descending',
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 12 : 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Load the actual weekly scan count from the database
+  Future<void> _loadWeeklyCount() async {
+    try {
+      final oneWeekAgo = DateTime.now().subtract(const Duration(days: 7));
+
+      // Query Firestore directly for weekly count
+      final querySnapshot =
+          await FirestoreService.instance.firestore
+              .collection('crawl_requests')
+              .where('createdAt', isGreaterThan: oneWeekAgo)
+              .get();
+
+      setState(() {
+        _weeklyCount = querySnapshot.docs.length;
+      });
+
+      print('📊 Loaded weekly count: $_weeklyCount');
+    } catch (e) {
+      print('Error loading weekly count: $e');
+      // Fallback to loaded activities count
+      setState(() {
+        _weeklyCount = _getWeeklyCountFromLoaded();
+      });
+    }
+  }
+
   int _getWeeklyCount() {
+    // Return the actual database count, not the loaded activities count
+    return _weeklyCount;
+  }
+
+  int _getWeeklyCountFromLoaded() {
     final oneWeekAgo = DateTime.now().subtract(const Duration(days: 7));
     return _activities
         .where((activity) => activity.timestamp.isAfter(oneWeekAgo))
@@ -474,6 +1047,49 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
 
   int _getUpdatesCount() {
     return _activities.where((activity) => activity.hasStockUpdates).length;
+  }
+
+  /// Apply filters and sorting to activities
+  List<ScanActivity> _getFilteredAndSortedActivities() {
+    List<ScanActivity> filtered = List.from(_activities);
+
+    // Apply filters
+    if (_showOnlyWithUpdates) {
+      filtered =
+          filtered.where((activity) => activity.hasStockUpdates).toList();
+    }
+
+    // Note: Stock vs price update filtering would require additional data
+    // from the backend to distinguish between different types of updates
+    // For now, we'll use hasStockUpdates as a general "has updates" flag
+
+    // Apply sorting
+    filtered.sort((a, b) {
+      switch (_sortBy) {
+        case 'timestamp':
+          return _sortAscending
+              ? a.timestamp.compareTo(b.timestamp)
+              : b.timestamp.compareTo(a.timestamp);
+        case 'updates':
+          final aUpdates = a.hasStockUpdates ? 1 : 0;
+          final bUpdates = b.hasStockUpdates ? 1 : 0;
+          return _sortAscending
+              ? aUpdates.compareTo(bUpdates)
+              : bUpdates.compareTo(aUpdates);
+        case 'site':
+          final aSites = a.details?.length ?? 0;
+          final bSites = b.details?.length ?? 0;
+          return _sortAscending
+              ? aSites.compareTo(bSites)
+              : bSites.compareTo(aSites);
+        default:
+          return _sortAscending
+              ? a.timestamp.compareTo(b.timestamp)
+              : b.timestamp.compareTo(a.timestamp);
+      }
+    });
+
+    return filtered;
   }
 
   Widget _buildActivityCard(ScanActivity activity) {
@@ -702,17 +1318,24 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         }
       }
 
-      // Get detailed stock updates for this crawl request
+      // Get both stock updates and price updates for this crawl request
       final stockUpdates = await FirestoreService.instance
           .getStockUpdatesForCrawlRequest(activity.crawlRequestId!);
 
-      print('📊 Found ${stockUpdates.length} stock updates');
+      final priceUpdates = await FirestoreService.instance
+          .getPriceUpdatesForCrawlRequest(activity.crawlRequestId!);
 
-      // If no stock updates found, try to get products that were updated during the scan timeframe
+      print('📊 Found ${stockUpdates.length} stock updates');
+      print('💰 Found ${priceUpdates.length} price updates');
+
+      // Combine stock and price updates
+      final allUpdates = [...stockUpdates, ...priceUpdates];
+
+      // If no updates found, try to get products that were updated during the scan timeframe
       List<Map<String, dynamic>> fallbackUpdates = [];
-      if (stockUpdates.isEmpty && activity.hasStockUpdates) {
+      if (allUpdates.isEmpty && activity.hasStockUpdates) {
         print(
-          '🔄 No stock updates found by crawlRequestId, trying timestamp fallback...',
+          '🔄 No stock/price updates found by crawlRequestId, trying timestamp fallback...',
         );
         try {
           // Get the crawl request details to find the time range
@@ -780,8 +1403,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         }
       }
 
-      final finalUpdates =
-          stockUpdates.isNotEmpty ? stockUpdates : fallbackUpdates;
+      final finalUpdates = allUpdates.isNotEmpty ? allUpdates : fallbackUpdates;
 
       // Convert Firestore Timestamps to DateTime for compatibility
       final convertedUpdates =
@@ -807,11 +1429,11 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       if (mounted) Navigator.of(context).pop();
 
       if (convertedUpdates.isEmpty) {
-        print('⚠️ No stock updates found even with fallback method');
+        print('⚠️ No stock/price updates found even with fallback method');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('No detailed stock updates found for this scan'),
+              content: Text('No detailed product updates found for this scan'),
               backgroundColor: Colors.orange,
             ),
           );
@@ -942,6 +1564,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     print('🔄 Raw crawl request data: ${crawlRequest.keys.toList()}');
     print('🔄 Crawl request status: ${crawlRequest['status']}');
     print('🔄 Crawl request stockUpdates: ${crawlRequest['stockUpdates']}');
+    print('🔄 Crawl request priceUpdates: ${crawlRequest['priceUpdates']}');
 
     final status = crawlRequest['status'] ?? 'unknown';
     final createdAt = crawlRequest['createdAt'];
@@ -964,6 +1587,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     // Extract scan details from the actual document structure
     final totalProducts = (crawlRequest['totalProducts'] ?? 0) as int;
     final stockUpdates = (crawlRequest['stockUpdates'] ?? 0) as int;
+    final priceUpdates = (crawlRequest['priceUpdates'] ?? 0) as int;
     final sitesProcessed = (crawlRequest['sitesProcessed'] ?? 0) as int;
     final triggerType = crawlRequest['triggerType'] ?? 'manual';
 
@@ -991,7 +1615,8 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       }
     }
 
-    final hasStockUpdates = stockUpdates > 0;
+    // Include both stock updates and price updates
+    final hasStockUpdates = stockUpdates > 0 || priceUpdates > 0;
     final requestId = crawlRequest['id'] ?? 'unknown';
 
     // More accurate status determination - if it has completedAt, it's completed
@@ -1005,6 +1630,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     print('   - requestId: $requestId');
     print('   - hasStockUpdates: $hasStockUpdates');
     print('   - stockUpdates count: $stockUpdates');
+    print('   - priceUpdates count: $priceUpdates');
     print('   - totalProducts: $totalProducts');
     print('   - status: $status -> $actualStatus');
 
@@ -1015,7 +1641,14 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         details =
             'Scanned $totalProducts products across $sitesProcessed sites';
         if (hasStockUpdates) {
-          details += ' - $stockUpdates stock updates found';
+          List<String> updateTypes = [];
+          if (stockUpdates > 0) {
+            updateTypes.add('$stockUpdates stock');
+          }
+          if (priceUpdates > 0) {
+            updateTypes.add('$priceUpdates price');
+          }
+          details += ' - ${updateTypes.join(', ')} updates found';
         }
         break;
       case 'running':

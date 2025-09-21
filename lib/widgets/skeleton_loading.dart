@@ -141,10 +141,12 @@ class SkeletonProductCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Top section: Image placeholder (takes about 50% of height)
-          Expanded(
-            flex: 3,
+          // Image section (top, aspect ratio based - matches ProductCard)
+          AspectRatio(
+            aspectRatio:
+                1.2, // 1.2:1 ratio (width:height) - matches ProductCard
             child: SkeletonLoading(
               isLoading: true,
               borderRadius: const BorderRadius.only(
@@ -165,109 +167,62 @@ class SkeletonProductCard extends StatelessWidget {
             ),
           ),
 
-          // Middle section: Details (takes about 50% of height)
-          Expanded(
-            flex: 3,
+          // Content section (bottom) - with flexible layout to match ProductCard
+          Flexible(
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Top details
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Product name (2 lines)
-                      SkeletonLoading(
-                        isLoading: true,
+                  // Product name (single line to match actual card)
+                  SkeletonLoading(
+                    isLoading: true,
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      height: 14,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHigh,
                         borderRadius: BorderRadius.circular(6),
-                        child: Container(
-                          height: 14,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHigh,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        ),
                       ),
-                      const SizedBox(height: 4),
-                      SkeletonLoading(
-                        isLoading: true,
-                        borderRadius: BorderRadius.circular(6),
-                        child: Container(
-                          height: 14,
-                          width: 120,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHigh,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
 
-                      // Website name
-                      SkeletonLoading(
-                        isLoading: true,
-                        borderRadius: BorderRadius.circular(4),
-                        child: Container(
-                          height: 12,
-                          width: 80,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHigh,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-
-                      // Category badge
-                      SkeletonLoading(
-                        isLoading: true,
+                  // Category badge
+                  SkeletonLoading(
+                    isLoading: true,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      height: 20, // Slightly taller to match actual badge
+                      width: 80,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHigh,
                         borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          height: 18,
-                          width: 60,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHigh,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
                       ),
-                      const SizedBox(height: 6),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
 
-                      // Stock status
-                      SkeletonLoading(
-                        isLoading: true,
+                  // Site name
+                  SkeletonLoading(
+                    isLoading: true,
+                    borderRadius: BorderRadius.circular(4),
+                    child: Container(
+                      height: 12,
+                      width: 100,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHigh,
                         borderRadius: BorderRadius.circular(4),
-                        child: Container(
-                          height: 11,
-                          width: 65,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHigh,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
                       ),
-                      const SizedBox(height: 4),
-
-                      // Last updated
-                      SkeletonLoading(
-                        isLoading: true,
-                        borderRadius: BorderRadius.circular(4),
-                        child: Container(
-                          height: 10,
-                          width: 90,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHigh,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
 
-                  // Bottom: Price
+                  // Spacer to push price to bottom (matches ProductCard layout)
+                  const Spacer(),
+
+                  // Price (at bottom, matches ProductCard)
                   SkeletonLoading(
                     isLoading: true,
                     borderRadius: BorderRadius.circular(6),
