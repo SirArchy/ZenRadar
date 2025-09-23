@@ -2233,17 +2233,18 @@ class CrawlerService {
       try {
         const [exists] = await file.exists();
         if (exists) {
-          // Image already exists, return the existing URL
+          // Image already exists, return the existing URL in download format
           const bucketName = this.storage.bucket().name;
           // Handle bucket names that already include .firebasestorage.app
           const cleanBucketName = bucketName.replace('.firebasestorage.app', '');
-          const publicUrl = `https://storage.googleapis.com/${cleanBucketName}.firebasestorage.app/${fileName}`;
+          const encodedFileName = encodeURIComponent(fileName);
+          const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${cleanBucketName}/o/${encodedFileName}?alt=media`;
           this.logger.info('Using existing image from storage', { 
             productId, 
             siteKey, 
-            publicUrl 
+            downloadUrl 
           });
-          return publicUrl;
+          return downloadUrl;
         }
       } catch (existsError) {
         // If checking existence fails, proceed to download
@@ -2342,21 +2343,24 @@ class CrawlerService {
       // Make file publicly accessible
       await file.makePublic();
 
-      // Return public URL
+      // Return public URL in the proper format for web compatibility
       const bucketName = this.storage.bucket().name;
       // Handle bucket names that already include .firebasestorage.app
       const cleanBucketName = bucketName.replace('.firebasestorage.app', '');
-      const publicUrl = `https://storage.googleapis.com/${cleanBucketName}.firebasestorage.app/${fileName}`;
+      
+      // Use the download URL format for better web compatibility
+      const encodedFileName = encodeURIComponent(fileName);
+      const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${cleanBucketName}/o/${encodedFileName}?alt=media`;
       
       this.logger.info('Image uploaded successfully', { 
         productId, 
         siteKey,
-        publicUrl,
+        downloadUrl,
         originalSize: response.data.length,
         compressedSize: compressedImageBuffer.length
       });
 
-      return publicUrl;
+      return downloadUrl;
 
     } catch (error) {
       this.logger.error('Failed to download and store image', {

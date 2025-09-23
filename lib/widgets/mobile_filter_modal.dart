@@ -221,9 +221,42 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
 
       for (final product in filteredProductsResult.products) {
         if (product.priceValue != null && product.priceValue! > 0) {
-          totalPrice += product.priceValue!;
+          double convertedPrice = product.priceValue!;
+
+          // Convert price to user's preferred currency if different from product currency
+          if (product.currency != null &&
+              _preferredCurrency != 'Original' &&
+              product.currency != _preferredCurrency &&
+              _priceConverter != null) {
+            try {
+              // Use the public convertPrice method to get formatted string
+              final convertedString = await _priceConverter!.convertPrice(
+                rawPrice: product.price,
+                productCurrency: product.currency,
+                preferredCurrency: _preferredCurrency,
+                siteKey: product.site,
+                priceValue: product.priceValue,
+              );
+
+              if (convertedString != null) {
+                // Extract numeric value from the converted formatted string
+                final numericValue = _extractNumericValue(convertedString);
+                if (numericValue != null) {
+                  print(
+                    '💱 Converted ${product.name}: ${product.priceValue} ${product.currency} → $numericValue $_preferredCurrency (formatted: $convertedString)',
+                  );
+                  convertedPrice = numericValue;
+                }
+              }
+            } catch (e) {
+              print('💱 Currency conversion failed for ${product.name}: $e');
+              // Keep original price if conversion fails
+            }
+          }
+
+          totalPrice += convertedPrice;
           priceCount++;
-          prices.add(product.priceValue!);
+          prices.add(convertedPrice);
         }
       }
 
@@ -233,6 +266,10 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
           prices.isNotEmpty ? prices.first : widget.priceRange['min']!;
       double dynamicMax =
           prices.isNotEmpty ? prices.last : widget.priceRange['max']!;
+
+      print('💱 Price range calculation: ${prices.length} prices processed');
+      print('💱 Currency: $_preferredCurrency');
+      print('💱 Raw price range: $dynamicMin - $dynamicMax');
 
       // Add some padding to the range (5% on each side)
       double padding = (dynamicMax - dynamicMin) * 0.05;
@@ -319,6 +356,52 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
         _isLoadingStatistics = false;
       });
     }
+  }
+
+  /// Extract numeric value from formatted price string (e.g., "€12.34" -> 12.34)
+  double? _extractNumericValue(String priceString) {
+    // Remove currency symbols and extra spaces
+    String cleaned =
+        priceString
+            .replaceAll(RegExp(r'[€\$£¥]|EUR|USD|GBP|JPY|CHF|CAD|AUD'), '')
+            .trim();
+
+    // Handle different decimal separator formats
+    // European format: 24,50 or 1.234,50
+    // American format: 24.50 or 1,234.50
+
+    if (cleaned.contains(',') && cleaned.contains('.')) {
+      // Both separators present - determine which is decimal
+      final lastComma = cleaned.lastIndexOf(',');
+      final lastPeriod = cleaned.lastIndexOf('.');
+
+      if (lastComma > lastPeriod) {
+        // European format: 1.234,50
+        cleaned = cleaned.replaceAll('.', '').replaceAll(',', '.');
+      } else {
+        // American format: 1,234.50
+        cleaned = cleaned.replaceAll(',', '');
+      }
+    } else if (cleaned.contains(',')) {
+      // Only comma - could be decimal or thousands separator
+      final parts = cleaned.split(',');
+      if (parts.length == 2 && parts[1].length <= 2) {
+        // Likely decimal separator: 24,50
+        cleaned = cleaned.replaceAll(',', '.');
+      } else {
+        // Likely thousands separator: 1,234
+        cleaned = cleaned.replaceAll(',', '');
+      }
+    }
+    // If only period, assume it's already in correct format
+
+    // Extract just the number
+    final match = RegExp(r'(\d+(?:\.\d{1,2})?)').firstMatch(cleaned);
+    if (match != null) {
+      return double.tryParse(match.group(1)!);
+    }
+
+    return null;
   }
 
   List<double> _generatePriceDistribution(List<double> prices) {

@@ -396,12 +396,6 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
           child: Column(
             children: [
               _buildFeatureRow(
-                'Favorite Products',
-                '${comparison.free.maxFavorites}',
-                'Unlimited',
-                Icons.favorite,
-              ),
-              _buildFeatureRow(
                 'Vendor Sites',
                 '${comparison.free.maxVendors} sites',
                 'All sites',

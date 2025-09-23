@@ -73,18 +73,96 @@ class ImageUrlProcessor {
       processedUrl = httpsUrl;
     }
 
-    // On web, try to use the more web-friendly Firebase Storage domain
-    if (kIsWeb && processedUrl.contains('storage.googleapis.com')) {
-      final webFriendlyUrl = processedUrl.replaceFirst(
-        'storage.googleapis.com',
-        'firebasestorage.googleapis.com',
-      );
-      if (kDebugMode) {
-        print(
-          '🌐 Using web-friendly Firebase Storage domain: $processedUrl -> $webFriendlyUrl',
-        );
+    // On web, convert Firebase Storage URLs to proper download URL format
+    if (kIsWeb &&
+        (processedUrl.contains('storage.googleapis.com') ||
+            processedUrl.contains('firebasestorage.googleapis.com'))) {
+      try {
+        final uri = Uri.parse(processedUrl);
+        String bucketName;
+        String filePath;
+
+        // Handle different URL formats
+        if (processedUrl.contains('storage.googleapis.com')) {
+          // Format: https://storage.googleapis.com/bucket.firebasestorage.app/path
+          final pathSegments = uri.pathSegments;
+          if (pathSegments.isNotEmpty) {
+            bucketName = pathSegments[0].replaceAll('.firebasestorage.app', '');
+            if (pathSegments.length > 1) {
+              filePath = pathSegments.skip(1).join('/');
+            } else {
+              throw Exception('No file path found');
+            }
+          } else {
+            throw Exception('No path segments found');
+          }
+        } else if (processedUrl.contains(
+          'firebasestorage.googleapis.com/v0/b/',
+        )) {
+          // Already in download URL format, just return it
+          return processedUrl;
+        } else {
+          // Format: https://firebasestorage.googleapis.com/bucket.firebasestorage.app/path
+          final pathSegments = uri.pathSegments;
+          if (pathSegments.isNotEmpty) {
+            bucketName = pathSegments[0].replaceAll('.firebasestorage.app', '');
+            if (pathSegments.length > 1) {
+              filePath = pathSegments.skip(1).join('/');
+            } else {
+              throw Exception('No file path found');
+            }
+          } else {
+            throw Exception('No path segments found');
+          }
+        }
+
+        // Create proper download URL with correct path encoding
+        final pathSegments = filePath.split('/');
+        final encodedPathSegments = pathSegments
+            .map((segment) => Uri.encodeComponent(segment))
+            .join('%2F');
+        final downloadUrl =
+            'https://firebasestorage.googleapis.com/v0/b/$bucketName/o/$encodedPathSegments?alt=media';
+
+        if (kDebugMode) {
+          print(
+            '🌐 Converting to Firebase Storage download URL: $processedUrl -> $downloadUrl',
+          );
+        }
+        processedUrl = downloadUrl;
+      } catch (e) {
+        if (kDebugMode) {
+          print('🚨 Failed to convert Firebase Storage URL: $e');
+          print('🚨 Original URL: $processedUrl');
+        }
+        // If conversion fails, try alternative approaches
+        if (processedUrl.contains('storage.googleapis.com')) {
+          // Try simple domain replacement as fallback
+          final fallbackUrl = processedUrl.replaceFirst(
+            'storage.googleapis.com',
+            'firebasestorage.googleapis.com',
+          );
+          if (kDebugMode) {
+            print(
+              '🌐 Using fallback domain replacement: $processedUrl -> $fallbackUrl',
+            );
+          }
+          processedUrl = fallbackUrl;
+        } else {
+          // For URLs that are already firebasestorage.googleapis.com but not in proper format
+          // Try to make them publicly accessible by appending ?alt=media if not present
+          if (!processedUrl.contains('?alt=media') &&
+              !processedUrl.contains('/v0/b/')) {
+            final mediaUrl = '$processedUrl?alt=media';
+            if (kDebugMode) {
+              print(
+                '🌐 Adding alt=media parameter: $processedUrl -> $mediaUrl',
+              );
+            }
+            processedUrl = mediaUrl;
+          }
+        }
       }
-      processedUrl = webFriendlyUrl;
     }
 
     return processedUrl;
