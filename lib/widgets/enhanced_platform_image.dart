@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../services/image_cache_service.dart';
+import '../services/image_url_processor.dart';
 
 /// Enhanced cached image widget for product images
 /// Uses ImageCacheService for optimized caching and reduced Firebase calls
@@ -240,67 +241,8 @@ class PlatformImage extends StatelessWidget {
   });
 
   String _processImageUrl(String url) {
-    // Replace common placeholder patterns in image URLs
-    String processedUrl = url;
-
-    // Replace {width} patterns with a reasonable default width
-    processedUrl = processedUrl.replaceAll('{width}', '400');
-    processedUrl = processedUrl.replaceAll('%7Bwidth%7D', '400');
-
-    // Replace {height} patterns with a reasonable default height
-    processedUrl = processedUrl.replaceAll('{height}', '400');
-    processedUrl = processedUrl.replaceAll('%7Bheight%7D', '400');
-
-    // Fix doubled Firebase Storage domains
-    if (processedUrl.contains('.firebasestorage.app.firebasestorage.app')) {
-      processedUrl = processedUrl.replaceAll(
-        '.firebasestorage.app.firebasestorage.app',
-        '.firebasestorage.app',
-      );
-      if (kDebugMode) {
-        print(
-          '🔧 Fixed doubled Firebase Storage domain: $url -> $processedUrl',
-        );
-      }
-    }
-    // Ensure Firebase Storage URLs use the correct format
-    else if (processedUrl.contains('storage.googleapis.com')) {
-      if (!processedUrl.contains('.firebasestorage.app/')) {
-        final regex = RegExp(r'storage\.googleapis\.com/([^/]+)/');
-        final match = regex.firstMatch(processedUrl);
-
-        if (match != null) {
-          final bucketPart = match.group(1);
-          if (bucketPart != null &&
-              !bucketPart.endsWith('.firebasestorage.app')) {
-            final newUrl = processedUrl.replaceFirst(
-              'storage.googleapis.com/$bucketPart/',
-              'storage.googleapis.com/$bucketPart.firebasestorage.app/',
-            );
-
-            if (kDebugMode) {
-              print(
-                '🔧 Added .firebasestorage.app suffix: $processedUrl -> $newUrl',
-              );
-            }
-            processedUrl = newUrl;
-          }
-        }
-      }
-    }
-
-    // On web, try to use HTTPS if available
-    if (kIsWeb && processedUrl.startsWith('http://')) {
-      final httpsUrl = processedUrl.replaceFirst('http://', 'https://');
-      if (kDebugMode) {
-        print(
-          '🔒 Converting HTTP to HTTPS for web: $processedUrl -> $httpsUrl',
-        );
-      }
-      processedUrl = httpsUrl;
-    }
-
-    return processedUrl;
+    // Use the shared URL processor to ensure consistency
+    return ImageUrlProcessor.processImageUrl(url);
   }
 
   @override

@@ -146,12 +146,14 @@ class StockUpdatesScreen extends StatelessWidget {
   }
 
   Widget _buildProductGrid(List<dynamic> productUpdates, BuildContext context) {
+    final isLargeScreen = MediaQuery.of(context).size.width > 600;
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: MediaQuery.of(context).size.width > 600 ? 3 : 2,
-        childAspectRatio: 0.75, // Adjust to match homescreen cards
+        crossAxisCount: isLargeScreen ? 3 : 2,
+        childAspectRatio: isLargeScreen ? 0.65 : 0.6, // Responsive aspect ratio
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
       ),
@@ -203,9 +205,9 @@ class StockUpdatesScreen extends StatelessWidget {
       extraInfo = Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          color: Colors.orange.withOpacity(0.1),
+          color: Colors.orange.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: Colors.orange.withOpacity(0.3)),
+          border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

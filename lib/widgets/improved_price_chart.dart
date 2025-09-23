@@ -179,10 +179,10 @@ class ImprovedPriceChart extends StatelessWidget {
             decoration: BoxDecoration(
               color: Theme.of(
                 context,
-              ).colorScheme.primaryContainer.withOpacity(0.3),
+              ).colorScheme.primaryContainer.withAlpha(75),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                color: Theme.of(context).colorScheme.primary.withAlpha(75),
               ),
             ),
             child: Row(
@@ -253,12 +253,10 @@ class ImprovedPriceChart extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.primaryContainer.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.primaryContainer.withAlpha(75),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.primary.withAlpha(75),
             ),
           ),
           child: Row(
@@ -811,12 +809,12 @@ class ImprovedPriceChart extends StatelessWidget {
     return LineChartBarData(
       spots: spots,
       isCurved: false,
-      color: color.withOpacity(0.8),
+      color: color.withAlpha(200),
       barWidth: 2,
       isStrokeCapRound: true,
       dashArray: [8, 4], // Dashed line to indicate no changes
       dotData: FlDotData(show: false),
-      belowBarData: BarAreaData(show: true, color: color.withOpacity(0.1)),
+      belowBarData: BarAreaData(show: true, color: color.withAlpha(25)),
     );
   }
 
@@ -830,7 +828,7 @@ class ImprovedPriceChart extends StatelessWidget {
             (touchedSpot) =>
                 Theme.of(context).colorScheme.surfaceContainerHighest,
         tooltipBorder: BorderSide(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+          color: Theme.of(context).colorScheme.outline.withAlpha(125),
           width: 1,
         ),
         getTooltipItems: (touchedSpots) {

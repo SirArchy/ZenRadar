@@ -13,6 +13,7 @@ import '../services/backend_service.dart';
 import '../services/settings_service.dart';
 import '../services/subscription_service.dart';
 import '../services/image_cache_manager.dart';
+import '../services/image_url_processor.dart';
 import '../widgets/product_filters.dart';
 import '../widgets/mobile_filter_modal.dart';
 import '../widgets/matcha_icon.dart';
@@ -110,7 +111,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
   // Subscription state
   bool _isPremium = false;
-  SubscriptionTier _currentTier = SubscriptionTier.free;
+
+  // Flag to prevent circular updates when programmatically changing search text
+  bool _isUpdatingSearchProgrammatically = false;
 
   // Public method to refresh products (can be called from parent)
   void refreshProducts() {
@@ -146,8 +149,10 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     }
     if (filter.searchTerm?.isNotEmpty == true) {
       prefs.setString('filter_searchTerm', filter.searchTerm!);
+      debugPrint('🔍 Saving searchTerm: "${filter.searchTerm}"');
     } else {
       prefs.remove('filter_searchTerm');
+      debugPrint('🔍 Removing searchTerm from preferences');
     }
 
     debugPrint('Saved filter: ${filter.toString()}');
@@ -172,6 +177,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     // Get search term and ensure it's null if empty
     final searchTerm = prefs.getString('filter_searchTerm');
     final cleanSearchTerm = searchTerm?.isNotEmpty == true ? searchTerm : null;
+    debugPrint(
+      '🔍 Loading searchTerm from prefs: "$searchTerm" -> clean: "$cleanSearchTerm"',
+    );
 
     final restoredFilter = ProductFilter(
       inStock:
@@ -293,9 +301,33 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         _showSearchSuggestionsAnimated();
         _loadSearchEnhancements();
       } else {
+        // Check if search was cleared when losing focus
+        final currentText = _searchController.text.trim();
+        if (currentText.isEmpty && _searchQuery.isNotEmpty) {
+          debugPrint('🔍 Search cleared on focus loss - clearing filter');
+          _onSearchChanged('');
+        }
+
         // Animate out search suggestions before hiding
         _hideSearchSuggestionsAnimated();
         _saveSearchTermIfMeaningful();
+      }
+    });
+
+    // Add text controller listener to catch text changes that onChanged might miss
+    _searchController.addListener(() {
+      // Skip if we're programmatically updating the controller
+      if (_isUpdatingSearchProgrammatically) {
+        return;
+      }
+
+      final currentText = _searchController.text;
+      // Only react if the text is different from our current state
+      if (currentText != _searchQuery) {
+        debugPrint(
+          '🔍 Controller listener caught text change: "$_searchQuery" -> "$currentText"',
+        );
+        _onSearchChanged(currentText);
       }
     });
 
@@ -378,11 +410,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   Future<void> _loadSubscriptionStatus() async {
     try {
       final isPremium = await SubscriptionService.instance.isPremiumUser();
-      final tier = await SubscriptionService.instance.getCurrentTier();
 
       setState(() {
         _isPremium = isPremium;
-        _currentTier = tier;
       });
     } catch (e) {
       print('Error loading subscription status: $e');
@@ -469,11 +499,15 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
   Future<void> _restoreFilterAndLoadProducts() async {
     final restoredFilter = await _loadFilterFromPrefs();
+    debugPrint(
+      '🔍 Restoring filter with searchTerm: "${restoredFilter.searchTerm}"',
+    );
     setState(() {
       _filter = restoredFilter;
       _searchController.text = restoredFilter.searchTerm ?? '';
       _searchQuery = restoredFilter.searchTerm ?? '';
     });
+    debugPrint('🔍 Set search controller text to: "${_searchController.text}"');
     await _loadProducts();
 
     // Setup endless scroll listener
@@ -784,7 +818,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
       // Preload images for the newly loaded products (in background)
       Future.microtask(() async {
-        final imageUrls =
+        final rawImageUrls =
             result.products
                 .where(
                   (product) =>
@@ -794,8 +828,15 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                 .toList()
                 .cast<String>();
 
-        if (imageUrls.isNotEmpty) {
-          await ImageCacheManager.instance.preloadVisibleProducts(imageUrls);
+        if (rawImageUrls.isNotEmpty) {
+          // Process URLs to match what PlatformImage will use
+          final processedImageUrls = ImageUrlProcessor.processImageUrls(
+            rawImageUrls,
+          );
+
+          await ImageCacheManager.instance.preloadVisibleProducts(
+            processedImageUrls,
+          );
         }
       });
     } catch (e) {
@@ -967,7 +1008,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       final newSearchTerm = newFilter.searchTerm ?? '';
       if (_searchQuery != newSearchTerm) {
         _searchQuery = newSearchTerm;
+        _isUpdatingSearchProgrammatically = true;
         _searchController.text = newSearchTerm;
+        _isUpdatingSearchProgrammatically = false;
       }
     });
     _saveFilterToPrefs(newFilter);
@@ -976,22 +1019,35 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
   void _onSearchChanged(String query) {
     final trimmedQuery = query.trim();
+    debugPrint('🔍 Search changed: "$query" -> trimmed: "$trimmedQuery"');
+
+    // Prevent unnecessary updates if the search term hasn't actually changed
+    if (trimmedQuery == _searchQuery) {
+      debugPrint('🔍 Search term unchanged, skipping update');
+      return;
+    }
+
     setState(() {
       _searchQuery = trimmedQuery;
       _filter = _filter.copyWith(
         searchTerm: trimmedQuery.isEmpty ? null : trimmedQuery,
       );
     });
+    debugPrint('🔍 Updated filter searchTerm: ${_filter.searchTerm}');
     _saveFilterToPrefs(_filter);
     _loadProducts();
   }
 
   void _clearSearch() {
+    debugPrint('🔍 Clear search called');
     setState(() {
+      _isUpdatingSearchProgrammatically = true;
       _searchController.clear();
+      _isUpdatingSearchProgrammatically = false;
       _searchQuery = '';
-      _filter = _filter.copyWith(searchTerm: null);
+      _filter = _filter.copyWith(clearSearchTerm: true);
     });
+    debugPrint('🔍 After clear - filter searchTerm: ${_filter.searchTerm}');
     _searchFocusNode.unfocus();
     _saveFilterToPrefs(_filter);
     _loadProducts();
@@ -1450,10 +1506,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                       icon: Icons.favorite_rounded,
                       isSelected: _filter.favoritesOnly,
                       selectedColor: Colors.pink,
-                      badge:
-                          !_isPremium && favoriteCount > 0
-                              ? '$favoriteCount/${_currentTier.maxFavorites}'
-                              : null,
+                      badge: favoriteCount > 0 ? '$favoriteCount' : null,
                       onSelected: (isSelected) async {
                         setState(() {
                           _filter = _filter.copyWith(

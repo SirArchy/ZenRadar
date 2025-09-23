@@ -477,6 +477,18 @@ class ImageCacheService {
       print('🚀 ImageCache: Preloading ${imageUrls.length} product images');
     }
 
+    // On web, skip manual image downloading to avoid CORS issues
+    // The browser handles image caching automatically
+    if (kIsWeb) {
+      if (kDebugMode) {
+        print(
+          '🌐 ImageCache: Skipping preload on web (browser handles caching)',
+        );
+        print('✅ ImageCache: Preloading completed');
+      }
+      return;
+    }
+
     // Filter out already cached images
     final uncachedUrls = <String>[];
     for (final url in imageUrls) {

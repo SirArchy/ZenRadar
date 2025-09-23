@@ -221,7 +221,7 @@ class CrawlerService {
     });
 
     // Process sites in parallel (with concurrency limit)
-    const concurrencyLimit = 3;
+    const concurrencyLimit = 6; // Increased from 3 for faster crawling
     const siteChunks = this.chunkArray(targetSites, concurrencyLimit);
 
     for (const chunk of siteChunks) {
@@ -294,9 +294,18 @@ class CrawlerService {
         const crawlResult = await this.horiishichimeienCrawler.crawl(config.categoryUrl, config);
         
         let stockUpdates = 0;
-        for (const product of crawlResult.products) {
-          const wasUpdated = await this.saveProduct(product);
-          if (wasUpdated) stockUpdates++;
+        if (crawlResult.products.length > 0) {
+          try {
+            const batchResult = await this.batchSaveProducts(crawlResult.products);
+            stockUpdates = batchResult.stockUpdates;
+          } catch (error) {
+            this.logger.error('Batch save failed for Horiishichimeien', { error: error.message });
+            // Fallback to individual saves
+            for (const product of crawlResult.products) {
+              const wasUpdated = await this.saveProduct(product);
+              if (wasUpdated) stockUpdates++;
+            }
+          }
         }
         
         const duration = Date.now() - startTime;
@@ -321,9 +330,18 @@ class CrawlerService {
         const crawlResult = await this.poppateaCrawler.crawl(config.categoryUrl, config);
         
         let stockUpdates = 0;
-        for (const product of crawlResult.products) {
-          const wasUpdated = await this.saveProduct(product);
-          if (wasUpdated) stockUpdates++;
+        if (crawlResult.products.length > 0) {
+          try {
+            const batchResult = await this.batchSaveProducts(crawlResult.products);
+            stockUpdates = batchResult.stockUpdates;
+          } catch (error) {
+            this.logger.error('Batch save failed for Poppatea', { error: error.message });
+            // Fallback to individual saves
+            for (const product of crawlResult.products) {
+              const wasUpdated = await this.saveProduct(product);
+              if (wasUpdated) stockUpdates++;
+            }
+          }
         }
         
         const duration = Date.now() - startTime;
@@ -402,9 +420,18 @@ class CrawlerService {
         const crawlResult = await this.emeriCrawler.crawl(config.categoryUrl, config);
         
         let stockUpdates = 0;
-        for (const product of crawlResult.products) {
-          const wasUpdated = await this.saveProduct(product);
-          if (wasUpdated) stockUpdates++;
+        if (crawlResult.products.length > 0) {
+          try {
+            const batchResult = await this.batchSaveProducts(crawlResult.products);
+            stockUpdates = batchResult.stockUpdates;
+          } catch (error) {
+            this.logger.error('Batch save failed for Emeri', { error: error.message });
+            // Fallback to individual saves
+            for (const product of crawlResult.products) {
+              const wasUpdated = await this.saveProduct(product);
+              if (wasUpdated) stockUpdates++;
+            }
+          }
         }
         
         const duration = Date.now() - startTime;
@@ -429,9 +456,18 @@ class CrawlerService {
         const crawlResult = await this.shochaCrawler.crawl(config.categoryUrl, config);
         
         let stockUpdates = 0;
-        for (const product of crawlResult.products) {
-          const wasUpdated = await this.saveProduct(product);
-          if (wasUpdated) stockUpdates++;
+        if (crawlResult.products.length > 0) {
+          try {
+            const batchResult = await this.batchSaveProducts(crawlResult.products);
+            stockUpdates = batchResult.stockUpdates;
+          } catch (error) {
+            this.logger.error('Batch save failed for Sho-Cha', { error: error.message });
+            // Fallback to individual saves
+            for (const product of crawlResult.products) {
+              const wasUpdated = await this.saveProduct(product);
+              if (wasUpdated) stockUpdates++;
+            }
+          }
         }
         
         const duration = Date.now() - startTime;
@@ -467,153 +503,185 @@ class CrawlerService {
         containersFound: productElements.length
       });
 
-      // Process each product container
-      for (let i = 0; i < productElements.length; i++) {
-        const productElement = $(productElements[i]);
+      // Process each product container with limited parallelism
+      const productPromises = [];
+      const productConcurrencyLimit = 5; // Process 5 products at once per site
+      
+      for (let i = 0; i < productElements.length; i += productConcurrencyLimit) {
+        const batch = [];
         
-        try {          
-          // Regular processing for other sites
-          // Extract product name
-          let name = this.extractText(productElement, config.nameSelector);
-          if (!name) {
-            name = this.extractText(productElement, 'h1, h2, h3, h4, .title, .name');
-          }
+        for (let j = i; j < Math.min(i + productConcurrencyLimit, productElements.length); j++) {
+          const productElement = $(productElements[j]);
           
-          // Clean up name
-          name = name.replace(/\s+/g, ' ').trim();
-          
-          // Skip if no valid name found
-          if (!name || name.length < 2) {
-            continue;
-          }
-
-          // Extract product URL
-          let productUrl = this.extractLink(productElement, config.linkSelector);
-          if (!productUrl) {
-            productUrl = this.extractLink(productElement, 'a');
-          }
-          
-          // Build full URL
-          if (productUrl && !productUrl.startsWith('http')) {
-            productUrl = config.baseUrl + (productUrl.startsWith('/') ? '' : '/') + productUrl;
-          }
-
-          // For Poppatea, extract variants from individual product pages
-          if (siteKey === 'poppatea' && productUrl) {
+          batch.push((async () => {
             try {
-              const variants = await this.extractPoppateaVariants(productUrl, name, config);
-              for (const variant of variants) {
-                products.push(variant);
-                const wasUpdated = await this.saveProduct(variant);
-                if (wasUpdated) stockUpdates++;
+              // Regular processing for other sites
+              // Extract product name
+              let name = this.extractText(productElement, config.nameSelector);
+              if (!name) {
+                name = this.extractText(productElement, 'h1, h2, h3, h4, .title, .name');
               }
-              continue; // Skip the regular product processing for Poppatea
-            } catch (error) {
-              this.logger.warn('Failed to extract Poppatea variants', {
+              
+              // Clean up name
+              name = name.replace(/\s+/g, ' ').trim();
+              
+              // Skip if no valid name found
+              if (!name || name.length < 2) {
+                return null;
+              }
+
+              // Extract product URL
+              let productUrl = this.extractLink(productElement, config.linkSelector);
+              if (!productUrl) {
+                productUrl = this.extractLink(productElement, 'a');
+              }
+              
+              // Build full URL
+              if (productUrl && !productUrl.startsWith('http')) {
+                productUrl = config.baseUrl + (productUrl.startsWith('/') ? '' : '/') + productUrl;
+              }
+
+              // For Poppatea, extract variants from individual product pages
+              if (siteKey === 'poppatea' && productUrl) {
+                try {
+                  const variants = await this.extractPoppateaVariants(productUrl, name, config);
+                  return variants; // Return array of variants
+                } catch (error) {
+                  this.logger.warn('Failed to extract Poppatea variants', {
+                    site: siteKey,
+                    productUrl,
+                    error: error.message
+                  });
+                  // Fall through to regular processing
+                }
+              }
+
+              // Extract price
+              let price = this.extractText(productElement, config.priceSelector);
+              if (!price) {
+                price = this.extractText(productElement, '.price, .product-price, [class*="price"]');
+              }
+
+              // Clean price using site-specific logic
+              price = this.cleanPriceBySite(price, siteKey);
+              
+              // Convert price if needed (e.g., JPY to EUR for Horiishichimeien)
+              const convertedPrice = this.convertPrice(price, siteKey);
+
+              // Determine stock status
+              let isInStock = this.determineStockStatusFromListing(productElement, config, siteKey);
+              
+              // For Horiishichimeien, check individual product page for accurate stock status
+              if (siteKey === 'horiishichimeien' && productUrl) {
+                try {
+                  isInStock = await this.checkHoriishichimeienStock(productUrl);
+                } catch (error) {
+                  this.logger.warn('Failed to check Horiishichimeien stock on product page', {
+                    productUrl,
+                    error: error.message
+                  });
+                  // Fall back to listing page detection
+                }
+              }
+
+              // Generate product ID
+              const productId = this.generateProductId(productUrl || config.categoryUrl, name, siteKey);
+
+              // Extract and process image
+              let imageUrl = null;
+              try {
+                const rawImageUrl = this.extractImageUrl(productElement, config, siteKey);
+                if (rawImageUrl) {
+                  imageUrl = await this.downloadAndStoreImage(rawImageUrl, productId, siteKey);
+                }
+              } catch (error) {
+                this.logger.warn('Failed to process product image', {
+                  site: siteKey,
+                  productId,
+                  error: error.message
+                });
+              }
+
+              // For sites with currency conversion, use the converted price as both price and originalPrice
+              const finalPrice = convertedPrice || price;
+              const finalOriginalPrice = (siteKey === 'horiishichimeien' && convertedPrice) ? convertedPrice : price;
+              
+              const product = {
+                id: productId,
+                name: name,
+                normalizedName: this.normalizeName(name),
                 site: siteKey,
-                productUrl,
-                error: error.message
-              });
-              // Fall back to regular processing
-            }
-          }
+                siteName: config.name,
+                price: finalPrice,
+                originalPrice: finalOriginalPrice, // Use converted price for display consistency
+                priceValue: this.extractPriceValue(finalPrice),
+                currency: this.getCurrencyForSite(siteKey),
+                url: productUrl || config.categoryUrl,
+                imageUrl: imageUrl,
+                isInStock,
+                category: this.detectCategory(name, siteKey),
+                lastChecked: new Date(),
+                lastUpdated: new Date(),
+                firstSeen: new Date(),
+                isDiscontinued: false,
+                missedScans: 0,
+                crawlSource: 'cloud-run'
+              };
 
-          // Extract price
-          let price = this.extractText(productElement, config.priceSelector);
-          if (!price) {
-            price = this.extractText(productElement, '.price, .product-price, [class*="price"]');
-          }
-
-          // Clean price using site-specific logic
-          price = this.cleanPriceBySite(price, siteKey);
-          
-          // Convert price if needed (e.g., JPY to EUR for Horiishichimeien)
-          const convertedPrice = this.convertPrice(price, siteKey);
-
-          // Determine stock status
-          let isInStock = this.determineStockStatusFromListing(productElement, config, siteKey);
-          
-          // For Horiishichimeien, check individual product page for accurate stock status
-          if (siteKey === 'horiishichimeien' && productUrl) {
-            try {
-              isInStock = await this.checkHoriishichimeienStock(productUrl);
+              // Only return products with valid names
+              if (product.name && product.name.trim().length > 0) {
+                return product;
+              }
+              
+              return null;
             } catch (error) {
-              this.logger.warn('Failed to check Horiishichimeien stock on product page', {
-                productUrl,
+              this.logger.warn('Failed to extract product from container', {
+                site: siteKey,
+                containerIndex: j,
                 error: error.message
               });
-              // Fall back to listing page detection
+              return null;
             }
-          }
-
-          // Generate product ID
-          const productId = this.generateProductId(productUrl || config.categoryUrl, name, siteKey);
-
-          // Extract and process image
-          let imageUrl = null;
-          try {
-            const rawImageUrl = this.extractImageUrl(productElement, config, siteKey);
-            if (rawImageUrl) {
-              imageUrl = await this.downloadAndStoreImage(rawImageUrl, productId, siteKey);
+          })());
+        }
+        
+      // Process all products and collect save operations
+      const saveOperations = [];
+      
+      for (const result of batchResults) {
+        if (result.status === 'fulfilled' && result.value) {
+          if (Array.isArray(result.value)) {
+            // Handle Poppatea variants (array)
+            for (const variant of result.value) {
+              products.push(variant);
+              saveOperations.push(variant);
             }
-          } catch (error) {
-            this.logger.warn('Failed to process product image', {
-              site: siteKey,
-              productId,
-              error: error.message
-            });
+          } else {
+            // Handle regular product (single object)
+            products.push(result.value);
+            saveOperations.push(result.value);
           }
-
-          // For sites with currency conversion, use the converted price as both price and originalPrice
-          const finalPrice = convertedPrice || price;
-          const finalOriginalPrice = (siteKey === 'horiishichimeien' && convertedPrice) ? convertedPrice : price;
-          
-          const product = {
-            id: productId,
-            name: name,
-            normalizedName: this.normalizeName(name),
-            site: siteKey,
-            siteName: config.name,
-            price: finalPrice,
-            originalPrice: finalOriginalPrice, // Use converted price for display consistency
-            priceValue: this.extractPriceValue(finalPrice),
-            currency: this.getCurrencyForSite(siteKey),
-            url: productUrl || config.categoryUrl,
-            imageUrl: imageUrl,
-            isInStock,
-            category: this.detectCategory(name, siteKey),
-            lastChecked: new Date(),
-            lastUpdated: new Date(),
-            firstSeen: new Date(),
-            isDiscontinued: false,
-            missedScans: 0,
-            crawlSource: 'cloud-run'
-          };
-
-          // Only add products with valid names
-          if (product.name && product.name.trim().length > 0) {
-            products.push(product);
-
-            // Save to Firestore and check for stock changes
-            const wasUpdated = await this.saveProduct(product);
-            if (wasUpdated) stockUpdates++;
-
-            this.logger.info('Product extracted', {
-              site: siteKey,
-              name: product.name,
-              price: product.price,
-              inStock: product.isInStock,
-              url: product.url
-            });
-          }
-
+        }
+      }
+      
+      // Batch save products for better performance
+      if (saveOperations.length > 0) {
+        try {
+          const saveResults = await this.batchSaveProducts(saveOperations);
+          stockUpdates += saveResults.stockUpdates;
         } catch (error) {
-          this.logger.warn('Failed to extract product from container', {
+          this.logger.error('Failed to batch save products', {
             site: siteKey,
-            containerIndex: i,
+            productCount: saveOperations.length,
             error: error.message
           });
+          // Fallback to individual saves
+          for (const product of saveOperations) {
+            const wasUpdated = await this.saveProduct(product);
+            if (wasUpdated) stockUpdates++;
+          }
         }
+      }
       }
 
       const duration = Date.now() - startTime;
@@ -1277,6 +1345,153 @@ class CrawlerService {
 
     // Fallback: remove non-price characters
     return cleaned.replace(/[^\d.,€$¥£\s]/g, '').trim();
+  }
+
+  /**
+   * Batch save multiple products for better performance
+   */
+  async batchSaveProducts(products) {
+    const batch = this.db.batch();
+    let stockUpdates = 0;
+    const stockHistoryPromises = [];
+    const priceHistoryPromises = [];
+
+    for (const product of products) {
+      try {
+        const productRef = this.db.collection('products').doc(product.id);
+        const existingDoc = await productRef.get();
+        
+        let wasUpdated = false;
+
+        if (existingDoc.exists) {
+          const existingData = existingDoc.data();
+          
+          // Check for stock status change
+          if (existingData.isInStock !== product.isInStock) {
+            wasUpdated = true;
+            stockUpdates++;
+            
+            // Log stock change
+            this.logger.info('Stock status changed', {
+              productId: product.id,
+              name: product.name,
+              site: product.site,
+              previousStock: existingData.isInStock,
+              newStock: product.isInStock
+            });
+
+            // Queue stock history entry
+            stockHistoryPromises.push(
+              this.db.collection('stock_history').add({
+                productId: product.id,
+                productName: product.name,
+                site: product.site,
+                isInStock: product.isInStock,
+                previousStatus: existingData.isInStock,
+                timestamp: new Date(),
+                crawlSource: 'cloud-run',
+                crawlRequestId: this.crawlRequestId
+              })
+            );
+          }
+
+          // Check for price change and queue price history if needed
+          const hasPriceChanged = product.priceValue != null && existingData.priceValue !== product.priceValue;
+          const shouldTrackPrice = product.priceValue != null && (
+            hasPriceChanged || 
+            this.shouldAddPriceHistoryEntry(existingData)
+          );
+
+          if (shouldTrackPrice) {
+            priceHistoryPromises.push(
+              this.db.collection('price_history').add({
+                productId: product.id,
+                productName: product.name,
+                site: product.site,
+                price: product.priceValue,
+                currency: product.currency,
+                isInStock: product.isInStock,
+                date: new Date(),
+                crawlSource: 'cloud-run'
+              })
+            );
+          }
+
+          // Update existing product in batch
+          const updateData = {
+            ...product,
+            lastChecked: new Date(),
+            lastUpdated: wasUpdated ? new Date() : existingData.lastUpdated
+          };
+
+          if (shouldTrackPrice) {
+            updateData.lastPriceHistoryUpdate = new Date();
+          }
+
+          batch.update(productRef, updateData);
+        } else {
+          // New product - add to batch
+          const newProductData = {
+            ...product,
+            lastPriceHistoryUpdate: product.priceValue != null ? new Date() : null
+          };
+
+          batch.set(productRef, newProductData);
+          
+          this.logger.info('New product added', {
+            productId: product.id,
+            name: product.name,
+            site: product.site
+          });
+
+          // Queue initial stock history entry
+          stockHistoryPromises.push(
+            this.db.collection('stock_history').add({
+              productId: product.id,
+              productName: product.name,
+              site: product.site,
+              isInStock: product.isInStock,
+              previousStatus: null,
+              timestamp: new Date(),
+              crawlSource: 'cloud-run',
+              crawlRequestId: this.crawlRequestId
+            })
+          );
+
+          // Queue initial price history entry if price is available
+          if (product.priceValue != null) {
+            priceHistoryPromises.push(
+              this.db.collection('price_history').add({
+                productId: product.id,
+                productName: product.name,
+                site: product.site,
+                price: product.priceValue,
+                currency: product.currency,
+                isInStock: product.isInStock,
+                date: new Date(),
+                crawlSource: 'cloud-run'
+              })
+            );
+          }
+        }
+      } catch (error) {
+        this.logger.error('Failed to prepare product for batch', {
+          productId: product.id,
+          error: error.message
+        });
+      }
+    }
+
+    // Execute batch write
+    await batch.commit();
+
+    // Execute history updates in parallel
+    await Promise.allSettled([
+      ...stockHistoryPromises,
+      ...priceHistoryPromises
+    ]);
+
+    return { stockUpdates };
   }
 
   /**
@@ -2453,6 +2668,17 @@ class CrawlerService {
       // Default to in stock on error to avoid missing products
       return true;
     }
+  }
+
+  /**
+   * Utility method to split array into chunks for parallel processing
+   */
+  chunkArray(array, chunkSize) {
+    const chunks = [];
+    for (let i = 0; i < array.length; i += chunkSize) {
+      chunks.push(array.slice(i, i + chunkSize));
+    }
+    return chunks;
   }
 }
 

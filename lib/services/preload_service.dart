@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print
 
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/website_analytics_service.dart';
 import '../services/subscription_service.dart';
@@ -8,6 +9,7 @@ import '../services/cache_service.dart';
 import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
 import '../services/image_cache_service.dart';
+import '../services/image_url_processor.dart';
 import '../models/scan_activity.dart';
 
 class PreloadService {
@@ -228,6 +230,12 @@ class PreloadService {
     try {
       print('🖼️ Preloading product images...');
 
+      // Skip image preloading on web to avoid CORS issues
+      if (kIsWeb) {
+        print('🌐 Skipping image preload on web (browser handles caching)');
+        return;
+      }
+
       final imageCache = ImageCacheService.instance;
       final firestoreService = FirestoreService.instance;
 
@@ -242,7 +250,7 @@ class PreloadService {
       final products = paginatedProducts.products;
 
       // Extract image URLs
-      final imageUrls =
+      final rawImageUrls =
           products
               .where(
                 (product) =>
@@ -251,18 +259,23 @@ class PreloadService {
               .map((product) => product.imageUrl!)
               .toList();
 
-      if (imageUrls.isNotEmpty) {
-        print('📸 Found ${imageUrls.length} product images to preload');
+      if (rawImageUrls.isNotEmpty) {
+        print('📸 Found ${rawImageUrls.length} product images to preload');
+
+        // Process URLs to match what PlatformImage will use
+        final processedImageUrls = ImageUrlProcessor.processImageUrls(
+          rawImageUrls,
+        );
 
         // Preload images with concurrency control
         await imageCache.preloadProductImages(
-          imageUrls,
+          processedImageUrls,
           maxConcurrent:
               isPremium ? 5 : 3, // Premium users get higher concurrency
           cacheDuration: const Duration(days: 7),
         );
 
-        print('✓ Preloaded ${imageUrls.length} product images');
+        print('✓ Preloaded ${processedImageUrls.length} product images');
       } else {
         print('⚠️ No product images found to preload');
       }

@@ -38,7 +38,8 @@ export {
 
 /**
  * Triggered when a new crawl request is created in Firestore
- * Processes the request and triggers the Cloud Run crawler
+ * Processes the request and triggers the Cloud Run crawler(s)
+ * Now supports distributed crawling across multiple instances
  */
 export const processCrawlRequest = onDocumentCreated(
   "crawl_requests/{requestId}",
@@ -59,25 +60,81 @@ export const processCrawlRequest = onDocumentCreated(
         processedAt: new Date(),
       });
 
-      // Trigger Cloud Run crawler
-      const result = await triggerCloudRunCrawler({
-        requestId: event.params.requestId,
-        triggerType: crawlRequest.triggerType || "manual",
-        sites: crawlRequest.sites || [],
-        userId: crawlRequest.userId,
-      });
+      const sitesToCrawl = crawlRequest.sites || [];
+      
+      // If specific sites are requested and count > 3, distribute across multiple instances
+      if (sitesToCrawl.length > 3) {
+        logger.info("Large crawl request, using distributed crawling", {
+          requestId: event.params.requestId,
+          siteCount: sitesToCrawl.length
+        });
+        
+        // Split sites into chunks for parallel processing
+        const chunkSize = 3;
+        const siteChunks = [];
+        for (let i = 0; i < sitesToCrawl.length; i += chunkSize) {
+          siteChunks.push(sitesToCrawl.slice(i, i + chunkSize));
+        }
+        
+        // Create sub-requests for each chunk
+        const subRequestPromises = siteChunks.map(async (chunk, index) => {
+          const subRequestId = `${event.params.requestId}_chunk_${index}`;
+          
+          return triggerCloudRunCrawler({
+            requestId: subRequestId,
+            triggerType: crawlRequest.triggerType || "manual",
+            sites: chunk,
+            userId: crawlRequest.userId,
+            parentRequestId: event.params.requestId
+          });
+        });
+        
+        // Trigger all chunks in parallel
+        const results = await Promise.allSettled(subRequestPromises);
+        
+        // Collect job IDs
+        const jobIds = results
+          .filter(r => r.status === 'fulfilled')
+          .map(r => (r as any).value.jobId);
+        
+        // Update request with distributed job info
+        await event.data?.ref.update({
+          status: "running",
+          cloudRunJobIds: jobIds,
+          distributedCrawl: true,
+          chunkCount: siteChunks.length,
+          startedAt: new Date(),
+        });
+        
+        logger.info("Distributed crawling triggered successfully", {
+          requestId: event.params.requestId,
+          chunkCount: siteChunks.length,
+          jobIds
+        });
+        
+      } else {
+        // Standard single-instance crawling for smaller requests
+        const result = await triggerCloudRunCrawler({
+          requestId: event.params.requestId,
+          triggerType: crawlRequest.triggerType || "manual",
+          sites: sitesToCrawl,
+          userId: crawlRequest.userId,
+        });
 
-      // Update request with Cloud Run job info
-      await event.data?.ref.update({
-        status: "running",
-        cloudRunJobId: result.jobId,
-        startedAt: new Date(),
-      });
+        // Update request with Cloud Run job info
+        await event.data?.ref.update({
+          status: "running",
+          cloudRunJobId: result.jobId,
+          distributedCrawl: false,
+          startedAt: new Date(),
+        });
 
-      logger.info("Cloud Run crawler triggered successfully", {
-        requestId: event.params.requestId,
-        jobId: result.jobId,
-      });
+        logger.info("Single-instance crawling triggered successfully", {
+          requestId: event.params.requestId,
+          jobId: result.jobId,
+        });
+      }
+
     } catch (error) {
       logger.error("Error processing crawl request", {
         requestId: event.params.requestId,
@@ -498,6 +555,7 @@ async function triggerCloudRunCrawler(params: {
   triggerType: string;
   sites: string[];
   userId: string;
+  parentRequestId?: string;
 }): Promise<{jobId: string}> {
   // TODO: Replace with your actual Cloud Run service URL
   const cloudRunUrl = process.env.CLOUD_RUN_CRAWLER_URL ||
@@ -508,6 +566,7 @@ async function triggerCloudRunCrawler(params: {
     triggerType: params.triggerType,
     sites: params.sites,
     userId: params.userId,
+    parentRequestId: params.parentRequestId,
     timestamp: new Date().toISOString(),
   };
 

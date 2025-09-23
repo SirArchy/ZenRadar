@@ -495,7 +495,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+          color: Theme.of(context).colorScheme.outline.withAlpha(50),
         ),
       ),
       child: Column(
@@ -566,7 +566,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
               Icon(
                 Icons.update_rounded,
                 size: 16,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(175),
               ),
               const SizedBox(width: 6),
               Text(
@@ -574,9 +574,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withAlpha(175),
                 ),
               ),
             ],
@@ -630,7 +628,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
               Icon(
                 Icons.sort_rounded,
                 size: 16,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(175),
               ),
               const SizedBox(width: 6),
               Text(
@@ -638,9 +636,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withAlpha(175),
                 ),
               ),
             ],
@@ -710,8 +706,8 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                   isSelected
                       ? LinearGradient(
                         colors: [
-                          selectedColor.withOpacity(0.9),
-                          selectedColor.withOpacity(0.7),
+                          selectedColor.withAlpha(225),
+                          selectedColor.withAlpha(175),
                         ],
                       )
                       : null,
@@ -719,23 +715,21 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                   !isSelected
                       ? Theme.of(
                         context,
-                      ).colorScheme.surfaceContainerHigh.withOpacity(0.7)
+                      ).colorScheme.surfaceContainerHigh.withAlpha(175)
                       : null,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color:
                     isSelected
-                        ? selectedColor.withOpacity(0.3)
-                        : Theme.of(
-                          context,
-                        ).colorScheme.outline.withOpacity(0.2),
+                        ? selectedColor.withAlpha(75)
+                        : Theme.of(context).colorScheme.outline.withAlpha(50),
                 width: isSelected ? 2 : 1,
               ),
               boxShadow:
                   isSelected
                       ? [
                         BoxShadow(
-                          color: selectedColor.withOpacity(0.25),
+                          color: selectedColor.withAlpha(55),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -751,7 +745,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                   decoration: BoxDecoration(
                     color:
                         isSelected
-                            ? Colors.white.withOpacity(0.2)
+                            ? Colors.white.withAlpha(50)
                             : Colors.transparent,
                     borderRadius: BorderRadius.circular(6),
                   ),
@@ -763,7 +757,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                             ? Colors.white
                             : Theme.of(
                               context,
-                            ).colorScheme.onSurface.withOpacity(0.7),
+                            ).colorScheme.onSurface.withAlpha(175),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -788,8 +782,8 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                     decoration: BoxDecoration(
                       color:
                           isSelected
-                              ? Colors.white.withOpacity(0.25)
-                              : selectedColor.withOpacity(0.15),
+                              ? Colors.white.withAlpha(55)
+                              : selectedColor.withAlpha(30),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -848,8 +842,8 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                   isSelected
                       ? LinearGradient(
                         colors: [
-                          selectedColor.withOpacity(0.9),
-                          selectedColor.withOpacity(0.7),
+                          selectedColor.withAlpha(225),
+                          selectedColor.withAlpha(175),
                         ],
                       )
                       : null,
@@ -857,23 +851,21 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                   !isSelected
                       ? Theme.of(
                         context,
-                      ).colorScheme.surfaceContainerHigh.withOpacity(0.7)
+                      ).colorScheme.surfaceContainerHigh.withAlpha(175)
                       : null,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color:
                     isSelected
-                        ? selectedColor.withOpacity(0.3)
-                        : Theme.of(
-                          context,
-                        ).colorScheme.outline.withOpacity(0.2),
+                        ? selectedColor.withAlpha(75)
+                        : Theme.of(context).colorScheme.outline.withAlpha(50),
                 width: isSelected ? 2 : 1,
               ),
               boxShadow:
                   isSelected
                       ? [
                         BoxShadow(
-                          color: selectedColor.withOpacity(0.25),
+                          color: selectedColor.withAlpha(55),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -889,7 +881,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                   decoration: BoxDecoration(
                     color:
                         isSelected
-                            ? Colors.white.withOpacity(0.2)
+                            ? Colors.white.withAlpha(50)
                             : Colors.transparent,
                     borderRadius: BorderRadius.circular(6),
                   ),
@@ -901,7 +893,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                             ? Colors.white
                             : Theme.of(
                               context,
-                            ).colorScheme.onSurface.withOpacity(0.7),
+                            ).colorScheme.onSurface.withAlpha(175),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -957,18 +949,15 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  selectedColor.withOpacity(0.9),
-                  selectedColor.withOpacity(0.7),
+                  selectedColor.withAlpha(225),
+                  selectedColor.withAlpha(175),
                 ],
               ),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: selectedColor.withOpacity(0.3),
-                width: 2,
-              ),
+              border: Border.all(color: selectedColor.withAlpha(75), width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: selectedColor.withOpacity(0.25),
+                  color: selectedColor.withAlpha(55),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -981,7 +970,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withAlpha(50),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Icon(

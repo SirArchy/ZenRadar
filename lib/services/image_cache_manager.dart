@@ -35,6 +35,16 @@ class ImageCacheManager {
   Future<void> preloadVisibleProducts(List<String> imageUrls) async {
     if (imageUrls.isEmpty) return;
 
+    // On web, browser handles image caching automatically
+    if (kIsWeb) {
+      if (kDebugMode) {
+        print(
+          '🌐 ImageCacheManager: Skipping preload on web platform (${imageUrls.length} images)',
+        );
+      }
+      return;
+    }
+
     try {
       // Filter out already cached images to avoid unnecessary network calls
       final uncachedUrls = <String>[];
