@@ -256,6 +256,83 @@ export const getUserSubscriptionStatus = onRequest(
   }
 );
 
+/**
+ * Set debug premium mode for testing (only in debug mode)
+ */
+export const setDebugPremiumMode = onRequest(
+  {cors: true},
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).send("Method not allowed");
+      return;
+    }
+
+    try {
+      const {userId, enabled} = req.body;
+
+      if (!userId || typeof enabled !== 'boolean') {
+        res.status(400).json({
+          error: "userId and enabled (boolean) are required",
+        });
+        return;
+      }
+
+      // For security, only allow this in development/debug mode
+      // You can check environment variables or other conditions here
+      const isDebugMode = process.env.NODE_ENV !== 'production' || 
+                         process.env.FUNCTIONS_EMULATOR === 'true';
+
+      if (!isDebugMode) {
+        res.status(403).json({
+          error: "Debug premium mode only available in development",
+        });
+        return;
+      }
+
+      // Update user's premium status in Firestore for debug purposes
+      const updateData: any = {
+        debugPremiumMode: enabled,
+        updatedAt: new Date(),
+      };
+
+      if (enabled) {
+        updateData.isPremium = true;
+        updateData.subscriptionTier = 'premium';
+        updateData.subscriptionStatus = 'debug_active';
+        updateData.debugPremiumModeActivatedAt = new Date();
+      } else {
+        updateData.isPremium = false;
+        updateData.subscriptionTier = 'free';
+        updateData.subscriptionStatus = 'inactive';
+        updateData.debugPremiumModeActivatedAt = null;
+      }
+
+      await db.collection("users").doc(userId).set(updateData, {merge: true});
+
+      logger.info(`Debug premium mode ${enabled ? 'enabled' : 'disabled'} for user`, {
+        userId,
+        enabled,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: `Debug premium mode ${enabled ? 'enabled' : 'disabled'}`,
+        isPremium: enabled,
+      });
+
+    } catch (error) {
+      logger.error("Error setting debug premium mode", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+
+      res.status(500).json({
+        error: "Failed to set debug premium mode",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+);
+
 // Helper Functions
 
 /**

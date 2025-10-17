@@ -34,6 +34,7 @@ export {
   createCustomerPortalSession,
   handleStripeWebhook,
   getUserSubscriptionStatus,
+  setDebugPremiumMode,
 } from "./payments";
 
 /**

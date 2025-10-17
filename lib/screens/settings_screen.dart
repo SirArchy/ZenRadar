@@ -15,6 +15,7 @@ import '../services/subscription_service.dart';
 import '../widgets/matcha_icon.dart';
 import 'auth_screen.dart';
 import 'subscription_upgrade_screen.dart';
+import 'app_initializer.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -274,11 +275,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           await _checkAuthStatus();
 
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Successfully signed out'),
-                                backgroundColor: Colors.green,
+                            // Navigate back to app initializer to handle auth state
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (context) => const AppInitializer(),
                               ),
+                              (route) => false,
                             );
                           }
                         }

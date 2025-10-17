@@ -645,6 +645,13 @@ class CrawlerService {
           })());
         }
         
+        // Execute the batch and add to productPromises
+        productPromises.push(...batch);
+      }
+      
+      // Execute all product processing promises
+      const batchResults = await Promise.allSettled(productPromises);
+        
       // Process all products and collect save operations
       const saveOperations = [];
       
@@ -681,7 +688,6 @@ class CrawlerService {
             if (wasUpdated) stockUpdates++;
           }
         }
-      }
       }
 
       const duration = Date.now() - startTime;

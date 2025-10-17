@@ -16,7 +16,7 @@ class PaymentService {
 
   // Your Firebase Functions URL - update this with your actual URL
   static const String _functionsBaseUrl =
-      'https://europe-west3-your-project-id.cloudfunctions.net';
+      'https://europe-west3-zenradar-acb85.cloudfunctions.net';
 
   /// Stripe price IDs - create these in your Stripe dashboard
   static const String monthlyPriceId =
@@ -230,6 +230,39 @@ class PaymentService {
     } catch (e) {
       debugPrint('Error opening subscription management: $e');
       rethrow;
+    }
+  }
+
+  /// Set debug premium mode (development only)
+  Future<bool> setDebugPremiumMode(bool enabled) async {
+    try {
+      final user = AuthService.instance.currentUser;
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final response = await http.post(
+        Uri.parse('$_functionsBaseUrl/setDebugPremiumMode'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${await user.getIdToken()}',
+        },
+        body: jsonEncode({'userId': user.uid, 'enabled': enabled}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        debugPrint(
+          'Debug premium mode ${enabled ? 'enabled' : 'disabled'}: ${data['message']}',
+        );
+        return data['success'] ?? false;
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception('Failed to set debug premium mode: ${error['error']}');
+      }
+    } catch (e) {
+      debugPrint('Error setting debug premium mode: $e');
+      return false;
     }
   }
 }

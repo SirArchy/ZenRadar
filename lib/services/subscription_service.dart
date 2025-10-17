@@ -218,6 +218,25 @@ class SubscriptionService extends ChangeNotifier {
       if (kDebugMode) {
         print('🐛 Debug premium mode ${enabled ? 'enabled' : 'disabled'}');
       }
+
+      // Update premium status in Firebase for cloud functions
+      try {
+        final paymentService = PaymentService.instance;
+        await paymentService.setDebugPremiumMode(enabled);
+
+        // Also sync subscription status to get the updated data
+        await syncSubscriptionStatus();
+
+        if (kDebugMode) {
+          print('💾 Debug premium mode synced with Firebase');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('❌ Error syncing debug premium mode with Firebase: $e');
+        }
+        // Don't throw error to avoid disrupting local debug functionality
+      }
+
       // Notify listeners about the change
       notifyListeners();
     }
