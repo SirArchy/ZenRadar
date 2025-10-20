@@ -24,6 +24,42 @@ class ImageUrlProcessor {
       print('🔧 ImageUrlProcessor: Processed $url -> $processedUrl');
     }
 
+    // IMPORTANT: Don't process URLs that are already valid Firebase Storage download URLs
+    if (processedUrl.contains('firebasestorage.googleapis.com/v0/b/') &&
+        processedUrl.contains('/o/') &&
+        processedUrl.contains('?alt=media')) {
+      // Check if the bucket name has the correct .firebasestorage.app suffix
+      final regex = RegExp(r'firebasestorage\.googleapis\.com/v0/b/([^/]+)/o/');
+      final match = regex.firstMatch(processedUrl);
+
+      if (match != null) {
+        final bucketName = match.group(1);
+        if (bucketName != null &&
+            !bucketName.endsWith('.firebasestorage.app')) {
+          // Fix missing .firebasestorage.app suffix
+          final correctedUrl = processedUrl.replaceFirst(
+            'firebasestorage.googleapis.com/v0/b/$bucketName/',
+            'firebasestorage.googleapis.com/v0/b/$bucketName.firebasestorage.app/',
+          );
+
+          if (kDebugMode) {
+            print(
+              '🔧 Fixed missing .firebasestorage.app suffix: $processedUrl -> $correctedUrl',
+            );
+          }
+          return correctedUrl;
+        }
+      }
+
+      // Already in correct download URL format, return as-is
+      if (kDebugMode) {
+        print(
+          '✅ ImageUrlProcessor: URL already in correct Firebase Storage format: $processedUrl',
+        );
+      }
+      return processedUrl;
+    }
+
     // Fix doubled Firebase Storage domains
     if (processedUrl.contains('.firebasestorage.app.firebasestorage.app')) {
       processedUrl = processedUrl.replaceAll(
@@ -36,8 +72,9 @@ class ImageUrlProcessor {
         );
       }
     }
-    // Ensure Firebase Storage URLs use the correct format
-    else if (processedUrl.contains('storage.googleapis.com')) {
+    // Only convert storage.googleapis.com URLs (not firebasestorage.googleapis.com)
+    else if (processedUrl.contains('storage.googleapis.com') &&
+        !processedUrl.contains('firebasestorage.googleapis.com')) {
       if (!processedUrl.contains('.firebasestorage.app/')) {
         final regex = RegExp(r'storage\.googleapis\.com/([^/]+)/');
         final match = regex.firstMatch(processedUrl);
@@ -71,98 +108,6 @@ class ImageUrlProcessor {
         );
       }
       processedUrl = httpsUrl;
-    }
-
-    // On web, convert Firebase Storage URLs to proper download URL format
-    if (kIsWeb &&
-        (processedUrl.contains('storage.googleapis.com') ||
-            processedUrl.contains('firebasestorage.googleapis.com'))) {
-      try {
-        final uri = Uri.parse(processedUrl);
-        String bucketName;
-        String filePath;
-
-        // Handle different URL formats
-        if (processedUrl.contains('storage.googleapis.com')) {
-          // Format: https://storage.googleapis.com/bucket.firebasestorage.app/path
-          final pathSegments = uri.pathSegments;
-          if (pathSegments.isNotEmpty) {
-            bucketName = pathSegments[0].replaceAll('.firebasestorage.app', '');
-            if (pathSegments.length > 1) {
-              filePath = pathSegments.skip(1).join('/');
-            } else {
-              throw Exception('No file path found');
-            }
-          } else {
-            throw Exception('No path segments found');
-          }
-        } else if (processedUrl.contains(
-          'firebasestorage.googleapis.com/v0/b/',
-        )) {
-          // Already in download URL format, just return it
-          return processedUrl;
-        } else {
-          // Format: https://firebasestorage.googleapis.com/bucket.firebasestorage.app/path
-          final pathSegments = uri.pathSegments;
-          if (pathSegments.isNotEmpty) {
-            bucketName = pathSegments[0].replaceAll('.firebasestorage.app', '');
-            if (pathSegments.length > 1) {
-              filePath = pathSegments.skip(1).join('/');
-            } else {
-              throw Exception('No file path found');
-            }
-          } else {
-            throw Exception('No path segments found');
-          }
-        }
-
-        // Create proper download URL with correct path encoding
-        final pathSegments = filePath.split('/');
-        final encodedPathSegments = pathSegments
-            .map((segment) => Uri.encodeComponent(segment))
-            .join('%2F');
-        final downloadUrl =
-            'https://firebasestorage.googleapis.com/v0/b/$bucketName/o/$encodedPathSegments?alt=media';
-
-        if (kDebugMode) {
-          print(
-            '🌐 Converting to Firebase Storage download URL: $processedUrl -> $downloadUrl',
-          );
-        }
-        processedUrl = downloadUrl;
-      } catch (e) {
-        if (kDebugMode) {
-          print('🚨 Failed to convert Firebase Storage URL: $e');
-          print('🚨 Original URL: $processedUrl');
-        }
-        // If conversion fails, try alternative approaches
-        if (processedUrl.contains('storage.googleapis.com')) {
-          // Try simple domain replacement as fallback
-          final fallbackUrl = processedUrl.replaceFirst(
-            'storage.googleapis.com',
-            'firebasestorage.googleapis.com',
-          );
-          if (kDebugMode) {
-            print(
-              '🌐 Using fallback domain replacement: $processedUrl -> $fallbackUrl',
-            );
-          }
-          processedUrl = fallbackUrl;
-        } else {
-          // For URLs that are already firebasestorage.googleapis.com but not in proper format
-          // Try to make them publicly accessible by appending ?alt=media if not present
-          if (!processedUrl.contains('?alt=media') &&
-              !processedUrl.contains('/v0/b/')) {
-            final mediaUrl = '$processedUrl?alt=media';
-            if (kDebugMode) {
-              print(
-                '🌐 Adding alt=media parameter: $processedUrl -> $mediaUrl',
-              );
-            }
-            processedUrl = mediaUrl;
-          }
-        }
-      }
     }
 
     return processedUrl;

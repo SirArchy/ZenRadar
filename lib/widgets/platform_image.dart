@@ -57,6 +57,42 @@ class _PlatformImageState extends State<PlatformImage> {
     processedUrl = processedUrl.replaceAll('{height}', '400');
     processedUrl = processedUrl.replaceAll('%7Bheight%7D', '400');
 
+    // Check if it's already a valid Firebase Storage download URL
+    if (processedUrl.contains('firebasestorage.googleapis.com/v0/b/') &&
+        processedUrl.contains('/o/') &&
+        processedUrl.contains('?alt=media')) {
+      // Check if the bucket name has the correct .firebasestorage.app suffix
+      final regex = RegExp(r'firebasestorage\.googleapis\.com/v0/b/([^/]+)/o/');
+      final match = regex.firstMatch(processedUrl);
+
+      if (match != null) {
+        final bucketName = match.group(1);
+        if (bucketName != null &&
+            !bucketName.endsWith('.firebasestorage.app')) {
+          // Fix missing .firebasestorage.app suffix
+          final correctedUrl = processedUrl.replaceFirst(
+            'firebasestorage.googleapis.com/v0/b/$bucketName/',
+            'firebasestorage.googleapis.com/v0/b/$bucketName.firebasestorage.app/',
+          );
+
+          if (kDebugMode) {
+            print(
+              '🔧 PlatformImage: Fixed missing .firebasestorage.app suffix: $processedUrl -> $correctedUrl',
+            );
+          }
+          return correctedUrl;
+        }
+      }
+
+      // Already in correct download URL format, no processing needed
+      if (kDebugMode) {
+        print(
+          '✅ URL already in correct Firebase Storage format: $processedUrl',
+        );
+      }
+      return processedUrl;
+    }
+
     // Fix doubled Firebase Storage domains (e.g., firebasestorage.app.firebasestorage.app)
     // This must be first to handle URLs that already have the doubled domain
     if (processedUrl.contains('.firebasestorage.app.firebasestorage.app')) {
@@ -72,7 +108,8 @@ class _PlatformImageState extends State<PlatformImage> {
     }
     // Ensure Firebase Storage URLs use the correct format
     // Only process if it wasn't already fixed above
-    else if (processedUrl.contains('storage.googleapis.com')) {
+    else if (processedUrl.contains('storage.googleapis.com') &&
+        !processedUrl.contains('firebasestorage.googleapis.com')) {
       // Check if the URL already has the correct .firebasestorage.app format
       // Look for pattern: storage.googleapis.com/bucket-name.firebasestorage.app/
       if (!processedUrl.contains('.firebasestorage.app/')) {
@@ -152,9 +189,16 @@ class _PlatformImageState extends State<PlatformImage> {
                 ? (context, error, stackTrace) {
                   // Enhanced error handling for web with CORS detection and retry
                   if (kDebugMode) {
+                    print('🖼️ Failed to load product image: $_currentUrl');
+                    print('🖼️ Error details: $error');
+                    if (stackTrace != null) {
+                      print('🖼️ Stack trace: $stackTrace');
+                    }
+
                     if (error.toString().contains('CORS') ||
                         error.toString().contains('statusCode: 0') ||
-                        error.toString().contains('Cross-Origin')) {
+                        error.toString().contains('Cross-Origin') ||
+                        error.toString().contains('cross-origin')) {
                       print(
                         '🖼️ Web image CORS error for ${widget.imageUrl}: Cross-origin request blocked. Retry attempt: $_retryCount',
                       );
@@ -177,12 +221,8 @@ class _PlatformImageState extends State<PlatformImage> {
                     }
                   }
 
-                  // For CORS issues on web, try using a CORS proxy service
-                  if ((error.toString().contains('CORS') ||
-                          error.toString().contains('statusCode: 0') ||
-                          error.toString().contains('Cross-Origin')) &&
-                      _retryCount < _maxRetries) {
-                    // Try with a different approach based on retry count
+                  // For any loading issues on web, try using a different approach
+                  if (_retryCount < _maxRetries) {
                     Future.delayed(const Duration(milliseconds: 500), () {
                       if (mounted) {
                         setState(() {
