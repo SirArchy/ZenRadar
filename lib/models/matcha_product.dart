@@ -347,7 +347,8 @@ extension SubscriptionTierExtension on SubscriptionTier {
 
   /// Free tier limits
   static const int maxFavoritesForFree = 42;
-  static const int maxVendorsForFree = 5;
+  static const int maxVendorsForFree =
+      999; // Removed site restriction - free users can see all sites
   static const int minCheckFrequencyMinutesForFree = 360; // 6 hours
   static const int historyLimitDaysForFree = 7;
 

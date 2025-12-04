@@ -131,32 +131,11 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
       final summary = results[1] as Map<String, dynamic>;
       final fastSummary = results[2] as Map<String, dynamic>;
 
-      // Filter analytics for free users
+      // No longer filtering analytics based on subscription tier - all users see all sites
       List<WebsiteStockAnalytics> filteredAnalytics = analytics;
       print(
-        '🔍 Filtering analytics: isPremium = $_isPremium, total sites = ${analytics.length}',
+        '✅ Showing all ${analytics.length} sites for all users: ${analytics.map((a) => a.siteKey).toList()}',
       );
-
-      if (!_isPremium) {
-        final freeSites = [
-          'ippodo',
-          'marukyu',
-          'tokichi',
-          'matcha-karu',
-          'yoshien',
-        ];
-        filteredAnalytics =
-            analytics
-                .where((analytics) => freeSites.contains(analytics.siteKey))
-                .toList();
-        print(
-          '🆓 Free user - filtered to ${filteredAnalytics.length} sites: ${filteredAnalytics.map((a) => a.siteKey).toList()}',
-        );
-      } else {
-        print(
-          '💎 Premium user - showing all ${analytics.length} sites: ${analytics.map((a) => a.siteKey).toList()}',
-        );
-      }
 
       setState(() {
         _websiteAnalytics = filteredAnalytics;
@@ -224,32 +203,11 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
       final analytics = results[0] as List<WebsiteStockAnalytics>;
       final summary = results[1] as Map<String, dynamic>;
 
-      // Filter analytics for free users
+      // No longer filtering analytics - all users see all sites
       List<WebsiteStockAnalytics> filteredAnalytics = analytics;
       print(
-        '🔍 [FullAnalytics] Filtering analytics: isPremium = $_isPremium, total sites = ${analytics.length}',
+        '✅ [FullAnalytics] Showing all ${analytics.length} sites for all users',
       );
-
-      if (!_isPremium) {
-        final freeSites = [
-          'ippodo',
-          'marukyu',
-          'tokichi',
-          'matcha-karu',
-          'yoshien',
-        ];
-        filteredAnalytics =
-            analytics
-                .where((analytics) => freeSites.contains(analytics.siteKey))
-                .toList();
-        print(
-          '🆓 [FullAnalytics] Free user - filtered to ${filteredAnalytics.length} sites',
-        );
-      } else {
-        print(
-          '💎 [FullAnalytics] Premium user - showing all ${analytics.length} sites',
-        );
-      }
 
       setState(() {
         _websiteAnalytics = filteredAnalytics;
@@ -266,23 +224,6 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
 
   Future<void> _loadAnalytics() async {
     await _loadProgressively();
-  }
-
-  /// Calculate stock percentage for free users based on filtered analytics
-  double _calculateFreeUserStockPercentage() {
-    if (_websiteAnalytics.isEmpty) return 0.0;
-
-    final totalProducts = _websiteAnalytics.fold<int>(
-      0,
-      (sum, analytics) => sum + analytics.totalProducts,
-    );
-    final productsInStock = _websiteAnalytics.fold<int>(
-      0,
-      (sum, analytics) => sum + analytics.productsInStock,
-    );
-
-    if (totalProducts == 0) return 0.0;
-    return (productsInStock / totalProducts) * 100;
   }
 
   Future<void> _forceRefreshAnalytics() async {
@@ -321,22 +262,8 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
       final summary = results[1] as Map<String, dynamic>;
       final fastSummary = results[2] as Map<String, dynamic>;
 
-      // Filter analytics for free users
+      // No longer filtering analytics - all users see all sites
       List<WebsiteStockAnalytics> filteredAnalytics = analytics;
-      if (!_isPremium) {
-        // Only show analytics for free tier sites
-        final freeSites = [
-          'ippodo',
-          'marukyu',
-          'tokichi',
-          'matcha-karu',
-          'yoshien',
-        ];
-        filteredAnalytics =
-            analytics
-                .where((analytics) => freeSites.contains(analytics.siteKey))
-                .toList();
-      }
 
       setState(() {
         _websiteAnalytics = filteredAnalytics;
@@ -355,11 +282,8 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
   }
 
   void _showTimeRangePicker() {
-    // Filter time ranges based on subscription tier
-    final availableTimeRanges =
-        _isPremium
-            ? _timeRanges
-            : ['day']; // Only show 7 days option for free users
+    // All users can now access all time ranges
+    final availableTimeRanges = _timeRanges;
 
     showDialog<String>(
       context: context,
@@ -503,16 +427,9 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
     // Use fast summary if available, otherwise fall back to full summary
     final summaryData = _fastSummary.isNotEmpty ? _fastSummary : _summary;
 
-    // Calculate free-tier specific numbers
-    final totalWebsitesForUser =
-        _isPremium
-            ? (summaryData['totalWebsites'] ?? 0)
-            : 5; // Free tier has 5 available websites
-
-    final activeWebsitesForUser =
-        _isPremium
-            ? (summaryData['activeWebsites'] ?? 0)
-            : _websiteAnalytics.length; // Show actual active free sites
+    // All users now see all websites
+    final totalWebsitesForUser = (summaryData['totalWebsites'] ?? 0);
+    final activeWebsitesForUser = (summaryData['activeWebsites'] ?? 0);
 
     // Show loading skeleton if no data is available
     if (summaryData.isEmpty && _isLoadingSummary) {
@@ -540,7 +457,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _isPremium ? 'Overall Summary' : 'Free Tier Summary',
+                      'Overall Summary',
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                   ),
@@ -560,7 +477,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                   Expanded(
                     child: _buildSummaryItem(
                       'Products',
-                      '${_isPremium ? (summaryData['totalProducts'] ?? 0) : _websiteAnalytics.fold<int>(0, (sum, analytics) => sum + analytics.totalProducts)}',
+                      '${summaryData['totalProducts'] ?? 0}',
                       Icons.inventory_2,
                       Colors.green,
                     ),
@@ -573,7 +490,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                   Expanded(
                     child: _buildSummaryItem(
                       'In Stock',
-                      '${_isPremium ? (summaryData['overallStockPercentage'] ?? 0).toStringAsFixed(1) : _calculateFreeUserStockPercentage().toStringAsFixed(1)}%',
+                      '${(summaryData['overallStockPercentage'] ?? 0).toStringAsFixed(1)}%',
                       Icons.check_circle,
                       Colors.green,
                     ),
@@ -581,7 +498,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                   Expanded(
                     child: _buildSummaryItem(
                       'Updates',
-                      '${_isPremium ? (summaryData['totalUpdates'] ?? 0) : _websiteAnalytics.fold<int>(0, (sum, analytics) => sum + analytics.stockUpdates.length)}',
+                      '${summaryData['totalUpdates'] ?? 0}',
                       Icons.timeline,
                       Colors.orange,
                     ),
@@ -903,7 +820,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
   String _getTimeRangeLabel(String timeRange) {
     switch (timeRange) {
       case 'day':
-        return _isPremium ? 'Last 24 hours' : 'Last 7 days';
+        return 'Last 24 hours';
       case 'week':
         return 'Last 7 days';
       case 'month':

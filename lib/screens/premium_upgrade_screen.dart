@@ -250,7 +250,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
         isFreeTier
             ? [
               'Up to 42 favorite products',
-              '5 vendor sites',
+              'All vendor sites',
               'Check every 6 hours',
               'Basic notifications',
             ]
@@ -322,14 +322,14 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
             'Get notified within the hour of stock changes',
           ),
           _buildFeatureHighlight(
-            Icons.store,
-            'All Vendors',
-            'Monitor all matcha vendors simultaneously',
-          ),
-          _buildFeatureHighlight(
             Icons.favorite,
             'Unlimited Favorites',
             'Track as many products as you want',
+          ),
+          _buildFeatureHighlight(
+            Icons.history,
+            'Full History Access',
+            'Access complete price and stock history for all products',
           ),
         ],
       ),

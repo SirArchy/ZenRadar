@@ -109,9 +109,6 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   // Tutorial state
   bool _showTutorialOverlay = false;
 
-  // Subscription state
-  bool _isPremium = false;
-
   // Flag to prevent circular updates when programmatically changing search text
   bool _isUpdatingSearchProgrammatically = false;
 
@@ -409,11 +406,8 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
   Future<void> _loadSubscriptionStatus() async {
     try {
-      final isPremium = await SubscriptionService.instance.isPremiumUser();
-
-      setState(() {
-        _isPremium = isPremium;
-      });
+      // Load subscription status for other features that might need it
+      await SubscriptionService.instance.isPremiumUser();
     } catch (e) {
       print('Error loading subscription status: $e');
     }
@@ -631,50 +625,14 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         DatabaseService.platformService.getUniqueSites(),
         DatabaseService.platformService.getAvailableCategories(),
         DatabaseService.platformService.getPriceRange(),
-        SubscriptionService.instance.isPremiumUser(),
       ]);
 
       final sites = results[0] as List<String>;
       final categories = results[1] as List<String>;
       final priceRange = results[2] as Map<String, double>;
-      final isPremium = results[3] as bool;
 
-      // Filter sites based on subscription tier
-      List<String> availableSites;
-      if (isPremium) {
-        availableSites = sites;
-      } else {
-        // For free users, only show allowed sites
-        final freeSites = SubscriptionTierExtension.freeEnabledSites;
-
-        // Map site display names back to keys to check against free sites
-        final siteNameToKey = <String, String>{
-          'Nakamura Tokichi': 'tokichi',
-          'Marukyu-Koyamaen': 'marukyu',
-          'Ippodo Tea': 'ippodo',
-          'Yoshi En': 'yoshien',
-          'Matcha Kāru': 'matcha-karu',
-          'Sho-Cha': 'sho-cha',
-          'Sazen Tea': 'sazentea',
-          'Emeri': 'enjoyemeri',
-          'Poppatea': 'poppatea',
-          'Horiishichimeien': 'horiishichimeien',
-        };
-
-        availableSites =
-            sites.where((siteName) {
-              final siteKey = siteNameToKey[siteName] ?? siteName.toLowerCase();
-              return freeSites.contains(siteKey);
-            }).toList();
-
-        if (kDebugMode) {
-          print(
-            '🔒 Free mode sites filter: ${availableSites.length} of ${sites.length} sites available',
-          );
-          print('   Available: $availableSites');
-          print('   All sites: $sites');
-        }
-      }
+      // All users now see all sites - no filtering based on subscription tier
+      List<String> availableSites = sites;
 
       if (mounted) {
         setState(() {
@@ -748,49 +706,8 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     }
 
     try {
-      // Apply free mode site restrictions for non-premium users
+      // No longer applying free mode site restrictions - all users see all sites
       ProductFilter effectiveFilter = _filter;
-
-      if (!_isPremium) {
-        // In free mode, always restrict to allowed sites
-        final freeSites = SubscriptionTierExtension.freeEnabledSites;
-        final siteNameToKey = <String, String>{
-          'Ippodo Tea': 'ippodo',
-          'Marukyu-Koyamaen': 'marukyu',
-          'Nakamura Tokichi': 'tokichi',
-          'Matcha Kāru': 'matcha-karu',
-          'Yoshi En': 'yoshien',
-        };
-
-        // Get the display names for free sites
-        final allowedSiteNames =
-            siteNameToKey.entries
-                .where((entry) => freeSites.contains(entry.value))
-                .map((entry) => entry.key)
-                .toList();
-
-        // Always restrict to allowed sites for free users, regardless of filter state
-        List<String> restrictedSites;
-        if (effectiveFilter.sites?.isNotEmpty == true &&
-            !effectiveFilter.sites!.contains('All')) {
-          // If user has selected specific sites, filter them to only allowed sites
-          restrictedSites =
-              effectiveFilter.sites!
-                  .where((site) => allowedSiteNames.contains(site))
-                  .toList();
-        } else {
-          // If no sites selected or "All" is selected, show only allowed sites
-          restrictedSites = allowedSiteNames;
-        }
-
-        effectiveFilter = effectiveFilter.copyWith(sites: restrictedSites);
-
-        if (kDebugMode) {
-          print('🆓 Free mode: Restricting to sites: $restrictedSites');
-          print('🆓 Original filter sites: ${_filter.sites}');
-          print('🆓 Effective filter sites: ${effectiveFilter.sites}');
-        }
-      }
 
       final result = await DatabaseService.platformService.getProductsPaginated(
         page: _currentPage,

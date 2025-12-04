@@ -908,7 +908,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       {'key': 'marukyu', 'name': 'Marukyu-Koyamaen'},
       {'key': 'matcha-karu', 'name': 'Matcha-Karu'},
       {'key': 'yoshien', 'name': 'YOSHI En'},
-      {'key': 'tokichi', 'name': 'Nakamura okichi'},
+      {'key': 'tokichi', 'name': 'Nakamura Tokichi'},
       {'key': 'sho-cha', 'name': 'Sho-Cha'},
       {'key': 'sazentea', 'name': 'Sazen Tea'},
       {'key': 'enjoyemeri', 'name': 'Enjoy Emeri'},
@@ -916,12 +916,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       {'key': 'horiishichimeien', 'name': 'Horiishichimeien'},
     ];
 
-    // Filter sites based on subscription tier for free users
-    if (!_isPremium) {
-      final freeSites = SubscriptionTierExtension.freeEnabledSites;
-      return allSites.where((site) => freeSites.contains(site['key'])).toList();
-    }
-
+    // All users can now see all sites - no filtering based on subscription tier
     return allSites;
   }
 
@@ -1698,8 +1693,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       _buildFeatureRow(
         'Vendor Sites',
-        _isPremium ? 'All sites' : '${_currentTier.maxVendors} sites',
-        _isPremium,
+        'All sites', // All users now have access to all sites
+        true, // Always show as premium feature (enabled for all)
       ),
       _buildFeatureRow(
         'Check Frequency',
@@ -1820,8 +1815,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 16),
-              _buildUpgradeFeature('Unlimited favorite products', '15 → ∞'),
-              _buildUpgradeFeature('Monitor all vendor websites', '4 → All'),
+              _buildUpgradeFeature('Unlimited favorite products', '42 → ∞'),
               _buildUpgradeFeature('Hourly check frequency', '6h → 1h'),
               _buildUpgradeFeature('Full price & stock history', '7d → ∞'),
               _buildUpgradeFeature('Priority notifications', 'Coming soon'),
