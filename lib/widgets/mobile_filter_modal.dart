@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../models/matcha_product.dart';
 import '../services/settings_service.dart';
 import '../services/product_price_converter.dart';
@@ -593,9 +594,9 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
                           ).colorScheme.outline.withAlpha(125),
                         ),
                       ),
-                      child: const Text(
-                        'Clear All',
-                        style: TextStyle(
+                      child: Text(
+                        AppLocalizations.of(context)!.clearAll,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
@@ -627,7 +628,9 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
                                 ),
                               )
                               : Text(
-                                'Show $_productCount products',
+                                AppLocalizations.of(
+                                  context,
+                                )!.showProducts(_productCount),
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -832,9 +835,9 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Sites',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              AppLocalizations.of(context)!.sites,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             Row(
               children: [
@@ -852,7 +855,7 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
                   child: Text(
-                    'Select All',
+                    AppLocalizations.of(context)!.selectAll,
                     style: TextStyle(
                       fontSize: 12,
                       color: Theme.of(context).colorScheme.primary,
@@ -870,7 +873,7 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
                   child: Text(
-                    'Clear All',
+                    AppLocalizations.of(context)!.clearAll,
                     style: TextStyle(
                       fontSize: 12,
                       color: Theme.of(context).colorScheme.outline,
@@ -991,9 +994,9 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Categories',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              AppLocalizations.of(context)!.categories,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             Row(
               children: [
@@ -1013,7 +1016,7 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
                   child: Text(
-                    'Select All',
+                    AppLocalizations.of(context)!.selectAll,
                     style: TextStyle(
                       fontSize: 12,
                       color: Theme.of(context).colorScheme.primary,
@@ -1033,7 +1036,7 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
                   child: Text(
-                    'Clear All',
+                    AppLocalizations.of(context)!.clearAll,
                     style: TextStyle(
                       fontSize: 12,
                       color: Theme.of(context).colorScheme.outline,

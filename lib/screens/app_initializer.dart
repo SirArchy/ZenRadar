@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:zenradar/screens/onboarding_screen_new.dart';
 import '../services/settings_service.dart';
 import '../services/auth_service.dart';
@@ -19,7 +20,7 @@ class _AppInitializerState extends State<AppInitializer> {
   bool _isLoading = true;
   bool _needsOnboarding = false;
   bool _needsAuth = false;
-  String _loadingText = 'Starting ZenRadar...';
+  String _loadingText = '';
 
   @override
   void initState() {
@@ -29,8 +30,9 @@ class _AppInitializerState extends State<AppInitializer> {
 
   Future<void> _checkInitialSetup() async {
     try {
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _loadingText = 'Checking setup...';
+        _loadingText = l10n.checkingSetup;
       });
 
       final settingsService = SettingsService.instance;
@@ -48,7 +50,7 @@ class _AppInitializerState extends State<AppInitializer> {
       }
 
       setState(() {
-        _loadingText = 'Verifying authentication...';
+        _loadingText = l10n.verifyingAuthentication;
       });
 
       // Check authentication status
@@ -62,7 +64,7 @@ class _AppInitializerState extends State<AppInitializer> {
       }
 
       setState(() {
-        _loadingText = 'Almost ready...';
+        _loadingText = l10n.almostReady;
       });
 
       // Sync trial status from Firestore if user is authenticated
@@ -91,6 +93,7 @@ class _AppInitializerState extends State<AppInitializer> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_isLoading) {
       return Scaffold(
         body: Center(
@@ -109,12 +112,14 @@ class _AppInitializerState extends State<AppInitializer> {
               ),
               const SizedBox(height: 24),
               Text(
-                _loadingText,
+                _loadingText.isEmpty && l10n != null
+                    ? l10n.startingZenRadar
+                    : _loadingText,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
               Text(
-                'Please wait...',
+                l10n?.pleaseWait ?? 'Please wait...',
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: Colors.grey),

@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../services/auth_service.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -55,6 +56,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     if (_showEmailVerificationScreen) {
       return _buildEmailVerificationScreen(colorScheme);
@@ -95,7 +97,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
               const SizedBox(height: 32),
 
               Text(
-                'Sign in or create an account to access all features',
+                l10n.signInToAccount,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -138,9 +140,9 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                     Tab(
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: const Text(
-                          'Sign In',
-                          style: TextStyle(
+                        child: Text(
+                          l10n.signIn,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -150,9 +152,9 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                     Tab(
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: const Text(
-                          'Sign Up',
-                          style: TextStyle(
+                        child: Text(
+                          l10n.signUp,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -215,6 +217,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildSignInForm(ColorScheme colorScheme) {
+    final l10n = AppLocalizations.of(context)!;
     return Form(
       key: _formKey,
       child: Column(
@@ -226,7 +229,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             autocorrect: false,
             textInputAction: TextInputAction.next,
             decoration: InputDecoration(
-              labelText: 'Email',
+              labelText: l10n.email,
               prefixIcon: const Icon(Icons.email_outlined),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -234,12 +237,12 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter your email';
+                return l10n.enterEmail;
               }
               if (!RegExp(
                 r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
               ).hasMatch(value)) {
-                return 'Please enter a valid email';
+                return l10n.enterValidEmail;
               }
               return null;
             },
@@ -254,7 +257,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             textInputAction: TextInputAction.done,
             onFieldSubmitted: (_) => _isLoading ? null : _signIn(),
             decoration: InputDecoration(
-              labelText: 'Password',
+              labelText: l10n.password,
               prefixIcon: const Icon(Icons.lock_outlined),
               suffixIcon: IconButton(
                 icon: Icon(
@@ -272,7 +275,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter your password';
+                return l10n.enterPassword;
               }
               return null;
             },
@@ -286,7 +289,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             child: TextButton(
               onPressed: _showForgotPasswordDialog,
               child: Text(
-                'Forgot Password?',
+                l10n.forgotPassword,
                 style: TextStyle(color: colorScheme.primary),
               ),
             ),
@@ -360,7 +363,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
               ),
               icon: Icon(Icons.login, color: colorScheme.onSurface, size: 20),
               label: Text(
-                'Continue with Google',
+                l10n.signInWithGoogle,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
@@ -375,6 +378,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildSignUpForm(ColorScheme colorScheme) {
+    final l10n = AppLocalizations.of(context)!;
     return Form(
       child: Column(
         children: [
@@ -384,7 +388,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             textCapitalization: TextCapitalization.words,
             textInputAction: TextInputAction.next,
             decoration: InputDecoration(
-              labelText: 'Display Name (Optional)',
+              labelText: '${l10n.displayName} (Optional)',
               prefixIcon: const Icon(Icons.person_outlined),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -401,7 +405,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             textInputAction: TextInputAction.next,
             autocorrect: false,
             decoration: InputDecoration(
-              labelText: 'Email',
+              labelText: l10n.email,
               prefixIcon: const Icon(Icons.email_outlined),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -409,12 +413,12 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter your email';
+                return l10n.enterEmail;
               }
               if (!RegExp(
                 r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
               ).hasMatch(value)) {
-                return 'Please enter a valid email';
+                return l10n.enterValidEmail;
               }
               return null;
             },
@@ -428,7 +432,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             obscureText: _obscurePassword,
             textInputAction: TextInputAction.done,
             decoration: InputDecoration(
-              labelText: 'Password',
+              labelText: l10n.password,
               prefixIcon: const Icon(Icons.lock_outlined),
               suffixIcon: IconButton(
                 icon: Icon(
@@ -443,14 +447,14 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              helperText: 'At least 6 characters with letters and numbers',
+              helperText: l10n.passwordRequirements,
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter a password';
+                return l10n.enterPassword;
               }
               if (value.length < 6) {
-                return 'Password must be at least 6 characters';
+                return l10n.passwordTooShort;
               }
               return null;
             },
@@ -463,7 +467,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             controller: _confirmPasswordController,
             obscureText: _obscureConfirmPassword,
             decoration: InputDecoration(
-              labelText: 'Confirm Password',
+              labelText: l10n.confirmPassword,
               prefixIcon: const Icon(Icons.lock_outlined),
               suffixIcon: IconButton(
                 icon: Icon(
@@ -483,7 +487,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             ),
             validator: (value) {
               if (value != _passwordController.text) {
-                return 'Passwords do not match';
+                return l10n.passwordsDoNotMatch;
               }
               return null;
             },
@@ -557,7 +561,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
               ),
               icon: Icon(Icons.login, color: colorScheme.onSurface, size: 20),
               label: Text(
-                'Continue with Google',
+                l10n.signInWithGoogle,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
@@ -572,6 +576,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildEmailVerificationScreen(ColorScheme colorScheme) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: colorScheme.surface,
       body: SafeArea(
@@ -606,7 +611,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
               const SizedBox(height: 24),
 
               Text(
-                'Verify Your Email',
+                l10n.verifyEmail,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: colorScheme.onSurface,
@@ -617,7 +622,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
               const SizedBox(height: 16),
 
               Text(
-                'We\'ve sent a verification email to ${_emailController.text}.\n\nPlease check your inbox and click the verification link to continue.',
+                l10n.verificationEmailSent,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -636,7 +641,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                        : const Text('Resend Verification Email'),
+                        : Text(l10n.resendVerification),
               ),
 
               const SizedBox(height: 16),
@@ -654,8 +659,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'I\'ve Verified My Email',
+                  child: Text(
+                    l10n.verifyAndContinue,
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -772,9 +777,10 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
 
     if (result.isSuccess) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result.message ?? 'Verification email sent'),
+            content: Text(l10n.verificationEmailResent),
             backgroundColor: Colors.green,
           ),
         );
@@ -799,13 +805,14 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   }
 
   void _showForgotPasswordDialog() {
+    final l10n = AppLocalizations.of(context)!;
     final emailController = TextEditingController(text: _emailController.text);
 
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Reset Password'),
+            title: Text(l10n.resetPassword),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -816,9 +823,9 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                 TextField(
                   controller: emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.email,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
               ],
@@ -826,7 +833,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               ElevatedButton(
                 onPressed: () async {

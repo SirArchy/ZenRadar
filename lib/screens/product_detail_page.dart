@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/matcha_product.dart';
@@ -895,6 +896,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Widget _buildProductDetails() {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -902,14 +904,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Product Details',
+              l10n.productDetails,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
             _buildDetailRow('Site', widget.product.site),
             _buildDetailRow('Category', widget.product.category ?? 'Unknown'),
             _buildDetailRow(
-              'Current Price',
+              l10n.currentPrice,
               _convertedPrice != null
                   ? '${_convertedPrice!.toStringAsFixed(2)}$_currentCurrencySymbol'
                   : widget.product.priceValue != null
@@ -1027,29 +1029,30 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           }
                         });
                       },
-                      itemBuilder:
-                          (context) =>
-                              _isPremium
-                                  ? [
-                                    const PopupMenuItem(
-                                      value: 'day',
-                                      child: Text('Today'),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'week',
-                                      child: Text('This Week'),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'month',
-                                      child: Text('This Month'),
-                                    ),
-                                  ]
-                                  : [
-                                    const PopupMenuItem(
-                                      value: 'day',
-                                      child: Text('Last 7 Days'),
-                                    ),
-                                  ],
+                      itemBuilder: (context) {
+                        final l10n = AppLocalizations.of(context)!;
+                        return _isPremium
+                            ? [
+                              PopupMenuItem(
+                                value: 'day',
+                                child: Text(l10n.today),
+                              ),
+                              PopupMenuItem(
+                                value: 'week',
+                                child: Text(l10n.thisWeek),
+                              ),
+                              PopupMenuItem(
+                                value: 'month',
+                                child: Text(l10n.thisMonth),
+                              ),
+                            ]
+                            : [
+                              PopupMenuItem(
+                                value: 'day',
+                                child: Text(l10n.last7Days),
+                              ),
+                            ];
+                      },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 6,

@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../models/website_stock_analytics.dart';
 import '../services/website_analytics_service.dart';
 import '../services/subscription_service.dart';
@@ -289,7 +290,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Select Time Range'),
+          title: Text(AppLocalizations.of(context)!.selectTimeRange),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children:
@@ -309,7 +310,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(context)!.cancel),
             ),
           ],
         );
@@ -329,7 +330,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: _forceRefreshAnalytics,
-        tooltip: 'Refresh analytics',
+        tooltip: AppLocalizations.of(context)!.refreshAnalytics,
         child: const Icon(Icons.refresh),
       ),
       body: _buildBody(),
@@ -374,7 +375,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _forceRefreshAnalytics,
-              child: const Text('Retry'),
+              child: Text(AppLocalizations.of(context)!.retry),
             ),
           ],
         ),
@@ -549,7 +550,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
       child: Row(
         children: [
           Text(
-            'Time Range:',
+            AppLocalizations.of(context)!.timeRange,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -746,12 +747,12 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
 
   String _buildWebsiteSubtitle(WebsiteStockAnalytics analytics) {
     if (analytics.totalProducts == 0) {
-      return 'No products tracked';
+      return AppLocalizations.of(context)!.noProductsTracked;
     }
 
     final lastUpdate = analytics.lastStockChange;
     if (lastUpdate != null) {
-      return 'Last update: ${_formatDateTime(lastUpdate)}';
+      return '${AppLocalizations.of(context)!.lastUpdate}: ${_formatDateTime(lastUpdate)}';
     }
 
     return 'No recent updates';
@@ -818,15 +819,16 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
   }
 
   String _getTimeRangeLabel(String timeRange) {
+    final l10n = AppLocalizations.of(context)!;
     switch (timeRange) {
       case 'day':
-        return 'Last 24 hours';
+        return l10n.last24Hours;
       case 'week':
-        return 'Last 7 days';
+        return l10n.last7Days;
       case 'month':
-        return 'Last 30 days';
+        return l10n.last30Days;
       case 'all':
-        return 'All time';
+        return l10n.allTimeRange;
       default:
         return timeRange;
     }
@@ -849,17 +851,18 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
   }
 
   String _formatDateTime(DateTime dateTime) {
+    final l10n = AppLocalizations.of(context)!;
     final now = DateTime.now();
     final difference = now.difference(dateTime);
 
     if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
+      return '${difference.inDays}${l10n.daysAgo}';
     } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
+      return '${difference.inHours}${l10n.hoursAgo}';
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
+      return '${difference.inMinutes}${l10n.minutesAgo}';
     } else {
-      return 'Just now';
+      return l10n.justNow;
     }
   }
 }

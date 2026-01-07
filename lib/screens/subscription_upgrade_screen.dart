@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/matcha_product.dart';
 import '../services/subscription_service.dart';
@@ -79,7 +80,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
     return Scaffold(
       backgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Upgrade to Premium'),
+        title: Text(AppLocalizations.of(context)!.upgradeToPremium),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: isDark ? Colors.white : Colors.black87,
@@ -242,9 +243,9 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Choose Your Plan',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        Text(
+          AppLocalizations.of(context)!.choosePlanTitle,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         Row(
@@ -380,9 +381,9 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Feature Comparison',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        Text(
+          AppLocalizations.of(context)!.featureComparison,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         Container(
@@ -486,9 +487,9 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'What Premium Users Say',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        Text(
+          AppLocalizations.of(context)!.whatPremiumUsersSay,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         _buildTestimonialCard(
@@ -571,22 +572,22 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Frequently Asked Questions',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        Text(
+          AppLocalizations.of(context)!.frequentlyAskedQuestions,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         _buildFAQItem(
-          'Can I cancel anytime?',
-          'Yes! You can cancel your subscription at any time. You\'ll continue to have premium access until the end of your billing period.',
+          AppLocalizations.of(context)!.canICancelAnytime,
+          AppLocalizations.of(context)!.cancelAnytimeAnswer,
         ),
         _buildFAQItem(
-          'Is there a free trial?',
-          'Yes! New users get a 7-day free trial of all premium features.',
+          AppLocalizations.of(context)!.isThereFreeTrial,
+          AppLocalizations.of(context)!.freeTrialAnswer,
         ),
         _buildFAQItem(
-          'What payment methods do you accept?',
-          'We accept all major credit cards, PayPal, and mobile payments through app stores.',
+          AppLocalizations.of(context)!.whatPaymentMethods,
+          AppLocalizations.of(context)!.paymentMethodsAnswer,
         ),
       ],
     );
@@ -825,7 +826,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
           Icon(Icons.support_agent, color: Colors.blue.shade700, size: 24),
           const SizedBox(height: 8),
           Text(
-            'Need Help?',
+            AppLocalizations.of(context)!.needHelp,
             style: TextStyle(
               fontWeight: FontWeight.w600,
               color: isDark ? Colors.grey.shade100 : Colors.grey.shade800,
@@ -833,14 +834,14 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
           ),
           const SizedBox(height: 4),
           Text(
-            'Contact our support team for any questions',
+            AppLocalizations.of(context)!.contactSupportTeam,
             style: TextStyle(color: Colors.blue.shade700, fontSize: 12),
           ),
           const SizedBox(height: 12),
           TextButton(
             onPressed: _contactSupport,
             child: Text(
-              'Contact Support',
+              AppLocalizations.of(context)!.contactSupport,
               style: TextStyle(
                 color: isDark ? Colors.amber.shade800 : Colors.amber.shade200,
               ),

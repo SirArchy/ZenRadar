@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/scan_activity.dart';
 import '../models/matcha_product.dart';
@@ -48,36 +49,37 @@ class StockUpdatesScreen extends StatelessWidget {
     final hasStockUpdates = stockUpdates.isNotEmpty;
     final hasPriceUpdates = priceUpdates.isNotEmpty;
 
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Product Updates'),
+        title: Text(l10n.productUpdates),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body:
           (!hasStockUpdates && !hasPriceUpdates)
-              ? const Center(
+              ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.inventory_2_outlined,
                       size: 64,
                       color: Colors.grey,
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Text(
-                      'No product updates',
-                      style: TextStyle(
+                      l10n.noProductUpdates,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w500,
                         color: Colors.grey,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'This shows products with stock or price changes.',
+                      l10n.showsStockPriceChanges,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
+                      style: const TextStyle(color: Colors.grey),
                     ),
                   ],
                 ),
@@ -92,14 +94,14 @@ class StockUpdatesScreen extends StatelessWidget {
                         padding: const EdgeInsets.all(16.0),
                         child: Row(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.inventory,
                               color: Colors.green,
                               size: 20,
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'New Stock Arrivals (${stockUpdates.length})',
+                              '${l10n.newStockArrivals} (${stockUpdates.length})',
                               style: Theme.of(
                                 context,
                               ).textTheme.titleLarge?.copyWith(
@@ -119,14 +121,14 @@ class StockUpdatesScreen extends StatelessWidget {
                         padding: const EdgeInsets.all(16.0),
                         child: Row(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.monetization_on,
                               color: Colors.orange,
                               size: 20,
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Price Changes (${priceUpdates.length})',
+                              '${l10n.priceChanges} (${priceUpdates.length})',
                               style: Theme.of(
                                 context,
                               ).textTheme.titleLarge?.copyWith(
@@ -199,6 +201,7 @@ class StockUpdatesScreen extends StatelessWidget {
 
     // Create extra info widget for price changes
     Widget? extraInfo;
+    final l10n = AppLocalizations.of(context)!;
     if (update['changeType'] == 'price' &&
         update['previousPrice'] != null &&
         update['previousPrice'].toString().isNotEmpty) {
@@ -212,11 +215,11 @@ class StockUpdatesScreen extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.trending_up, size: 12, color: Colors.orange),
+            const Icon(Icons.trending_up, size: 12, color: Colors.orange),
             const SizedBox(width: 4),
             Flexible(
               child: Text(
-                'Was: ${update['previousPrice']}',
+                '${l10n.was}: ${update['previousPrice']}',
                 style: const TextStyle(
                   fontSize: 10,
                   color: Colors.orange,
@@ -242,7 +245,7 @@ class StockUpdatesScreen extends StatelessWidget {
             await launchUrl(uri, mode: LaunchMode.externalApplication);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Could not open product page')),
+              SnackBar(content: Text(l10n.couldNotOpenProductPage)),
             );
           }
         }

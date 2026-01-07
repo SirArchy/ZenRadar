@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:zenradar/services/backend_service.dart';
@@ -11,7 +12,9 @@ import 'services/firestore_service.dart';
 import 'services/theme_service.dart';
 import 'services/battery_optimization_service.dart';
 import 'services/favorite_notification_service.dart';
+import 'services/localization_service.dart';
 import 'screens/app_initializer.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -116,8 +119,37 @@ Future<void> requestPermissions() async {
   await requestInitialPermissions();
 }
 
-class ZenRadarApp extends StatelessWidget {
+class ZenRadarApp extends StatefulWidget {
   const ZenRadarApp({super.key});
+
+  @override
+  State<ZenRadarApp> createState() => _ZenRadarAppState();
+}
+
+class _ZenRadarAppState extends State<ZenRadarApp> {
+  Locale? _locale;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedLocale();
+  }
+
+  Future<void> _loadSavedLocale() async {
+    final savedLanguageCode =
+        await LocalizationService.instance.getLanguageCode();
+    if (savedLanguageCode != null && mounted) {
+      setState(() {
+        _locale = Locale(savedLanguageCode);
+      });
+    }
+  }
+
+  void setLocale(Locale locale) {
+    setState(() {
+      _locale = locale;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -129,6 +161,14 @@ class ZenRadarApp extends StatelessWidget {
           theme: ThemeService.lightTheme,
           darkTheme: ThemeService.darkTheme,
           themeMode: ThemeService.instance.flutterThemeMode,
+          locale: _locale,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: LocalizationService.supportedLocales,
           home: const AppInitializer(),
           debugShowCheckedModeBanner: false,
         );

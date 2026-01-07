@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../services/payment_service.dart';
 
 class PremiumUpgradeScreen extends StatefulWidget {
@@ -94,6 +95,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
   }
 
   Widget _buildHeader() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         // Premium icon with animation
@@ -121,7 +123,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
 
         // Title
         Text(
-          'Choose Your ZenRadar Experience',
+          l10n.choosePlan,
           style: Theme.of(
             context,
           ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -131,7 +133,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
 
         // Subtitle
         Text(
-          'Start with a free account or unlock unlimited potential with Premium',
+          l10n.startFreeOrPremium,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             color: Colors.grey.shade600,
             height: 1.4,
@@ -154,6 +156,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
 
   Widget _buildPricingCard({required bool isFreeTier}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -186,7 +189,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
               ),
               const SizedBox(width: 8),
               Text(
-                isFreeTier ? 'Free' : 'Premium',
+                isFreeTier ? l10n.free : l10n.premium,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -210,14 +213,14 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
                   ),
                 ),
                 Text(
-                  '/month',
+                  l10n.perMonth,
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                 ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
-              '7-day free trial',
+              l10n.sevenDayFreeTrial,
               style: TextStyle(
                 color: Colors.green.shade700,
                 fontSize: 12,
@@ -234,7 +237,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
               ),
             ),
             Text(
-              'Forever free',
+              l10n.foreverFree,
               style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
             ),
           ],
@@ -246,19 +249,20 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
   }
 
   Widget _buildFeatureList(bool isFreeTier) {
+    final l10n = AppLocalizations.of(context)!;
     final features =
         isFreeTier
             ? [
-              'Up to 42 favorite products',
-              'All vendor sites',
-              'Check every 6 hours',
-              'Basic notifications',
+              l10n.upToFavorites,
+              l10n.allVendorSites,
+              l10n.checkEverySixHours,
+              l10n.basicNotifications,
             ]
             : [
-              'Unlimited favorites',
-              'All vendor sites',
-              'Check every hour',
-              'Priority notifications',
+              l10n.unlimitedFavorites,
+              l10n.allVendorSites,
+              l10n.checkEveryHour,
+              l10n.priorityNotifications,
             ];
 
     return Column(
@@ -298,6 +302,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
   }
 
   Widget _buildKeyFeatures() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -308,7 +313,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Why Choose Premium?',
+            l10n.whyChoosePremium,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -318,18 +323,18 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
           const SizedBox(height: 16),
           _buildFeatureHighlight(
             Icons.speed,
-            'Faster Updates',
-            'Get notified within the hour of stock changes',
+            l10n.fasterUpdates,
+            l10n.fasterUpdatesDesc,
           ),
           _buildFeatureHighlight(
             Icons.favorite,
-            'Unlimited Favorites',
-            'Track as many products as you want',
+            l10n.unlimitedFavorites,
+            l10n.unlimitedFavoritesDesc,
           ),
           _buildFeatureHighlight(
             Icons.history,
-            'Full History Access',
-            'Access complete price and stock history for all products',
+            l10n.fullHistoryAccess,
+            l10n.fullHistoryAccessDesc,
           ),
         ],
       ),
@@ -382,6 +387,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
   }
 
   Widget _buildActionButtons() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         // Start Free Trial button
@@ -409,14 +415,14 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
-                    : const Row(
+                    : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.star, size: 24),
-                        SizedBox(width: 8),
+                        const Icon(Icons.star, size: 24),
+                        const SizedBox(width: 8),
                         Text(
-                          'Start 7-Day Free Trial',
-                          style: TextStyle(
+                          l10n.startFreeTrial,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
@@ -440,7 +446,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
               ),
             ),
             child: Text(
-              'Continue with Free Account',
+              l10n.continueWithFree,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -453,7 +459,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
 
         // Trial disclaimer
         Text(
-          'Free trial includes all Premium features. Cancel anytime.',
+          l10n.trialDisclaimer,
           style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           textAlign: TextAlign.center,
         ),

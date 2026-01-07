@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../services/settings_service.dart';
 
 class SiteSelectionDialog extends StatefulWidget {
@@ -29,13 +30,17 @@ class _SiteSelectionDialogState extends State<SiteSelectionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: const Row(
+      title: Row(
         children: [
-          Icon(Icons.web_stories, color: Colors.blue),
-          SizedBox(width: 8),
+          const Icon(Icons.web_stories, color: Colors.blue),
+          const SizedBox(width: 8),
           Flexible(
-            child: Text('Select Sites to Scan', style: TextStyle(fontSize: 18)),
+            child: Text(
+              l10n.selectSitesToScan,
+              style: const TextStyle(fontSize: 18),
+            ),
           ),
         ],
       ),
@@ -44,19 +49,19 @@ class _SiteSelectionDialogState extends State<SiteSelectionDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Choose which matcha websites to include in this scan:',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+            Text(
+              l10n.chooseWhichMatcha,
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
             ),
             const SizedBox(height: 16),
             // Select All / Deselect All
             CheckboxListTile(
-              title: const Text(
-                'Select All Sites',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              title: Text(
+                l10n.selectAllSites,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               subtitle: Text(
-                '${_selectedSites.length} of ${widget.availableSites.length} selected',
+                '${_selectedSites.length} ${l10n.ofSelected(widget.availableSites.length)}',
               ),
               value:
                   _selectedSites.length == widget.availableSites.length
@@ -124,7 +129,7 @@ class _SiteSelectionDialogState extends State<SiteSelectionDialog> {
                     Icon(Icons.timer, size: 16, color: Colors.blue.shade600),
                     const SizedBox(width: 8),
                     Text(
-                      'Estimated time: ${_getEstimatedTime()}',
+                      '${l10n.estimatedTime} ${_getEstimatedTime()}',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.blue.shade600,
@@ -140,7 +145,7 @@ class _SiteSelectionDialogState extends State<SiteSelectionDialog> {
       actions: [
         TextButton(
           onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         ElevatedButton.icon(
           onPressed:
@@ -155,7 +160,7 @@ class _SiteSelectionDialogState extends State<SiteSelectionDialog> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                   : const Icon(Icons.radar),
-          label: Text(_isLoading ? 'Starting...' : 'Start Scan'),
+          label: Text(_isLoading ? l10n.starting : l10n.startScan),
         ),
       ],
     );

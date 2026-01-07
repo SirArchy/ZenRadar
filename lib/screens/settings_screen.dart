@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../models/matcha_product.dart';
 import '../services/auth_service.dart';
 import '../services/database_service.dart';
@@ -12,7 +13,9 @@ import '../services/theme_service.dart';
 import '../services/favorite_notification_service.dart';
 import '../services/notification_service.dart';
 import '../services/subscription_service.dart';
+import '../services/localization_service.dart';
 import '../widgets/matcha_icon.dart';
+import '../widgets/language_selection_dialog.dart';
 import 'auth_screen.dart';
 import 'subscription_upgrade_screen.dart';
 import 'app_initializer.dart';
@@ -33,6 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   SubscriptionTier _currentTier = SubscriptionTier.free;
   bool _isPremium = false;
   bool _debugPremiumMode = false;
+  String? _currentLanguageCode;
 
   @override
   void initState() {
@@ -43,6 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // Load site product counts after subscription status is loaded
       _loadSiteProductCounts();
     });
+    _loadCurrentLanguage();
   }
 
   Future<void> _loadSettings() async {
@@ -117,14 +122,68 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _loadCurrentLanguage() async {
+    final code = await LocalizationService.instance.getLanguageCode();
+    setState(() {
+      _currentLanguageCode = code;
+    });
+  }
+
+  String _getCurrentLanguageName(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    if (_currentLanguageCode == null) {
+      return l10n.systemDefault;
+    }
+
+    final localeInfo = LocalizationService.getLocaleInfo(_currentLanguageCode!);
+    return localeInfo != null
+        ? '${localeInfo.flag} ${localeInfo.nativeName}'
+        : _currentLanguageCode!;
+  }
+
+  Future<void> _showLanguageDialog() async {
+    final result = await showDialog<String?>(
+      context: context,
+      builder: (context) => const LanguageSelectionDialog(),
+    );
+
+    if (result != null && mounted) {
+      // Language was changed, reload to apply
+      await _loadCurrentLanguage();
+
+      // Show a snackbar to inform user
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${l10n.language} ${l10n.success.toLowerCase()}'),
+            action: SnackBarAction(
+              label: l10n.close,
+              onPressed: () {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
+          ),
+        );
+
+        // Restart app to apply language changes
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const AppInitializer()),
+          (route) => false,
+        );
+      }
+    }
+  }
+
   Future<void> _saveSettings() async {
     try {
       await SettingsService.instance.saveSettings(_userSettings);
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Settings saved successfully'),
+          SnackBar(
+            content: Text('${l10n.settings} ${l10n.success.toLowerCase()}'),
             backgroundColor: Colors.green,
           ),
         );
@@ -132,9 +191,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       print('Error saving settings: $e');
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to save settings: $e'),
+            content: Text('${l10n.failed}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -206,6 +266,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildAuthCard() {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -224,15 +285,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           : Theme.of(context).primaryColor,
                 ),
                 const SizedBox(width: 8),
-                const Text(
-                  'Account',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  l10n.account,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             if (_isLoggedIn) ...[
-              Text('Signed in as: $_userEmail'),
+              Text('${l10n.email}: $_userEmail'),
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -244,15 +308,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           context: context,
                           builder:
                               (context) => AlertDialog(
-                                title: const Text('Sign Out'),
-                                content: const Text(
-                                  'Are you sure you want to sign out? Your settings will remain on this device.',
-                                ),
+                                title: Text(l10n.signOut),
+                                content: Text(l10n.areYouSure),
                                 actions: [
                                   TextButton(
                                     onPressed:
                                         () => Navigator.pop(context, false),
-                                    child: const Text('Cancel'),
+                                    child: Text(l10n.cancel),
                                   ),
                                   ElevatedButton(
                                     onPressed:
@@ -263,7 +325,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       foregroundColor:
                                           Theme.of(context).colorScheme.onError,
                                     ),
-                                    child: const Text('Sign Out'),
+                                    child: Text(l10n.signOut),
                                   ),
                                 ],
                               ),
@@ -286,7 +348,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         }
                       },
                       icon: const Icon(Icons.logout),
-                      label: const Text('Sign Out'),
+                      label: Text(l10n.signOut),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Theme.of(context).colorScheme.error,
                         side: BorderSide(
@@ -312,7 +374,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   );
                   await _checkAuthStatus();
                 },
-                child: const Text('Sign In'),
+                child: Text(l10n.signIn),
               ),
             ],
           ],
@@ -322,6 +384,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildNotificationSettings() {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -338,9 +401,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           : Theme.of(context).primaryColor,
                 ),
                 const SizedBox(width: 8),
-                const Text(
-                  'Notifications',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  l10n.notifications,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -348,7 +414,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             // Master notification toggle
             SwitchListTile(
-              title: const Text('Enable Notifications'),
+              title: Text(l10n.enableNotifications),
               subtitle: const Text('Master switch for all notifications'),
               value: _userSettings.notificationsEnabled,
               onChanged:
@@ -387,10 +453,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Padding(
                   padding: const EdgeInsets.only(left: 16.0),
                   child: SwitchListTile(
-                    title: const Text('Stock Changes'),
-                    subtitle: const Text(
-                      'Notify when favorite products come back in stock',
-                    ),
+                    title: Text(l10n.stockStatus),
+                    subtitle: Text(l10n.notifyWhenInStock),
                     value: _userSettings.notifyStockChanges,
                     onChanged:
                         (value) => _updateSetting(
@@ -675,17 +739,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildDisplaySettings() {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Display Settings',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              l10n.appearance,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
+
+            // Language Setting
+            ListTile(
+              leading: Icon(
+                Icons.language,
+                color:
+                    Theme.of(context).brightness == Brightness.dark
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+              ),
+              title: Text(l10n.language),
+              subtitle: Text(_getCurrentLanguageName(context)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _showLanguageDialog,
+            ),
+            const Divider(),
+
             ListTile(
               leading: Icon(
                 Icons.palette,
@@ -694,9 +776,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ? Theme.of(context).colorScheme.primary
                         : null,
               ),
-              title: const Text('Theme'),
+              title: Text(l10n.theme),
               subtitle: Text(
-                'Current: ${_getThemeModeDisplayName(ThemeService.instance.themeMode)}',
+                '${l10n.systemDefault}: ${_getThemeModeDisplayName(ThemeService.instance.themeMode)}',
               ),
               trailing: const Icon(Icons.edit),
               onTap: () => _showThemeDialog(),
@@ -710,7 +792,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ? Theme.of(context).colorScheme.primary
                         : null,
               ),
-              title: const Text('Preferred Currency'),
+              title: Text(l10n.preferredCurrency),
               subtitle: Text(
                 _userSettings.preferredCurrency == 'Original'
                     ? 'Show prices in original site currency'

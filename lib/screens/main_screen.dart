@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'home_screen_content.dart';
 import 'website_overview_screen.dart';
 import 'recent_scans.dart';
@@ -70,6 +71,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: Column(
         children: [
@@ -88,11 +90,20 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                     unselectedLabelColor: Theme.of(
                       context,
                     ).colorScheme.onSurface.withAlpha(150),
-                    tabs: const [
-                      Tab(icon: Icon(Icons.home), text: 'Home'),
-                      Tab(icon: Icon(Icons.web), text: 'Websites'),
-                      Tab(icon: Icon(Icons.history), text: 'Activity'),
-                      Tab(icon: Icon(Icons.settings), text: 'Settings'),
+                    tabs: [
+                      Tab(icon: const Icon(Icons.home), text: l10n.home),
+                      Tab(
+                        icon: const Icon(Icons.web),
+                        text: l10n.websiteOverview,
+                      ),
+                      Tab(
+                        icon: const Icon(Icons.history),
+                        text: l10n.scanActivity,
+                      ),
+                      Tab(
+                        icon: const Icon(Icons.settings),
+                        text: l10n.settings,
+                      ),
                     ],
                   ),
                 ],
@@ -121,7 +132,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                   // Trigger refresh for home screen only
                   HomeScreenContent.refreshIfActive();
                 },
-                tooltip: 'Refresh',
+                tooltip: AppLocalizations.of(context)!.refresh,
                 child: const Icon(Icons.refresh),
               )
               : null,

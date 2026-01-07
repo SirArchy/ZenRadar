@@ -2,6 +2,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../services/settings_service.dart';
 import '../services/background_service.dart';
 import '../services/notification_service.dart';
@@ -60,6 +61,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildWelcomePage() {
+    final l10n = AppLocalizations.of(context)!;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -78,7 +80,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: 32),
           Text(
-            'Welcome to ZenRadar',
+            l10n.welcomeToZenRadar,
             style: Theme.of(
               context,
             ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -86,27 +88,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Your premium matcha stock monitoring companion',
+            l10n.premiumMatchaMonitoring,
             style: Theme.of(context).textTheme.bodyLarge,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 40),
           _buildFeature(
             Icons.cloud_sync,
-            'Cloud Monitoring',
-            'Reliable 24/7 stock tracking',
+            l10n.cloudMonitoring,
+            l10n.reliable247Tracking,
           ),
           const SizedBox(height: 16),
           _buildFeature(
             Icons.notifications_active,
-            'Instant Alerts',
-            'Get notified when items are back in stock',
+            l10n.instantAlerts,
+            l10n.notifyBackInStock,
           ),
           const SizedBox(height: 16),
           _buildFeature(
             Icons.battery_saver,
-            'Zero Battery Usage',
-            'Cloud processing means no device drain',
+            l10n.zeroBatteryUsage,
+            l10n.cloudProcessingNoDrain,
           ),
           const SizedBox(height: 40),
         ],
@@ -115,6 +117,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildServerModeExplanationPage() {
+    final l10n = AppLocalizations.of(context)!;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -136,7 +139,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: 32),
           Text(
-            'Cloud-Powered Monitoring',
+            l10n.cloudPoweredMonitoring,
             style: Theme.of(
               context,
             ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -144,7 +147,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'ZenRadar uses advanced cloud services to monitor matcha stock across multiple websites.',
+            l10n.cloudServicesDescription,
             style: Theme.of(context).textTheme.bodyLarge,
             textAlign: TextAlign.center,
           ),
@@ -160,16 +163,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             child: Column(
               children: [
                 Text(
-                  'Why Cloud Monitoring?',
+                  l10n.whyCloudMonitoring,
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
-                _buildBenefit('Always online, even when your device sleeps'),
-                _buildBenefit('No battery drain on your device'),
-                _buildBenefit('Faster updates and better reliability'),
-                _buildBenefit('Shared improvements benefit everyone'),
+                _buildBenefit(l10n.alwaysOnline),
+                _buildBenefit(l10n.noBatteryDrain),
+                _buildBenefit(l10n.fasterUpdates),
+                _buildBenefit(l10n.sharedImprovements),
               ],
             ),
           ),
@@ -180,6 +183,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildNotificationPage() {
+    final l10n = AppLocalizations.of(context)!;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -201,7 +205,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: 32),
           Text(
-            'Stay Informed',
+            l10n.stayInformed,
             style: Theme.of(
               context,
             ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -209,7 +213,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Get instant notifications when your favorite matcha products come back in stock.',
+            l10n.instantStockNotifications,
             style: Theme.of(context).textTheme.bodyLarge,
             textAlign: TextAlign.center,
           ),
@@ -335,12 +339,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildBottomBar() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          TextButton(onPressed: _skipOnboarding, child: const Text('Skip')),
+          TextButton(onPressed: _skipOnboarding, child: Text(l10n.skip)),
           Row(
             children: List.generate(3, (index) {
               return Container(
@@ -359,7 +364,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           ElevatedButton(
             onPressed: _currentPage == 2 ? _completeOnboarding : _nextPage,
-            child: Text(_currentPage == 2 ? 'Get Started' : 'Next'),
+            child: Text(_currentPage == 2 ? l10n.getStarted : l10n.next),
           ),
         ],
       ),

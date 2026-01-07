@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class SwipeTutorialOverlay extends StatefulWidget {
   final VoidCallback onDismiss;
@@ -99,7 +100,7 @@ class _SwipeTutorialOverlayState extends State<SwipeTutorialOverlay>
                         children: [
                           // Title
                           Text(
-                            'Swipe to Navigate the App',
+                            AppLocalizations.of(context)!.swipeToNavigate,
                             style: Theme.of(
                               context,
                             ).textTheme.headlineSmall?.copyWith(
@@ -164,7 +165,7 @@ class _SwipeTutorialOverlayState extends State<SwipeTutorialOverlay>
 
                           // Description
                           Text(
-                            'Swipe left or right to navigate between screens',
+                            AppLocalizations.of(context)!.swipeDescription,
                             style: Theme.of(context).textTheme.bodyMedium,
                             textAlign: TextAlign.center,
                           ),
@@ -183,7 +184,7 @@ class _SwipeTutorialOverlayState extends State<SwipeTutorialOverlay>
                                 vertical: 12,
                               ),
                             ),
-                            child: const Text('Got it!'),
+                            child: Text(AppLocalizations.of(context)!.gotIt),
                           ),
                         ],
                       ),
@@ -192,7 +193,7 @@ class _SwipeTutorialOverlayState extends State<SwipeTutorialOverlay>
                     // Tap to dismiss hint
                     const SizedBox(height: 32),
                     Text(
-                      'Tap anywhere to dismiss',
+                      AppLocalizations.of(context)!.tapAnywhereToDismiss,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 14,

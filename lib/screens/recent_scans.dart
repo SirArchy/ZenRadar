@@ -1,6 +1,7 @@
 // ignore_for_file: unused_element, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/scan_activity.dart';
@@ -219,18 +220,19 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
   }
 
   Future<void> _clearOldActivities() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirm = await showDialog<bool>(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Clear Old Activities'),
+            title: Text(l10n.clearOld),
             content: const Text(
               'This will remove scan activities older than 30 days. Continue?',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
@@ -266,18 +268,19 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
   }
 
   Future<void> _clearAllActivities() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirm = await showDialog<bool>(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Clear All Activities'),
+            title: Text(l10n.clearAll),
             content: const Text(
               'This will permanently delete ALL scan activities. This action cannot be undone. Continue?',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
@@ -407,6 +410,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
   }
 
   Widget _buildStatsHeader() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
@@ -421,17 +425,17 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildStatItem(
-                'Recent Scans',
+                l10n.totalScans,
                 _totalActivities.toString(),
                 Icons.history,
               ),
               _buildStatItem(
-                'This Week',
+                l10n.weeklyScans,
                 _getWeeklyCount().toString(),
                 Icons.calendar_today,
               ),
               _buildStatItem(
-                'With Updates',
+                l10n.withUpdates,
                 _getUpdatesCount().toString(),
                 Icons.notifications_active,
               ),

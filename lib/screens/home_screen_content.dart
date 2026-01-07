@@ -1,9 +1,9 @@
 // ignore_for_file: avoid_print, use_build_context_synchronously
 
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:zenradar/widgets/product_card_new.dart';
 import '../models/matcha_product.dart';
 import '../services/database_service.dart';
@@ -1135,6 +1135,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   }
 
   Widget _buildSearchBarWithFilters() {
+    final l10n = AppLocalizations.of(context)!;
     final activeFilterCount = _getActiveFilterCount();
 
     return Column(
@@ -1150,7 +1151,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                   focusNode: _searchFocusNode,
                   textInputAction: TextInputAction.search,
                   decoration: InputDecoration(
-                    hintText: 'Search products...',
+                    hintText: l10n.searchProducts,
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon:
                         _searchQuery.isNotEmpty
@@ -2263,14 +2264,15 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     }
 
     if (_products.isEmpty) {
-      return const Center(
+      final l10n = AppLocalizations.of(context)!;
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            MatchaIcon(size: 64),
-            SizedBox(height: 16),
-            Text('No products found', style: TextStyle(fontSize: 18)),
-            Text(
+            const MatchaIcon(size: 64),
+            const SizedBox(height: 16),
+            Text(l10n.noProducts, style: const TextStyle(fontSize: 18)),
+            const Text(
               'Try adjusting your filters or check back later',
               style: TextStyle(color: Colors.grey),
             ),
