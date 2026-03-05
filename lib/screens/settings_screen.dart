@@ -1767,25 +1767,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// Build plan features list
   Widget _buildPlanFeatures() {
+    final l10n = AppLocalizations.of(context)!;
     final features = [
       _buildFeatureRow(
-        'Favorites',
-        _isPremium ? 'Unlimited' : '${_currentTier.maxFavorites} maximum',
+        l10n.favorites,
+        _isPremium
+            ? l10n.unlimitedFavorites
+            : '${_currentTier.maxFavorites} ${l10n.maximum}',
         _isPremium,
       ),
       _buildFeatureRow(
-        'Vendor Sites',
-        'All sites', // All users now have access to all sites
+        l10n.sites,
+        l10n.allVendorSites, // All users now have access to all sites
         true, // Always show as premium feature (enabled for all)
       ),
       _buildFeatureRow(
-        'Check Frequency',
-        _isPremium ? 'Every hour' : 'Every 6 hours',
+        l10n.scanFrequency,
+        _isPremium ? l10n.checkEveryHour : l10n.checkEverySixHours,
         _isPremium,
       ),
       _buildFeatureRow(
-        'History Access',
-        _isPremium ? 'Full history' : '${_currentTier.historyLimitDays} days',
+        l10n.fullHistoryAccessDesc,
+        _isPremium
+            ? l10n.fullHistoryAccess
+            : '${_currentTier.historyLimitDays} ${l10n.days}',
         _isPremium,
       ),
     ];

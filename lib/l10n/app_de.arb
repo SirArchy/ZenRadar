@@ -252,5 +252,6 @@
   "selectAll": "Alle auswählen",
   "priceRange": "Preisspanne",
   "minimum": "Minimum",
-  "maximum": "Maximum"
+  "maximum": "Maximum",
+  "days": "Tage"
 }
