@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, empty_catches
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -383,12 +383,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
         // Show a brief feedback message
         if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
                 granted
-                    ? 'Notifications enabled successfully!'
-                    : 'Notification permission denied. You can enable it later in Settings.',
+                    ? l10n.notificationsEnabledSuccessfully
+                    : l10n.notificationPermissionDeniedEnableLater,
               ),
               backgroundColor: granted ? Colors.green : Colors.orange,
               duration: const Duration(seconds: 3),
@@ -402,9 +403,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         });
 
         if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error requesting notification permission: $e'),
+              content: Text(
+                l10n.errorRequestingNotificationPermissionWithError('$e'),
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -425,6 +429,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _completeOnboarding() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       // Show authentication screen for server mode
       if (mounted) {
@@ -491,10 +496,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       // Initialize service (no-op for server mode)
       try {
         await initializeService();
-        print('✅ Server mode initialized');
-      } catch (e) {
-        print('❌ Failed to initialize service: $e');
-      }
+      } catch (e) {}
 
       if (mounted) {
         // Navigate to main screen
@@ -503,11 +505,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         );
       }
     } catch (e) {
-      print('Error completing onboarding: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Setup error: ${e.toString()}'),
+            content: Text(l10n.setupErrorWithError(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -515,4 +516,3 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 }
-

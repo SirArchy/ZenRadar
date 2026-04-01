@@ -1,4 +1,4 @@
-﻿// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -388,7 +388,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             textCapitalization: TextCapitalization.words,
             textInputAction: TextInputAction.next,
             decoration: InputDecoration(
-              labelText: '${l10n.displayName} (Optional)',
+              labelText: l10n.displayNameOptional,
               prefixIcon: const Icon(Icons.person_outlined),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -675,7 +675,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                     _showEmailVerificationScreen = false;
                   });
                 },
-                child: const Text('Back to Sign In'),
+                child: Text(l10n.backToSignIn),
               ),
             ],
           ),
@@ -798,8 +798,9 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
     if (_authService.currentUser?.emailVerified == true) {
       _onAuthenticationSuccess();
     } else {
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _errorMessage = 'Please verify your email before continuing';
+        _errorMessage = l10n.pleaseVerifyEmailBeforeContinuing;
       });
     }
   }
@@ -816,9 +817,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Enter your email address to receive a password reset link.',
-                ),
+                Text(l10n.enterEmailForResetLink),
                 const SizedBox(height: 16),
                 TextField(
                   controller: emailController,
@@ -850,8 +849,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                         SnackBar(
                           content: Text(
                             result.isSuccess
-                                ? 'Password reset email sent to $email'
-                                : result.error ?? 'Error sending reset email',
+                                ? l10n.passwordResetEmailSentTo(email)
+                                : result.error ?? l10n.errorSendingResetEmail,
                           ),
                           backgroundColor:
                               result.isSuccess ? Colors.green : Colors.red,
@@ -860,7 +859,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                     }
                   }
                 },
-                child: const Text('Send Reset Email'),
+                child: Text(l10n.sendResetEmail),
               ),
             ],
           ),

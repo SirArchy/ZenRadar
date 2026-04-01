@@ -36,8 +36,7 @@ class ThemeService extends ChangeNotifier {
       }
 
       notifyListeners();
-    } catch (e) {
-      debugPrint('Error loading theme mode: $e');
+    } catch (_) {
       _themeMode = AppThemeMode.system;
     }
   }
@@ -47,8 +46,8 @@ class ThemeService extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_themeKey, _themeMode.toString());
-    } catch (e) {
-      debugPrint('Error saving theme mode: $e');
+    } catch (_) {
+      // Ignore storage errors.
     }
   }
 

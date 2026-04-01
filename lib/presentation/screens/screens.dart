@@ -1,4 +1,4 @@
-﻿export 'core/app_initializer.dart';
+export 'core/app_initializer.dart';
 export 'navigation/main_screen.dart';
 export 'home/home_screen_content.dart';
 export 'analytics/website_overview_screen.dart';
@@ -11,4 +11,3 @@ export 'auth/auth_screen.dart';
 export 'onboarding/onboarding_screen_new.dart';
 export 'subscription/premium_upgrade_screen.dart';
 export 'subscription/subscription_upgrade_screen.dart';
-

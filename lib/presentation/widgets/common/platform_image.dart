@@ -40,9 +40,7 @@ class _PlatformImageState extends State<PlatformImage> {
     super.initState();
     _currentUrl = _processImageUrl(widget.imageUrl);
 
-    if (kDebugMode && widget.imageUrl != _currentUrl) {
-      print('🔍 URL Processing: ${widget.imageUrl} -> $_currentUrl');
-    }
+    if (kDebugMode && widget.imageUrl != _currentUrl) {}
   }
 
   String _processImageUrl(String url) {
@@ -75,21 +73,13 @@ class _PlatformImageState extends State<PlatformImage> {
             'firebasestorage.googleapis.com/v0/b/$bucketName.firebasestorage.app/',
           );
 
-          if (kDebugMode) {
-            print(
-              '🔧 PlatformImage: Fixed missing .firebasestorage.app suffix: $processedUrl -> $correctedUrl',
-            );
-          }
+          if (kDebugMode) {}
           return correctedUrl;
         }
       }
 
       // Already in correct download URL format, no processing needed
-      if (kDebugMode) {
-        print(
-          '✅ URL already in correct Firebase Storage format: $processedUrl',
-        );
-      }
+      if (kDebugMode) {}
       return processedUrl;
     }
 
@@ -100,11 +90,7 @@ class _PlatformImageState extends State<PlatformImage> {
         '.firebasestorage.app.firebasestorage.app',
         '.firebasestorage.app',
       );
-      if (kDebugMode) {
-        print(
-          '🔧 Fixed doubled Firebase Storage domain: $url -> $processedUrl',
-        );
-      }
+      if (kDebugMode) {}
     }
     // Ensure Firebase Storage URLs use the correct format
     // Only process if it wasn't already fixed above
@@ -126,31 +112,19 @@ class _PlatformImageState extends State<PlatformImage> {
               'storage.googleapis.com/$bucketPart.firebasestorage.app/',
             );
 
-            if (kDebugMode) {
-              print(
-                '🔧 Added .firebasestorage.app suffix: $processedUrl -> $newUrl',
-              );
-            }
+            if (kDebugMode) {}
             processedUrl = newUrl;
           }
         }
       } else {
-        if (kDebugMode) {
-          print(
-            '✅ URL already has correct Firebase Storage format: $processedUrl',
-          );
-        }
+        if (kDebugMode) {}
       }
     }
 
     // On web, try to use HTTPS if available
     if (kIsWeb && processedUrl.startsWith('http://')) {
       final httpsUrl = processedUrl.replaceFirst('http://', 'https://');
-      if (kDebugMode) {
-        print(
-          '🔒 Converting HTTP to HTTPS for web: $processedUrl -> $httpsUrl',
-        );
-      }
+      if (kDebugMode) {}
       processedUrl = httpsUrl;
     }
 
@@ -189,36 +163,19 @@ class _PlatformImageState extends State<PlatformImage> {
                 ? (context, error, stackTrace) {
                   // Enhanced error handling for web with CORS detection and retry
                   if (kDebugMode) {
-                    print('🖼️ Failed to load product image: $_currentUrl');
-                    print('🖼️ Error details: $error');
-                    if (stackTrace != null) {
-                      print('🖼️ Stack trace: $stackTrace');
-                    }
+                    if (stackTrace != null) {}
 
                     if (error.toString().contains('CORS') ||
                         error.toString().contains('statusCode: 0') ||
                         error.toString().contains('Cross-Origin') ||
                         error.toString().contains('cross-origin')) {
-                      print(
-                        '🖼️ Web image CORS error for ${widget.imageUrl}: Cross-origin request blocked. Retry attempt: $_retryCount',
-                      );
                     } else if (error.toString().contains('EncodingError') ||
                         error.toString().contains('decode')) {
-                      print(
-                        '🖼️ Web image encoding error for ${widget.imageUrl}: Image file appears to be corrupted or in unsupported format',
-                      );
                     } else if (error.toString().contains('404') ||
                         error.toString().contains(
                           'NetworkImageLoadException',
                         )) {
-                      print(
-                        '🖼️ Web image load error for ${widget.imageUrl}: Image not found or network error',
-                      );
-                    } else {
-                      print(
-                        '🖼️ Web image load error for ${widget.imageUrl}: $error',
-                      );
-                    }
+                    } else {}
                   }
 
                   // For any loading issues on web, try using a different approach
@@ -234,11 +191,7 @@ class _PlatformImageState extends State<PlatformImage> {
                                 DateTime.now().millisecondsSinceEpoch;
                             _currentUrl =
                                 '${_processImageUrl(widget.imageUrl)}?t=$timestamp';
-                            if (kDebugMode) {
-                              print(
-                                '🔄 Retry $_retryCount with cache busting: $_currentUrl',
-                              );
-                            }
+                            if (kDebugMode) {}
                           } else {
                             // Second retry: Try removing any double domains that might still exist
                             String fallbackUrl = _processImageUrl(
@@ -257,11 +210,7 @@ class _PlatformImageState extends State<PlatformImage> {
                                 DateTime.now().millisecondsSinceEpoch;
                             _currentUrl =
                                 '$fallbackUrl?v=$_retryCount&t=$timestamp';
-                            if (kDebugMode) {
-                              print(
-                                '🔄 Retry $_retryCount with cleaned URL: $_currentUrl',
-                              );
-                            }
+                            if (kDebugMode) {}
                           }
                         });
                       }
@@ -289,17 +238,9 @@ class _PlatformImageState extends State<PlatformImage> {
         if (kDebugMode) {
           if (error.toString().contains('404') ||
               error.toString().contains('Invalid statusCode: 404')) {
-            print(
-              '🖼️ Mobile image 404 error for ${widget.imageUrl}: Image not found. Processed URL: ${_processImageUrl(widget.imageUrl)}',
-            );
           } else if (error.toString().contains('EncodingError') ||
               error.toString().contains('decode')) {
-            print(
-              '🖼️ Mobile image encoding error for ${widget.imageUrl}: Image file appears to be corrupted or in unsupported format',
-            );
-          } else {
-            print('🖼️ Mobile image error for ${widget.imageUrl}: $error');
-          }
+          } else {}
         }
 
         // Attempt to use fallback widget or return default
@@ -331,15 +272,7 @@ class _PlatformImageState extends State<PlatformImage> {
         if (kDebugMode) {
           if (exception.toString().contains('EncodingError') ||
               exception.toString().contains('decode')) {
-            print(
-              '🖼️ Mobile image encoding error for ${widget.imageUrl}: $exception',
-            );
-          } else {
-            print('🖼️ Mobile image error for ${widget.imageUrl}: $exception');
-            print(
-              '🖼️ Platform image error for ${widget.imageUrl}: Using fallback widget',
-            );
-          }
+          } else {}
         }
       },
     );

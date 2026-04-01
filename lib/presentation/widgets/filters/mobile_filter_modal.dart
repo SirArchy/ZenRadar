@@ -243,14 +243,10 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
                 // Extract numeric value from the converted formatted string
                 final numericValue = _extractNumericValue(convertedString);
                 if (numericValue != null) {
-                  print(
-                    '💱 Converted ${product.name}: ${product.priceValue} ${product.currency} → $numericValue $_preferredCurrency (formatted: $convertedString)',
-                  );
                   convertedPrice = numericValue;
                 }
               }
             } catch (e) {
-              print('💱 Currency conversion failed for ${product.name}: $e');
               // Keep original price if conversion fails
             }
           }
@@ -267,10 +263,6 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
           prices.isNotEmpty ? prices.first : widget.priceRange['min']!;
       double dynamicMax =
           prices.isNotEmpty ? prices.last : widget.priceRange['max']!;
-
-      print('💱 Price range calculation: ${prices.length} prices processed');
-      print('💱 Currency: $_preferredCurrency');
-      print('💱 Raw price range: $dynamicMin - $dynamicMax');
 
       // Add some padding to the range (5% on each side)
       double padding = (dynamicMax - dynamicMin) * 0.05;
@@ -315,9 +307,6 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
             currentEnd > dynamicMax ||
             currentStart > currentEnd) {
           _priceRangeValues = RangeValues(finalStart, finalEnd);
-          print(
-            '🔧 Fixed price range values: $currentStart-$currentEnd -> $finalStart-$finalEnd (bounds: $dynamicMin-$dynamicMax)',
-          );
         }
 
         // Additional safety check to prevent RangeSlider exceptions
@@ -336,19 +325,11 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
             math.min(safeStart, safeEnd),
             math.max(safeStart, safeEnd),
           );
-          print(
-            '🛡️ Applied safety clamp to price range: ${_priceRangeValues.start}-${_priceRangeValues.end}',
-          );
         }
       });
 
       // Debug logging to track product count updates
-      print(
-        '📊 Updated product count: $_productCount (filtered products: ${filteredProductsResult.products.length})',
-      );
-      print('📊 Total items in result: ${filteredProductsResult.totalItems}');
     } catch (e) {
-      print('Error loading product statistics: $e');
       // Set default values on error
       setState(() {
         _productCount = 0;
@@ -482,7 +463,6 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
   }
 
   void _updateFilter(ProductFilter newFilter) {
-    print('🔄 Updating filter: $newFilter');
     setState(() {
       _currentFilter = newFilter;
     });
@@ -1223,14 +1203,22 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Text('Enter ${isMin ? 'Minimum' : 'Maximum'} Price'),
+            title: Text(
+              AppLocalizations.of(context)!.enterPriceForBound(
+                isMin
+                    ? AppLocalizations.of(context)!.minimum
+                    : AppLocalizations.of(context)!.maximum,
+              ),
+            ),
             content: TextField(
               controller: controller,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
               decoration: InputDecoration(
-                labelText: 'Price in $_preferredCurrency',
+                labelText: AppLocalizations.of(
+                  context,
+                )!.priceInCurrency(_preferredCurrency),
                 prefixText:
                     _priceConverter?.getCurrencySymbol(_preferredCurrency) ??
                     '€',
@@ -1241,7 +1229,7 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
+                child: Text(AppLocalizations.of(context)!.cancel),
               ),
               TextButton(
                 onPressed: () {
@@ -1250,7 +1238,7 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
                     Navigator.of(context).pop(value);
                   }
                 },
-                child: const Text('OK'),
+                child: Text(AppLocalizations.of(context)!.ok),
               ),
             ],
           ),

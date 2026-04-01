@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:zenradar/models/matcha_product.dart';
 import 'package:zenradar/models/scan_activity.dart';
 
@@ -19,9 +19,7 @@ class WebDatabaseService {
   Future<void> initDatabase() async {
     // Initialize web storage - in production you'd use shared_preferences_web
     // or IndexedDB for persistent storage
-    if (kDebugMode) {
-      print('Initializing web database...');
-    }
+    if (kDebugMode) {}
   }
 
   Future<void> insertProduct(MatchaProduct product) async {
@@ -375,8 +373,6 @@ class WebDatabaseService {
     // For web implementation, this is a no-op since we don't have
     // a separate price history table. Price history would be implemented
     // with IndexedDB in a full production version.
-    if (kDebugMode) {
-      print('Web: savePriceForProduct called for ${product.id}');
-    }
+    if (kDebugMode) {}
   }
 }

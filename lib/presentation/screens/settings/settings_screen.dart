@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -35,7 +33,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Map<String, int> _siteProductCounts = {};
   SubscriptionTier _currentTier = SubscriptionTier.free;
   bool _isPremium = false;
-  bool _debugPremiumMode = false;
   String? _currentLanguageCode;
 
   @override
@@ -57,8 +54,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _userSettings = settings;
         _isLoading = false;
       });
-    } catch (e) {
-      print('Error loading settings: $e');
+    } catch (_) {
       setState(() {
         _isLoading = false;
       });
@@ -95,8 +91,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _siteProductCounts = counts;
       });
-    } catch (e) {
-      print('Error loading site product counts: $e');
+    } catch (_) {
+      // Ignore and keep existing values.
     }
   }
 
@@ -105,20 +101,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final tier = await SubscriptionService.instance.getCurrentTier();
       final isPremium = await SubscriptionService.instance.isPremiumUser();
 
-      // Load debug premium mode status
-      final debugMode = SubscriptionService.instance.isDebugPremiumMode;
-
       setState(() {
         _currentTier = tier;
-        _isPremium =
-            isPremium || debugMode; // Include debug mode in premium status
-        _debugPremiumMode = debugMode;
+        _isPremium = isPremium;
       });
 
       // Reload site product counts when subscription status changes
       _loadSiteProductCounts();
-    } catch (e) {
-      print('Error loading subscription status: $e');
+    } catch (_) {
+      // Ignore and keep existing values.
     }
   }
 
@@ -189,7 +180,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     } catch (e) {
-      print('Error saving settings: $e');
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -364,7 +354,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ] else ...[
-              const Text('Sign in to sync your settings across devices'),
+              Text(l10n.signInToSyncSettingsAcrossDevices),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () async {
@@ -415,7 +405,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // Master notification toggle
             SwitchListTile(
               title: Text(l10n.enableNotifications),
-              subtitle: const Text('Master switch for all notifications'),
+              subtitle: Text(l10n.masterSwitchForAllNotifications),
               value: _userSettings.notificationsEnabled,
               onChanged:
                   (value) => _updateSetting(
@@ -433,10 +423,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               // Favorite products notifications
               SwitchListTile(
-                title: const Text('Favorite Product Alerts'),
-                subtitle: const Text(
-                  'Get notified about changes to your favorite products',
-                ),
+                title: Text(l10n.favoriteProductAlerts),
+                subtitle: Text(l10n.getNotifiedAboutFavoriteChanges),
                 value: _userSettings.favoriteProductNotifications,
                 onChanged:
                     (value) => _updateSetting(
@@ -470,10 +458,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Padding(
                   padding: const EdgeInsets.only(left: 16.0),
                   child: SwitchListTile(
-                    title: const Text('Price Changes'),
-                    subtitle: const Text(
-                      'Notify when prices change for favorite products',
-                    ),
+                    title: Text(l10n.priceChanges),
+                    subtitle: Text(l10n.notifyWhenFavoritePricesChange),
                     value: _userSettings.notifyPriceChanges,
                     onChanged:
                         (value) => _updateSetting(
@@ -518,7 +504,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Cloud notifications are delivered instantly when stock changes are detected by our servers.',
+                            l10n.cloudNotificationsDeliveredInstantly,
                             style: TextStyle(
                               fontSize: 13,
                               color:
@@ -548,8 +534,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               const SizedBox(width: 8),
                               Text(
                                 isMonitoring
-                                    ? 'Monitoring ${FavoriteNotificationService.instance.monitoredProductsCount} favorite products'
-                                    : 'Favorite monitoring inactive',
+                                    ? l10n.monitoringFavoriteProducts(
+                                      FavoriteNotificationService
+                                          .instance
+                                          .monitoredProductsCount,
+                                    )
+                                    : l10n.favoriteMonitoringInactive,
                                 style: TextStyle(
                                   fontSize: 12,
                                   color:
@@ -575,6 +565,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildSiteSelection() {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -583,8 +574,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Row(
               children: [
-                const Text(
-                  'Monitored Sites',
+                Text(
+                  l10n.monitoredSites,
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
@@ -618,7 +609,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Server-Monitored Websites',
+                        l10n.serverMonitoredWebsites,
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           color:
@@ -629,7 +620,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'All supported matcha websites are automatically monitored by our servers. Data is synchronized to your device regularly.',
+                    l10n.allSupportedSitesMonitoredByServer,
                     style: TextStyle(
                       fontSize: 14,
                       color: Theme.of(
@@ -673,7 +664,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                       child: Text(
-                        '${_siteProductCounts[site['key']] ?? 0} products',
+                        l10n.productsCount(
+                          _siteProductCounts[site['key']] ?? 0,
+                        ),
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.primary,
                           fontSize: 12,
@@ -692,10 +685,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // Suggestion form
             ListTile(
               leading: const Icon(Icons.add_link),
-              title: const Text('Suggest New Website'),
-              subtitle: const Text(
-                'Request monitoring for additional matcha sites',
-              ),
+              title: Text(l10n.suggestNewWebsite),
+              subtitle: Text(l10n.requestMonitoringForAdditionalSites),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: _showWebsiteSuggestionDialog,
             ),
@@ -706,6 +697,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildAboutSection() {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -716,21 +708,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 const MatchaIcon(size: 24),
                 const SizedBox(width: 8),
-                const Text(
-                  'About ZenRadar',
+                Text(
+                  l10n.aboutZenRadar,
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            const Text(
-              'ZenRadar helps you monitor matcha availability across multiple Japanese tea retailers. '
-              'Never miss your favorite matcha again!',
-            ),
+            Text(l10n.aboutZenRadarDescription),
             const SizedBox(height: 16),
-            const Text(
-              'Version: 1.0.0',
-              style: TextStyle(fontWeight: FontWeight.w500),
+            Text(
+              l10n.versionNumber('1.0.0'),
+              style: const TextStyle(fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -795,8 +784,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: Text(l10n.preferredCurrency),
               subtitle: Text(
                 _userSettings.preferredCurrency == 'Original'
-                    ? 'Show prices in original site currency'
-                    : 'Show prices in ${_userSettings.preferredCurrency}',
+                    ? l10n.showPricesInOriginalSiteCurrency
+                    : l10n.showPricesInCurrency(
+                      _userSettings.preferredCurrency,
+                    ),
               ),
               trailing: const Icon(Icons.edit),
               onTap: () => _showCurrencyDialog(),
@@ -815,7 +806,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionTitle('Contact Me'),
+            _buildSectionTitle(AppLocalizations.of(context)!.contactMe),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -828,7 +819,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ? Colors.blueGrey.shade300
                             : Colors.blueGrey,
                   ),
-                  'Contact',
+                  AppLocalizations.of(context)!.contact,
                   _showContactDialog,
                 ),
                 const SizedBox(width: 16),
@@ -841,7 +832,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ? Colors.teal.shade300
                             : Colors.teal,
                   ),
-                  'Email',
+                  AppLocalizations.of(context)!.email,
                   () async {
                     final Uri emailUri = Uri(
                       scheme: 'mailto',
@@ -882,7 +873,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ? Colors.grey.shade300
                             : Colors.black87,
                   ),
-                  'GitHub',
+                  AppLocalizations.of(context)!.github,
                   _launchGitHub,
                 ),
               ],
@@ -899,7 +890,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ? Colors.blueAccent.shade200
                             : Colors.blueAccent,
                   ),
-                  'LinkedIn',
+                  AppLocalizations.of(context)!.linkedIn,
                   _launchLinkedIn,
                 ),
                 const SizedBox(width: 16),
@@ -912,7 +903,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ? Colors.green.shade300
                             : Colors.green,
                   ),
-                  'PayPal',
+                  AppLocalizations.of(context)!.payPal,
                   _launchPayPal,
                 ),
               ],
@@ -931,7 +922,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionTitle('Feedback & Suggestions'),
+            _buildSectionTitle(
+              AppLocalizations.of(context)!.feedbackAndSuggestions,
+            ),
             const SizedBox(height: 8),
             ListTile(
               leading: Icon(
@@ -942,9 +935,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         : Colors.orange,
                 size: 28,
               ),
-              title: const Text('Submit Feedback'),
-              subtitle: const Text(
-                'Share your ideas and suggestions on our feedback board',
+              title: Text(AppLocalizations.of(context)!.submitFeedback),
+              subtitle: Text(
+                AppLocalizations.of(context)!.shareIdeasOnFeedbackBoard,
               ),
               trailing: const Icon(Icons.open_in_new),
               onTap: _launchFeedbacky,
@@ -967,7 +960,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Your feedback helps improve ZenRadar! Vote on existing ideas or submit new ones.',
+                      AppLocalizations.of(context)!.feedbackImprovesZenRadar,
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.orange.shade700,
@@ -1046,17 +1039,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   String _getThemeModeDisplayName(AppThemeMode mode) {
+    final l10n = AppLocalizations.of(context)!;
     switch (mode) {
       case AppThemeMode.light:
-        return 'Light';
+        return l10n.lightMode;
       case AppThemeMode.dark:
-        return 'Dark';
+        return l10n.darkMode;
       case AppThemeMode.system:
-        return 'System';
+        return l10n.systemDefault;
     }
   }
 
   void _showWebsiteSuggestionDialog() {
+    final l10n = AppLocalizations.of(context)!;
     final websiteUrlController = TextEditingController();
     final websiteNameController = TextEditingController();
     final additionalInfoController = TextEditingController();
@@ -1066,7 +1061,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Suggest New Website'),
+            title: Text(l10n.suggestNewWebsite),
             content: Form(
               key: formKey,
               child: SizedBox(
@@ -1074,21 +1069,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      'Help us expand ZenRadar by suggesting a new matcha website to monitor!',
+                    Text(
+                      l10n.helpExpandZenRadar,
                       style: TextStyle(fontSize: 14),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: websiteNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Website Name',
-                        hintText: 'e.g. "Uji Tea Company"',
+                      decoration: InputDecoration(
+                        labelText: l10n.websiteName,
+                        hintText: l10n.websiteNameHint,
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter the website name';
+                          return l10n.pleaseEnterWebsiteName;
                         }
                         return null;
                       },
@@ -1096,21 +1091,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: websiteUrlController,
-                      decoration: const InputDecoration(
-                        labelText: 'Website URL',
-                        hintText: 'https://example.com',
+                      decoration: InputDecoration(
+                        labelText: l10n.websiteUrl,
+                        hintText: l10n.websiteUrlHint,
                         border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.url,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter the website URL';
+                          return l10n.pleaseEnterWebsiteUrl;
                         }
                         final uri = Uri.tryParse(value);
                         if (uri == null ||
                             !uri.hasAbsolutePath ||
                             (!uri.scheme.startsWith('http'))) {
-                          return 'Please enter a valid URL';
+                          return l10n.pleaseEnterValidUrl;
                         }
                         return null;
                       },
@@ -1118,9 +1113,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: additionalInfoController,
-                      decoration: const InputDecoration(
-                        labelText: 'Additional Information (Optional)',
-                        hintText: 'Special features, product types, etc.',
+                      decoration: InputDecoration(
+                        labelText: l10n.additionalInformationOptional,
+                        hintText: l10n.additionalInformationHint,
                         border: OutlineInputBorder(),
                         alignLabelWithHint: true,
                       ),
@@ -1133,7 +1128,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               ElevatedButton(
                 onPressed: () async {
@@ -1162,10 +1157,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         if (context.mounted) {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Thank you for your suggestion! Email app opened.',
-                              ),
+                            SnackBar(
+                              content: Text(l10n.thankYouSuggestionEmailOpened),
                               backgroundColor: Colors.green,
                             ),
                           );
@@ -1177,7 +1170,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Could not open email app: $e'),
+                            content: Text(
+                              l10n.couldNotOpenEmailAppWithError('$e'),
+                            ),
                             backgroundColor: Colors.red,
                           ),
                         );
@@ -1185,7 +1180,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     }
                   }
                 },
-                child: const Text('Send Suggestion'),
+                child: Text(l10n.sendSuggestion),
               ),
             ],
           ),
@@ -1193,11 +1188,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showThemeDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Choose Theme'),
+            title: Text(l10n.chooseTheme),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children:
@@ -1220,19 +1216,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showCurrencyDialog() {
+    final l10n = AppLocalizations.of(context)!;
     final currencies = ['Original', 'EUR', 'USD', 'JPY', 'GBP'];
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Choose Currency'),
+            title: Text(l10n.chooseCurrency),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children:
                   currencies.map((currency) {
                     String displayName =
                         currency == 'Original'
-                            ? 'Original (native site currency)'
+                            ? l10n.originalNativeSiteCurrency
                             : currency;
                     return RadioListTile<String>(
                       title: Text(displayName),
@@ -1292,6 +1289,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildDebugSection() {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -1305,90 +1303,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
-                const Text(
-                  'Debug Tools',
+                Text(
+                  l10n.debugTools,
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-
-            // Debug subscription mode toggle
-            Card(
-              color: Theme.of(context).colorScheme.errorContainer.withAlpha(25),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.verified_user,
-                          color: Theme.of(context).colorScheme.error,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Debug Subscription Mode',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const Spacer(),
-                        Switch(
-                          value: _debugPremiumMode,
-                          onChanged: (value) {
-                            setState(() {
-                              _debugPremiumMode = value;
-                            });
-                            _toggleDebugPremiumMode(value);
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Override subscription status for testing. When enabled, the app will behave as if you have a premium subscription.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    if (_debugPremiumMode)
-                      Container(
-                        margin: const EdgeInsets.only(top: 8),
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.error.withAlpha(25),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.warning,
-                              color: Theme.of(context).colorScheme.error,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'DEBUG MODE ACTIVE - Premium features unlocked for testing',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Theme.of(context).colorScheme.error,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-
             const SizedBox(height: 16),
 
             // Test notification button
@@ -1397,7 +1317,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: ElevatedButton.icon(
                 onPressed: _testNotification,
                 icon: const Icon(Icons.notifications_active),
-                label: const Text('Test Notification'),
+                label: Text(l10n.testNotification),
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
                       Theme.of(context).colorScheme.primaryContainer,
@@ -1409,7 +1329,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             const SizedBox(height: 8),
             Text(
-              'Send a test notification to verify that notifications are working correctly.',
+              l10n.sendTestNotificationDescription,
               style: TextStyle(
                 fontSize: 12,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -1422,62 +1342,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _testNotification() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       await NotificationService.instance.showNotification(
         id: 999,
-        title: 'ZenRadar Test Notification',
-        body:
-            'This is a test notification to verify that notifications are working correctly.',
+        title: l10n.zenRadarTestNotificationTitle,
+        body: l10n.zenRadarTestNotificationBody,
         payload: 'test_notification',
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Test notification sent!'),
+          SnackBar(
+            content: Text(l10n.testNotificationSent),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
-      print('Error sending test notification: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to send test notification: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _toggleDebugPremiumMode(bool enabled) async {
-    try {
-      // Override the subscription service for debug purposes
-      await SubscriptionService.instance.setDebugPremiumMode(enabled);
-
-      // Reload subscription status to get updated values
-      await _loadSubscriptionStatus();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              enabled
-                  ? 'Debug premium mode enabled - All features unlocked'
-                  : 'Debug premium mode disabled - Back to normal subscription status',
-            ),
-            backgroundColor: enabled ? Colors.orange : Colors.blue,
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error toggling debug premium mode: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to toggle debug mode: $e'),
+            content: Text(l10n.failedToSendTestNotification('$e')),
             backgroundColor: Colors.red,
           ),
         );
@@ -1486,6 +1372,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showContactDialog() {
+    final l10n = AppLocalizations.of(context)!;
     final nameController = TextEditingController();
     final emailController = TextEditingController();
     final messageController = TextEditingController();
@@ -1495,7 +1382,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Contact Us'),
+            title: Text(l10n.contactUs),
             content: Form(
               key: formKey,
               child: SizedBox(
@@ -1505,13 +1392,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     TextFormField(
                       controller: nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Your Name',
+                      decoration: InputDecoration(
+                        labelText: l10n.yourName,
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your name';
+                          return l10n.pleaseEnterYourName;
                         }
                         return null;
                       },
@@ -1519,17 +1406,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Your Email',
+                      decoration: InputDecoration(
+                        labelText: l10n.yourEmail,
                         border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your email';
+                          return l10n.pleaseEnterYourEmail;
                         }
                         if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                          return 'Please enter a valid email';
+                          return l10n.pleaseEnterValidEmail;
                         }
                         return null;
                       },
@@ -1537,15 +1424,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: messageController,
-                      decoration: const InputDecoration(
-                        labelText: 'Your Message',
+                      decoration: InputDecoration(
+                        labelText: l10n.yourMessage,
                         border: OutlineInputBorder(),
                         alignLabelWithHint: true,
                       ),
                       maxLines: 4,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your message';
+                          return l10n.pleaseEnterYourMessage;
                         }
                         return null;
                       },
@@ -1557,7 +1444,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               ElevatedButton(
                 onPressed: () async {
@@ -1583,8 +1470,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         if (context.mounted) {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Email app opened successfully!'),
+                            SnackBar(
+                              content: Text(l10n.emailAppOpenedSuccessfully),
                               backgroundColor: Colors.green,
                             ),
                           );
@@ -1596,7 +1483,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Could not open email app: $e'),
+                            content: Text(
+                              l10n.couldNotOpenEmailAppWithError('$e'),
+                            ),
                             backgroundColor: Colors.red,
                           ),
                         );
@@ -1604,7 +1493,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     }
                   }
                 },
-                child: const Text('Send Email'),
+                child: Text(l10n.sendEmail),
               ),
             ],
           ),
@@ -1616,9 +1505,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       const ClipboardData(text: 'fabian.ebert@online.de'),
     );
     if (mounted) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Email address copied to clipboard!'),
+        SnackBar(
+          content: Text(l10n.emailAddressCopiedToClipboard),
           backgroundColor: Colors.green,
         ),
       );
@@ -1627,6 +1517,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// Build subscription settings card
   Widget _buildSubscriptionCard() {
+    final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final effectiveTier = _isPremium ? SubscriptionTier.premium : _currentTier;
 
@@ -1638,8 +1529,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Row(
               children: [
-                const Text(
-                  'Subscription',
+                Text(
+                  l10n.subscription,
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
@@ -1691,45 +1582,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Row(
-                          children: [
-                            Text(
-                              '${effectiveTier.displayName} Plan',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color:
-                                    _isPremium
-                                        ? (isDark
-                                            ? Colors.amber.shade200
-                                            : Colors.amber.shade800)
-                                        : (isDark
-                                            ? Colors.grey.shade300
-                                            : Colors.grey.shade700),
-                              ),
-                            ),
-                            if (_debugPremiumMode) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.orange.shade800.withAlpha(200),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  'DEBUG',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
+                        child: Text(
+                          '${effectiveTier.displayName} Plan',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color:
+                                _isPremium
+                                    ? (isDark
+                                        ? Colors.amber.shade200
+                                        : Colors.amber.shade800)
+                                    : (isDark
+                                        ? Colors.grey.shade300
+                                        : Colors.grey.shade700),
+                          ),
                         ),
                       ),
                     ],
@@ -1746,7 +1612,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: ElevatedButton.icon(
                         onPressed: _showUpgradeDialog,
                         icon: const Icon(Icons.upgrade),
-                        label: const Text('Upgrade to Premium'),
+                        label: Text(l10n.upgradeToPremium),
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
                               isDark ? Colors.amber.shade700 : Colors.amber,
@@ -1882,6 +1748,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// Show upgrade dialog
   void _showUpgradeDialog() {
     var isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1890,22 +1757,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Icon(Icons.star, color: Colors.amber.shade700),
               const SizedBox(width: 8),
-              const Text('Upgrade to Premium'),
+              Text(l10n.upgradeToPremium),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Unlock the full potential of ZenRadar with Premium:',
+              Text(
+                l10n.unlockFullPotentialPremium,
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 16),
-              _buildUpgradeFeature('Unlimited favorite products', '42 → ∞'),
-              _buildUpgradeFeature('Hourly check frequency', '6h → 1h'),
-              _buildUpgradeFeature('Full price & stock history', '7d → ∞'),
-              _buildUpgradeFeature('Priority notifications', 'Coming soon'),
+              _buildUpgradeFeature(l10n.unlimitedFavoriteProducts, '42 → ∞'),
+              _buildUpgradeFeature(l10n.hourlyCheckFrequency, '6h → 1h'),
+              _buildUpgradeFeature(l10n.fullPriceAndStockHistory, '7d → ∞'),
+              _buildUpgradeFeature(l10n.priorityNotifications, l10n.comingSoon),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
@@ -1920,7 +1787,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Payment integration coming soon! Follow development for updates.',
+                        l10n.paymentIntegrationComingSoon,
                         style: TextStyle(
                           fontSize: 12,
                           color:
@@ -1938,7 +1805,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Maybe Later'),
+              child: Text(l10n.maybeLater),
             ),
             ElevatedButton.icon(
               onPressed: () {
@@ -1953,7 +1820,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
               },
               icon: const Icon(Icons.upgrade),
-              label: const Text('Get Premium'),
+              label: Text(l10n.getPremium),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.amber,
                 foregroundColor: Colors.amber.shade900,
@@ -1992,4 +1859,3 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
-

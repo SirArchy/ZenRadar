@@ -109,18 +109,12 @@ class _CachedProductImageState extends State<CachedProductImage> {
   }
 
   void _handleError(String error) {
-    if (kDebugMode) {
-      print('🖼️ CachedProductImage error for ${widget.imageUrl}: $error');
-    }
+    if (kDebugMode) {}
 
     // Retry logic
     if (_retryCount < _maxRetries) {
       _retryCount++;
-      if (kDebugMode) {
-        print(
-          '🔄 CachedProductImage retry $_retryCount for ${widget.imageUrl}',
-        );
-      }
+      if (kDebugMode) {}
 
       // Retry after a delay
       Future.delayed(Duration(milliseconds: 500 * _retryCount), () {
@@ -198,9 +192,7 @@ class _CachedProductImageState extends State<CachedProductImage> {
       width: widget.width,
       height: widget.height,
       errorBuilder: (context, error, stackTrace) {
-        if (kDebugMode) {
-          print('🖼️ Image.memory error for ${widget.imageUrl}: $error');
-        }
+        if (kDebugMode) {}
         _handleError('Memory image error: $error');
         return widget.errorWidget?.call(context) ??
             Container(

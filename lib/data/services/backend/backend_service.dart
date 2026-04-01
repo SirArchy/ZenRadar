@@ -41,9 +41,7 @@ class BackendService {
       // Get current user ID
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        if (kDebugMode) {
-          print('❌ Backend: No authenticated user found');
-        }
+        if (kDebugMode) {}
         return FavoriteUpdateResult(
           success: false,
           error: 'No authenticated user found',
@@ -73,20 +71,14 @@ class BackendService {
           isFavorite,
         );
 
-        if (kDebugMode) {
-          print('✅ Backend: Favorite updated successfully');
-        }
+        if (kDebugMode) {}
         return FavoriteUpdateResult(
           success: true,
           error: null,
           limitReached: false,
         );
       } else {
-        if (kDebugMode) {
-          print('❌ Backend: Failed to update favorite');
-          print('❌ Backend: Status: ${response.statusCode}');
-          print('❌ Backend: Response: ${response.body}');
-        }
+        if (kDebugMode) {}
         return FavoriteUpdateResult(
           success: false,
           error: 'Server error: ${response.statusCode}',
@@ -94,9 +86,7 @@ class BackendService {
         );
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Backend: Error updating favorite: $e');
-      }
+      if (kDebugMode) {}
       return FavoriteUpdateResult(
         success: false,
         error: 'Network error: $e',
@@ -111,9 +101,7 @@ class BackendService {
       // Get current user ID
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        if (kDebugMode) {
-          print('❌ Backend: No authenticated user found');
-        }
+        if (kDebugMode) {}
         return false;
       }
 
@@ -126,22 +114,14 @@ class BackendService {
       );
 
       if (response.statusCode == 200) {
-        if (kDebugMode) {
-          print('✅ Backend: Manual crawl triggered successfully');
-        }
+        if (kDebugMode) {}
         return true;
       } else {
-        if (kDebugMode) {
-          print('❌ Backend: Failed to trigger manual crawl');
-          print('❌ Backend: Status: ${response.statusCode}');
-          print('❌ Backend: Response: ${response.body}');
-        }
+        if (kDebugMode) {}
         return false;
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Backend: Error triggering manual crawl: $e');
-      }
+      if (kDebugMode) {}
       return false;
     }
   }
@@ -149,23 +129,16 @@ class BackendService {
   /// Initialize FCM and register token with backend
   Future<void> initializeFCM() async {
     try {
-      if (kDebugMode) {
-        print('🚀 Backend: Initializing FCM service...');
-      }
+      if (kDebugMode) {}
 
       await FirebaseMessagingService.instance.initialize();
 
       // Update subscriptions for existing favorites (happens in background)
       await FirebaseMessagingService.instance.updateFavoriteSubscriptions();
 
-      if (kDebugMode) {
-        print('✅ Backend: FCM initialized and subscriptions started');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Backend: Error initializing FCM: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 }
-

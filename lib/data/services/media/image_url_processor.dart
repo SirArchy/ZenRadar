@@ -20,9 +20,7 @@ class ImageUrlProcessor {
     processedUrl = processedUrl.replaceAll('%7Bheight%7D', '400');
 
     // Log URL processing for debugging on web
-    if (kIsWeb && hadPlaceholders && kDebugMode) {
-      print('🔧 ImageUrlProcessor: Processed $url -> $processedUrl');
-    }
+    if (kIsWeb && hadPlaceholders && kDebugMode) {}
 
     // IMPORTANT: Don't process URLs that are already valid Firebase Storage download URLs
     if (processedUrl.contains('firebasestorage.googleapis.com/v0/b/') &&
@@ -42,21 +40,13 @@ class ImageUrlProcessor {
             'firebasestorage.googleapis.com/v0/b/$bucketName.firebasestorage.app/',
           );
 
-          if (kDebugMode) {
-            print(
-              '🔧 Fixed missing .firebasestorage.app suffix: $processedUrl -> $correctedUrl',
-            );
-          }
+          if (kDebugMode) {}
           return correctedUrl;
         }
       }
 
       // Already in correct download URL format, return as-is
-      if (kDebugMode) {
-        print(
-          '✅ ImageUrlProcessor: URL already in correct Firebase Storage format: $processedUrl',
-        );
-      }
+      if (kDebugMode) {}
       return processedUrl;
     }
 
@@ -66,11 +56,7 @@ class ImageUrlProcessor {
         '.firebasestorage.app.firebasestorage.app',
         '.firebasestorage.app',
       );
-      if (kDebugMode) {
-        print(
-          '🔧 Fixed doubled Firebase Storage domain: $url -> $processedUrl',
-        );
-      }
+      if (kDebugMode) {}
     }
     // Only convert storage.googleapis.com URLs (not firebasestorage.googleapis.com)
     else if (processedUrl.contains('storage.googleapis.com') &&
@@ -88,11 +74,7 @@ class ImageUrlProcessor {
               'storage.googleapis.com/$bucketPart.firebasestorage.app/',
             );
 
-            if (kDebugMode) {
-              print(
-                '🔧 Added .firebasestorage.app suffix: $processedUrl -> $newUrl',
-              );
-            }
+            if (kDebugMode) {}
             processedUrl = newUrl;
           }
         }
@@ -102,11 +84,7 @@ class ImageUrlProcessor {
     // On web, try to use HTTPS if available
     if (kIsWeb && processedUrl.startsWith('http://')) {
       final httpsUrl = processedUrl.replaceFirst('http://', 'https://');
-      if (kDebugMode) {
-        print(
-          '🔒 Converting HTTP to HTTPS for web: $processedUrl -> $httpsUrl',
-        );
-      }
+      if (kDebugMode) {}
       processedUrl = httpsUrl;
     }
 

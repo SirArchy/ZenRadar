@@ -1,4 +1,4 @@
-﻿// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print
 
 import 'package:zenradar/models/matcha_product.dart';
 import 'package:zenradar/data/services/settings/settings_service.dart';
@@ -63,7 +63,6 @@ class RecommendationService {
           .map((scored) => scored.product)
           .toList();
     } catch (e) {
-      print('Error getting recommendations: $e');
       return [];
     }
   }
@@ -174,7 +173,6 @@ class RecommendationService {
 
       return products.take(limit).toList();
     } catch (e) {
-      print('Error getting popular products: $e');
       return [];
     }
   }

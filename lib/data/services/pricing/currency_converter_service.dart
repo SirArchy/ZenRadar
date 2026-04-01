@@ -1,7 +1,6 @@
 // ignore_for_file: avoid_print
 
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -73,9 +72,8 @@ class CurrencyConverterService {
         final rateAsDouble = rate is int ? rate.toDouble() : rate as double;
         return amount * rateAsDouble;
       }
-    } catch (e) {
-      debugPrint('Currency conversion failed: $e');
-    }
+      // ignore: empty_catches
+    } catch (e) {}
     return null;
   }
 }

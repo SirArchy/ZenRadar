@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, empty_catches
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
@@ -56,13 +56,9 @@ class NotificationService {
         },
       );
 
-      if (kDebugMode) {
-        print('✅ Notifications initialized successfully');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to initialize notifications: $e');
-      }
+      if (kDebugMode) {}
       // Don't rethrow - allow app to continue without notifications
     }
 
@@ -91,18 +87,14 @@ class NotificationService {
     if (kIsWeb) {
       // For web, permissions are handled by the browser
       // We'll assume success for now since web notifications work differently
-      if (kDebugMode) {
-        print('Web notification permission requested (handled by browser)');
-      }
+      if (kDebugMode) {}
       return true;
     }
 
     // For mobile platforms, use permission_handler
     final status = await Permission.notification.request();
 
-    if (kDebugMode) {
-      print('Notification permission status: $status');
-    }
+    if (kDebugMode) {}
 
     return status.isGranted;
   }
@@ -179,10 +171,7 @@ class NotificationService {
           await androidImplementation.createNotificationChannel(
             stockUpdatesChannel,
           );
-          print('Notification channels created successfully');
-        } catch (e) {
-          print('Error creating notification channels: $e');
-        }
+        } catch (e) {}
       }
     }
   }
@@ -609,7 +598,6 @@ class NotificationService {
 
       final bool? granted =
           await androidImplementation?.areNotificationsEnabled();
-      print('🔔 Android notification permissions granted: $granted');
       return granted ?? false;
     }
 
@@ -618,16 +606,11 @@ class NotificationService {
   }
 
   Future<void> debugNotificationSystem() async {
-    print('🔍 Debugging notification system...');
-
     try {
       // Check permissions
-      final hasPermissions = await checkPermissions();
-      print('📱 Notification permissions: $hasPermissions');
 
       // Try to show a simple test notification
       await showTestNotification();
-      print('✅ Test notification attempted');
 
       // Check notification channels (Android)
       if (defaultTargetPlatform == TargetPlatform.android) {
@@ -638,14 +621,8 @@ class NotificationService {
                 >();
 
         if (androidImplementation != null) {
-          print('📢 Android notification implementation available');
-        } else {
-          print('❌ Android notification implementation not available');
-        }
+        } else {}
       }
-    } catch (e) {
-      print('❌ Error debugging notification system: $e');
-    }
+    } catch (e) {}
   }
 }
-

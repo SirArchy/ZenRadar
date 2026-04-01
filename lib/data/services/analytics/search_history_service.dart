@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, empty_catches
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -26,9 +26,7 @@ class SearchHistoryService {
       }
 
       await prefs.setStringList(_searchHistoryKey, searchHistory);
-    } catch (e) {
-      print('Error adding search term to local storage: $e');
-    }
+    } catch (e) {}
   }
 
   /// Get search history from local storage
@@ -37,7 +35,6 @@ class SearchHistoryService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getStringList(_searchHistoryKey) ?? [];
     } catch (e) {
-      print('Error getting search history from local storage: $e');
       return [];
     }
   }
@@ -49,9 +46,7 @@ class SearchHistoryService {
       List<String> searchHistory = prefs.getStringList(_searchHistoryKey) ?? [];
       searchHistory.remove(term);
       await prefs.setStringList(_searchHistoryKey, searchHistory);
-    } catch (e) {
-      print('Error removing search term from local storage: $e');
-    }
+    } catch (e) {}
   }
 
   /// Clear all search history
@@ -59,8 +54,6 @@ class SearchHistoryService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_searchHistoryKey);
-    } catch (e) {
-      print('Error clearing search history from local storage: $e');
-    }
+    } catch (e) {}
   }
 }

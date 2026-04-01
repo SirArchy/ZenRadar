@@ -489,11 +489,10 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
             widget.onContinue!();
           }
         } else {
+          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Unable to start trial. You may have already used it.',
-              ),
+            SnackBar(
+              content: Text(l10n.unableToStartTrialMaybeUsed),
               backgroundColor: Colors.orange,
             ),
           );
@@ -501,9 +500,10 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen>
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to start trial: $e'),
+            content: Text(l10n.errorStartingTrialWithError('$e')),
             backgroundColor: Colors.red,
           ),
         );

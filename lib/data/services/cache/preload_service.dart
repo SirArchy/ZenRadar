@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, empty_catches
 
 import 'dart:async';
 import 'package:flutter/foundation.dart';
@@ -31,7 +31,6 @@ class PreloadService {
         authService.isSignedIn && authService.currentUser != null;
 
     if (!isAuthenticated) {
-      print('⚠️ Skipping Firestore operation - user not authenticated');
       return false;
     }
 
@@ -42,23 +41,16 @@ class PreloadService {
   Future<void> startBackgroundPreload() async {
     // Don't start multiple preload operations
     if (_isPreloadingActive) {
-      print('🔄 Preload service already active, skipping...');
       return;
     }
 
     // Verify user authentication before starting any preloading
     if (!_shouldProceedWithFirestore()) {
-      print('⚠️ Cannot start preload - user authentication required');
       return;
     }
 
     _isPreloadingActive = true;
     _initialPreloadCompleter = Completer<void>();
-
-    final authService = AuthService.instance;
-    print(
-      '🚀 Starting background data preload for user: ${authService.currentUser?.email}',
-    );
 
     // Run all preloading in parallel without blocking
     unawaited(_preloadAllData());
@@ -79,29 +71,15 @@ class PreloadService {
     try {
       // Check if user is authenticated and we should proceed with Firestore operations
       if (!_shouldProceedWithFirestore()) {
-        print('⚠️ User not authenticated, skipping preload');
         _hasCompletedInitialPreload = true;
         _initialPreloadCompleter?.complete();
         return;
       }
 
-      print('✅ User authenticated, proceeding with preload');
-
       // Get subscription status first to determine what to preload
       final isPremium = await SubscriptionService.instance.isPremiumUser();
-      print(
-        '📊 User is ${isPremium ? 'Premium' : 'Free'} - adjusting preload strategy',
-      );
 
       // For free users, we only need to load data for 5 websites
-      final List<String> sitesToPreload =
-          isPremium
-              ? WebsiteAnalyticsService.supportedWebsites
-              : ['tokichi', 'marukyu', 'ippodo', 'yoshien', 'matcha-karu'];
-
-      print(
-        '🎯 Preloading data for ${sitesToPreload.length} websites: ${sitesToPreload.join(', ')}',
-      );
 
       // Start all preloading tasks in parallel
       final futures = <Future<void>>[
@@ -112,20 +90,11 @@ class PreloadService {
       ];
 
       // Wait for all to complete, but don't let one failure block others
-      await Future.wait(
-        futures.map(
-          (future) => future.catchError((e) {
-            print('⚠️ Preload task failed: $e');
-          }),
-        ),
-      );
-
-      print('✅ Background preload completed successfully');
+      await Future.wait(futures.map((future) => future.catchError((e) {})));
 
       _hasCompletedInitialPreload = true;
       _initialPreloadCompleter?.complete();
     } catch (e) {
-      print('❌ Background preload failed: $e');
       _initialPreloadCompleter?.completeError(e);
     } finally {
       _isPreloadingActive = false;
@@ -135,8 +104,6 @@ class PreloadService {
   /// Preload website analytics for different time ranges
   Future<void> _preloadWebsiteAnalytics(bool isPremium) async {
     try {
-      print('📈 Preloading website analytics...');
-
       final analyticsService = WebsiteAnalyticsService.instance;
 
       // For free users, only preload 'day' range; for premium users, preload common ranges
@@ -150,16 +117,11 @@ class PreloadService {
             timeRange: timeRange,
             forceRefresh: false, // Use cache if available
           );
-          print('✓ Preloaded analytics for $timeRange range');
-        } catch (e) {
-          print('⚠️ Failed to preload analytics for $timeRange: $e');
-        }
+        } catch (e) {}
       });
 
       await Future.wait(futures);
-      print('📈 Website analytics preload completed');
     } catch (e) {
-      print('❌ Website analytics preload failed: $e');
       // Don't rethrow - let other preload tasks continue
     }
   }
@@ -167,8 +129,6 @@ class PreloadService {
   /// Preload recent activity data
   Future<void> _preloadRecentActivity(bool isPremium) async {
     try {
-      print('📋 Preloading recent activity...');
-
       const cacheKey = 'recent_activities_preload';
 
       // Check if we already have cached activities
@@ -176,7 +136,6 @@ class PreloadService {
         cacheKey,
       );
       if (cachedActivities != null && cachedActivities.isNotEmpty) {
-        print('✓ Recent activities already in cache');
         return;
       }
 
@@ -189,10 +148,7 @@ class PreloadService {
         activities.map((a) => a.toJson()).toList(),
         duration: const Duration(minutes: 10),
       );
-
-      print('✓ Preloaded ${activities.length} recent activities');
     } catch (e) {
-      print('❌ Recent activity preload failed: $e');
       // Don't rethrow - let other preload tasks continue
     }
   }
@@ -200,8 +156,6 @@ class PreloadService {
   /// Preload fast summaries for quick screen loading
   Future<void> _preloadFastSummaries() async {
     try {
-      print('⚡ Preloading fast summaries...');
-
       final analyticsService = WebsiteAnalyticsService.instance;
 
       // Preload fast summaries for common time ranges
@@ -211,16 +165,11 @@ class PreloadService {
             timeRange: timeRange,
             forceRefresh: false,
           );
-          print('✓ Preloaded fast summary for $timeRange');
-        } catch (e) {
-          print('⚠️ Failed to preload fast summary for $timeRange: $e');
-        }
+        } catch (e) {}
       });
 
       await Future.wait(futures);
-      print('⚡ Fast summaries preload completed');
     } catch (e) {
-      print('❌ Fast summaries preload failed: $e');
       // Don't rethrow - let other preload tasks continue
     }
   }
@@ -228,11 +177,8 @@ class PreloadService {
   /// Preload product images for faster loading
   Future<void> _preloadProductImages(bool isPremium) async {
     try {
-      print('🖼️ Preloading product images...');
-
       // Skip image preloading on web to avoid CORS issues
       if (kIsWeb) {
-        print('🌐 Skipping image preload on web (browser handles caching)');
         return;
       }
 
@@ -260,8 +206,6 @@ class PreloadService {
               .toList();
 
       if (rawImageUrls.isNotEmpty) {
-        print('📸 Found ${rawImageUrls.length} product images to preload');
-
         // Process URLs to match what PlatformImage will use
         final processedImageUrls = ImageUrlProcessor.processImageUrls(
           rawImageUrls,
@@ -274,13 +218,8 @@ class PreloadService {
               isPremium ? 5 : 3, // Premium users get higher concurrency
           cacheDuration: const Duration(days: 7),
         );
-
-        print('✓ Preloaded ${processedImageUrls.length} product images');
-      } else {
-        print('⚠️ No product images found to preload');
-      }
+      } else {}
     } catch (e) {
-      print('❌ Product image preload failed: $e');
       // Don't rethrow - let other preload tasks continue
     }
   }
@@ -307,7 +246,6 @@ class PreloadService {
           final activity = _convertCrawlRequestToScanActivity(crawlRequest);
           activities.add(activity);
         } catch (e) {
-          print('Error converting crawl request ${crawlRequest['id']}: $e');
           continue;
         }
       }
@@ -321,7 +259,6 @@ class PreloadService {
 
       return finalActivities;
     } catch (e) {
-      print('Error loading server activities from Firestore: $e');
       return [];
     }
   }
@@ -405,15 +342,12 @@ class PreloadService {
 
       return null;
     } catch (e) {
-      print('Error getting cached activities: $e');
       return null;
     }
   }
 
   /// Force refresh all preloaded data
   Future<void> refreshPreloadedData() async {
-    print('🔄 Refreshing preloaded data...');
-
     // Clear relevant caches
     await CacheService.clearCache('recent_activities_preload');
 
@@ -425,12 +359,9 @@ class PreloadService {
 
       // Clear image cache if it's getting too large (>100MB)
       if (totalSizeMB > 100) {
-        print('🧹 Image cache is large (${totalSizeMB}MB), cleaning up...');
         await ImageCacheService.instance.cleanupExpiredCache();
       }
-    } catch (e) {
-      print('⚠️ Error checking image cache size: $e');
-    }
+    } catch (e) {}
 
     // Restart preloading
     _hasCompletedInitialPreload = false;
@@ -439,7 +370,6 @@ class PreloadService {
 
   /// Reset preload service state (useful for debugging/troubleshooting)
   void resetPreloadService() {
-    print('🔄 Resetting preload service state...');
     _isPreloadingActive = false;
     _hasCompletedInitialPreload = false;
     _initialPreloadCompleter?.complete();
@@ -449,6 +379,5 @@ class PreloadService {
 
 /// Extension to make unawaited calls more explicit
 extension Unawaited on Future<void> {
-  void get unawaited =>
-      then((_) {}, onError: (e) => print('Unawaited future error: $e'));
+  void get unawaited => then((_) {}, onError: (_) {});
 }

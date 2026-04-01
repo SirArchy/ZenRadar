@@ -80,20 +80,14 @@ class AuthService {
       // Send email verification
       await credential.user?.sendEmailVerification();
 
-      if (kDebugMode) {
-        print('User signed up successfully: ${credential.user?.email}');
-      }
+      if (kDebugMode) {}
 
       return AuthResult.success(credential.user);
     } on FirebaseAuthException catch (e) {
-      if (kDebugMode) {
-        print('Sign up error: ${e.code} - ${e.message}');
-      }
+      if (kDebugMode) {}
       return AuthResult.error(_getAuthErrorMessage(e));
     } catch (e) {
-      if (kDebugMode) {
-        print('Unexpected sign up error: $e');
-      }
+      if (kDebugMode) {}
       return AuthResult.error(
         'An unexpected error occurred. Please try again.',
       );
@@ -120,23 +114,17 @@ class AuthService {
         password: password,
       );
 
-      if (kDebugMode) {
-        print('User signed in successfully: ${credential.user?.email}');
-      }
+      if (kDebugMode) {}
 
       // Sync trial status from Firestore after successful sign-in
       await _syncUserDataAfterSignIn();
 
       return AuthResult.success(credential.user);
     } on FirebaseAuthException catch (e) {
-      if (kDebugMode) {
-        print('Sign in error: ${e.code} - ${e.message}');
-      }
+      if (kDebugMode) {}
       return AuthResult.error(_getAuthErrorMessage(e));
     } catch (e) {
-      if (kDebugMode) {
-        print('Unexpected sign in error: $e');
-      }
+      if (kDebugMode) {}
       return AuthResult.error(
         'An unexpected error occurred. Please try again.',
       );
@@ -148,18 +136,14 @@ class AuthService {
     try {
       if (kIsWeb) {
         // For web, check if we have proper configuration
-        if (kDebugMode) {
-          print('Attempting Google Sign-in on Web...');
-        }
+        if (kDebugMode) {}
 
         // Try to sign in silently first (recommended for web)
         GoogleSignInAccount? googleUser = await _googleSignIn.signInSilently();
 
         // If no silent sign-in, trigger the sign-in flow
         if (googleUser == null) {
-          if (kDebugMode) {
-            print('No silent sign-in available, triggering sign-in flow...');
-          }
+          if (kDebugMode) {}
           googleUser = await _googleSignIn.signIn();
         }
 
@@ -172,12 +156,7 @@ class AuthService {
         final GoogleSignInAuthentication googleAuth =
             await googleUser.authentication;
 
-        if (kDebugMode) {
-          print(
-            'Got Google auth - Access Token: ${googleAuth.accessToken != null}',
-          );
-          print('Got Google auth - ID Token: ${googleAuth.idToken != null}');
-        }
+        if (kDebugMode) {}
 
         // Create Firebase credential
         final credential = GoogleAuthProvider.credential(
@@ -190,11 +169,7 @@ class AuthService {
           credential,
         );
 
-        if (kDebugMode) {
-          print(
-            'User signed in with Google (Web): ${userCredential.user?.email}',
-          );
-        }
+        if (kDebugMode) {}
 
         // Sync trial status from Firestore after successful sign-in
         await _syncUserDataAfterSignIn();
@@ -228,11 +203,7 @@ class AuthService {
           credential,
         );
 
-        if (kDebugMode) {
-          print(
-            'User signed in with Google (Mobile): ${userCredential.user?.email}',
-          );
-        }
+        if (kDebugMode) {}
 
         // Sync trial status from Firestore after successful sign-in
         await _syncUserDataAfterSignIn();
@@ -240,15 +211,10 @@ class AuthService {
         return AuthResult.success(userCredential.user);
       }
     } on FirebaseAuthException catch (e) {
-      if (kDebugMode) {
-        print('Google sign in Firebase error: ${e.code} - ${e.message}');
-      }
+      if (kDebugMode) {}
       return AuthResult.error(_getAuthErrorMessage(e));
     } catch (e) {
-      if (kDebugMode) {
-        print('Google sign in error: $e');
-        print('Error type: ${e.runtimeType}');
-      }
+      if (kDebugMode) {}
 
       // Handle specific Google Sign-In errors
       if (e is PlatformException) {
@@ -299,13 +265,9 @@ class AuthService {
       // Sign out from both Firebase and Google
       await Future.wait([_auth.signOut(), _googleSignIn.signOut()]);
 
-      if (kDebugMode) {
-        print('User signed out successfully');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('Sign out error: $e');
-      }
+      if (kDebugMode) {}
       rethrow;
     }
   }
@@ -319,23 +281,17 @@ class AuthService {
 
       await _auth.sendPasswordResetEmail(email: email.trim());
 
-      if (kDebugMode) {
-        print('Password reset email sent to: $email');
-      }
+      if (kDebugMode) {}
 
       return AuthResult.success(
         null,
         message: 'Password reset email sent. Please check your inbox.',
       );
     } on FirebaseAuthException catch (e) {
-      if (kDebugMode) {
-        print('Password reset error: ${e.code} - ${e.message}');
-      }
+      if (kDebugMode) {}
       return AuthResult.error(_getAuthErrorMessage(e));
     } catch (e) {
-      if (kDebugMode) {
-        print('Unexpected password reset error: $e');
-      }
+      if (kDebugMode) {}
       return AuthResult.error(
         'An unexpected error occurred. Please try again.',
       );
@@ -356,23 +312,17 @@ class AuthService {
 
       await user.sendEmailVerification();
 
-      if (kDebugMode) {
-        print('Email verification sent to: ${user.email}');
-      }
+      if (kDebugMode) {}
 
       return AuthResult.success(
         null,
         message: 'Verification email sent. Please check your inbox.',
       );
     } on FirebaseAuthException catch (e) {
-      if (kDebugMode) {
-        print('Email verification error: ${e.code} - ${e.message}');
-      }
+      if (kDebugMode) {}
       return AuthResult.error(_getAuthErrorMessage(e));
     } catch (e) {
-      if (kDebugMode) {
-        print('Unexpected email verification error: $e');
-      }
+      if (kDebugMode) {}
       return AuthResult.error(
         'An unexpected error occurred. Please try again.',
       );
@@ -384,9 +334,7 @@ class AuthService {
     try {
       await _auth.currentUser?.reload();
     } catch (e) {
-      if (kDebugMode) {
-        print('Error reloading user: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -400,20 +348,14 @@ class AuthService {
 
       await user.delete();
 
-      if (kDebugMode) {
-        print('User account deleted successfully');
-      }
+      if (kDebugMode) {}
 
       return AuthResult.success(null, message: 'Account deleted successfully');
     } on FirebaseAuthException catch (e) {
-      if (kDebugMode) {
-        print('Delete account error: ${e.code} - ${e.message}');
-      }
+      if (kDebugMode) {}
       return AuthResult.error(_getAuthErrorMessage(e));
     } catch (e) {
-      if (kDebugMode) {
-        print('Unexpected delete account error: $e');
-      }
+      if (kDebugMode) {}
       return AuthResult.error(
         'An unexpected error occurred. Please try again.',
       );
@@ -460,13 +402,9 @@ class AuthService {
             .isPremiumUser(); // This triggers sync
       });
 
-      if (kDebugMode) {
-        print('🔄 User data sync initiated after sign-in');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error syncing user data after sign-in: $e');
-      }
+      if (kDebugMode) {}
       // Don't throw error to avoid disrupting sign-in flow
     }
   }
@@ -505,9 +443,7 @@ class AuthService {
       case 'account-exists-with-different-credential':
         return 'An account already exists with the same email address but different sign-in credentials.';
       default:
-        if (kDebugMode) {
-          print('Unhandled Firebase Auth error: ${e.code} - ${e.message}');
-        }
+        if (kDebugMode) {}
         return e.message ??
             'An authentication error occurred. Please try again.';
     }
@@ -531,4 +467,3 @@ class AuthResult {
     return AuthResult._(isSuccess: false, error: error);
   }
 }
-

@@ -25,13 +25,9 @@ class CacheService {
 
       await prefs.setString(key, json.encode(cacheData));
 
-      if (kDebugMode) {
-        print('Cache SET: $key (expires: ${expiration.toString()})');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('Cache SET error for $key: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -42,9 +38,7 @@ class CacheService {
       final cachedString = prefs.getString(key);
 
       if (cachedString == null) {
-        if (kDebugMode) {
-          print('Cache MISS: $key (not found)');
-        }
+        if (kDebugMode) {}
         return null;
       }
 
@@ -55,22 +49,17 @@ class CacheService {
       if (now.isAfter(expiration)) {
         // Cache expired, remove it
         await prefs.remove(key);
-        if (kDebugMode) {
-          print('⏰ Cache EXPIRED: $key (expired: ${expiration.toString()})');
-        }
+        if (kDebugMode) {}
         return null;
       }
 
       if (kDebugMode) {
-        final timestamp = DateTime.parse(cacheData['timestamp'] as String);
-        print('Cache HIT: $key (cached: ${timestamp.toString()})');
+        DateTime.parse(cacheData['timestamp'] as String);
       }
 
       return cacheData['data'] as T;
     } catch (e) {
-      if (kDebugMode) {
-        print('Cache GET error for $key: $e');
-      }
+      if (kDebugMode) {}
       return null;
     }
   }
@@ -81,13 +70,9 @@ class CacheService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(key);
 
-      if (kDebugMode) {
-        print('🗑️ Cache CLEAR: $key');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('Cache CLEAR error for $key: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -101,13 +86,9 @@ class CacheService {
         await prefs.remove(key);
       }
 
-      if (kDebugMode) {
-        print('🗑️ Cache CLEAR PATTERN: $pattern (${keys.length} items)');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('Cache CLEAR PATTERN error for $pattern: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 

@@ -215,7 +215,7 @@ class _LanguageSettingsExampleState extends State<LanguageSettingsExample> {
           ListTile(
             leading: const Icon(Icons.info),
             title: Text(l10n.version),
-            subtitle: const Text('1.0.0+2'),
+            subtitle: Text(l10n.versionNumber('1.0.0+2')),
             onTap: () {
               // Show version info
             },

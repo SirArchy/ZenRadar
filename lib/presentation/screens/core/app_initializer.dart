@@ -1,4 +1,4 @@
-﻿// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -72,7 +72,6 @@ class _AppInitializerState extends State<AppInitializer> {
         await SubscriptionService.instance
             .isPremiumUser(); // This triggers sync
       } catch (e) {
-        print('Warning: Could not sync trial status: $e');
         // Continue with app initialization even if sync fails
       }
 
@@ -83,7 +82,6 @@ class _AppInitializerState extends State<AppInitializer> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Error checking setup: $e');
       setState(() {
         _needsOnboarding = true;
         _isLoading = false;
@@ -152,4 +150,3 @@ class _AppInitializerState extends State<AppInitializer> {
     return const MainScreen();
   }
 }
-

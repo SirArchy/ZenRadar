@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import 'package:flutter/services.dart';
 
 class BatteryOptimizationService {
@@ -21,8 +19,7 @@ class BatteryOptimizationService {
         'isIgnoringBatteryOptimizations',
       );
       return isIgnoring;
-    } catch (e) {
-      print('Error checking battery optimization status: $e');
+    } catch (_) {
       return false;
     }
   }
@@ -34,8 +31,7 @@ class BatteryOptimizationService {
         'requestIgnoreBatteryOptimizations',
       );
       return success;
-    } catch (e) {
-      print('Error requesting battery optimization exemption: $e');
+    } catch (_) {
       return false;
     }
   }
@@ -44,8 +40,8 @@ class BatteryOptimizationService {
   Future<void> openBatteryOptimizationSettings() async {
     try {
       await _channel.invokeMethod('openBatteryOptimizationSettings');
-    } catch (e) {
-      print('Error opening battery optimization settings: $e');
+    } catch (_) {
+      // Ignore platform errors.
     }
   }
 
@@ -53,8 +49,8 @@ class BatteryOptimizationService {
   Future<void> openAutoStartSettings() async {
     try {
       await _channel.invokeMethod('openAutoStartSettings');
-    } catch (e) {
-      print('Error opening autostart settings: $e');
+    } catch (_) {
+      // Ignore platform errors.
     }
   }
 
@@ -65,8 +61,7 @@ class BatteryOptimizationService {
         'canScheduleExactAlarms',
       );
       return canSchedule;
-    } catch (e) {
-      print('Error checking exact alarm permission: $e');
+    } catch (_) {
       return false;
     }
   }
@@ -75,8 +70,8 @@ class BatteryOptimizationService {
   Future<void> requestExactAlarmPermission() async {
     try {
       await _channel.invokeMethod('requestExactAlarmPermission');
-    } catch (e) {
-      print('Error requesting exact alarm permission: $e');
+    } catch (_) {
+      // Ignore platform errors.
     }
   }
 
@@ -87,8 +82,7 @@ class BatteryOptimizationService {
         'getManufacturer',
       );
       return manufacturer.toLowerCase();
-    } catch (e) {
-      print('Error getting device manufacturer: $e');
+    } catch (_) {
       return 'unknown';
     }
   }
@@ -213,18 +207,8 @@ class BatteryOptimizationService {
       final manufacturerRecs =
           result['manufacturerSpecific']['recommendations'] as List;
       result['recommendations'].addAll(manufacturerRecs);
-
-      print('Battery optimization check completed:');
-      print(
-        '  Battery optimization ignored: ${result['batteryOptimizationIgnored']}',
-      );
-      print('  Exact alarm permission: ${result['exactAlarmPermission']}');
-      print(
-        '  Manufacturer: ${result['manufacturerSpecific']['manufacturer']}',
-      );
-      print('  All clear: ${result['allClear']}');
-    } catch (e) {
-      print('Error during battery optimization check: $e');
+    } catch (_) {
+      // Ignore check errors and return best-effort result.
     }
 
     return result;
@@ -233,15 +217,11 @@ class BatteryOptimizationService {
   /// Request all necessary permissions for background operation
   Future<bool> requestAllBatteryPermissions() async {
     try {
-      print('Requesting battery optimization permissions...');
-
       // Request ignore battery optimization
-      final batteryOptResult = await requestIgnoreBatteryOptimizations();
-      print('Battery optimization request result: $batteryOptResult');
+      await requestIgnoreBatteryOptimizations();
 
       // Request exact alarm permission
       await requestExactAlarmPermission();
-      print('Exact alarm permission requested');
 
       // Wait a moment for permissions to be processed
       await Future.delayed(const Duration(seconds: 2));
@@ -249,8 +229,7 @@ class BatteryOptimizationService {
       // Check final status
       final finalCheck = await performBatteryOptimizationCheck();
       return finalCheck['allClear'];
-    } catch (e) {
-      print('Error requesting battery permissions: $e');
+    } catch (_) {
       return false;
     }
   }
@@ -262,7 +241,6 @@ class BatteryOptimizationService {
       final isIgnoring = await isIgnoringBatteryOptimizations();
 
       if (isIgnoring) {
-        print('Battery optimization already disabled');
         return;
       }
 
@@ -270,15 +248,12 @@ class BatteryOptimizationService {
       final canScheduleAlarms = await canScheduleExactAlarms();
 
       if (!canScheduleAlarms) {
-        print('Exact alarm permission needed');
         // Note: We don't automatically request this as it's handled in background service
       }
 
-      // Log manufacturer for debugging
-      final manufacturer = await getDeviceManufacturer();
-      print('Device manufacturer: $manufacturer');
-    } catch (e) {
-      print('Error checking battery optimization: $e');
+      await getDeviceManufacturer();
+    } catch (_) {
+      // Ignore platform errors.
     }
   }
 }

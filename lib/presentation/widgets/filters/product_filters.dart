@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:zenradar/models/matcha_product.dart';
 import 'package:zenradar/data/services/settings/settings_service.dart';
 import 'package:zenradar/data/services/pricing/product_price_converter.dart';
@@ -811,7 +812,13 @@ class _ProductFiltersState extends State<ProductFilters> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Text('Enter ${isMin ? 'Minimum' : 'Maximum'} Price'),
+            title: Text(
+              AppLocalizations.of(context)!.enterPriceForBound(
+                isMin
+                    ? AppLocalizations.of(context)!.minimum
+                    : AppLocalizations.of(context)!.maximum,
+              ),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -821,7 +828,9 @@ class _ProductFiltersState extends State<ProductFilters> {
                     decimal: true,
                   ),
                   decoration: InputDecoration(
-                    labelText: 'Price in $_preferredCurrency',
+                    labelText: AppLocalizations.of(
+                      context,
+                    )!.priceInCurrency(_preferredCurrency),
                     prefixText:
                         _priceConverter?.getCurrencySymbol(
                           _preferredCurrency,
@@ -841,7 +850,7 @@ class _ProductFiltersState extends State<ProductFilters> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
+                child: Text(AppLocalizations.of(context)!.cancel),
               ),
               TextButton(
                 onPressed: () {
@@ -850,7 +859,7 @@ class _ProductFiltersState extends State<ProductFilters> {
                     Navigator.of(context).pop(value);
                   }
                 },
-                child: const Text('OK'),
+                child: Text(AppLocalizations.of(context)!.ok),
               ),
             ],
           ),

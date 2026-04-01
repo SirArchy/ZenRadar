@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, empty_catches
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -28,7 +28,6 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
   bool _isLoadingAnalytics = true;
   String _selectedTimeRange = 'month';
   String? _error;
-  bool _isPremium = false;
 
   final List<String> _timeRanges = ['day', 'week', 'month', 'all'];
 
@@ -48,30 +47,23 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
     try {
       final isPremium = await SubscriptionService.instance.isPremiumUser();
       setState(() {
-        _isPremium = isPremium;
         // For free users, default to 'day' since it's the only available option
         if (!isPremium && _selectedTimeRange != 'day') {
           _selectedTimeRange = 'day';
         }
       });
-      print('🔐 Subscription status loaded: isPremium = $_isPremium');
-    } catch (e) {
-      print('Error loading subscription status: $e');
-    }
+    } catch (e) {}
   }
 
   /// Load data progressively - fast summary first, then full analytics
   Future<void> _loadProgressively() async {
     // Trigger background preloading on first access (if not already started)
     if (!PreloadService.instance.hasCompletedInitialPreload) {
-      PreloadService.instance.startBackgroundPreload().catchError((error) {
-        print('Failed to start preload service: $error');
-      });
+      PreloadService.instance.startBackgroundPreload().catchError((error) {});
     }
 
     // Check if preloading has completed - if so, try to load from cache immediately
     if (PreloadService.instance.hasCompletedInitialPreload) {
-      print('🚀 Preload completed - loading from cache immediately');
       await _loadFromCacheOrServer();
     } else {
       // First, load fast summary for immediate feedback
@@ -92,15 +84,11 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
         const Duration(seconds: 5),
       );
 
-      print('🎯 Preload completed - refreshing with cached data');
-
       // Once preload completes, refresh with the cached data
       if (mounted) {
         await _loadFromCacheOrServer();
       }
-    } catch (e) {
-      print('⏰ Preload timeout or error - continuing with normal loading: $e');
-    }
+    } catch (e) {}
   }
 
   /// Load data from cache first, then from server if needed
@@ -134,9 +122,6 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
 
       // No longer filtering analytics based on subscription tier - all users see all sites
       List<WebsiteStockAnalytics> filteredAnalytics = analytics;
-      print(
-        '✅ Showing all ${analytics.length} sites for all users: ${analytics.map((a) => a.siteKey).toList()}',
-      );
 
       setState(() {
         _websiteAnalytics = filteredAnalytics;
@@ -145,15 +130,12 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
         _isLoadingSummary = false;
         _isLoadingAnalytics = false;
       });
-
-      print('✅ Data loaded successfully: ${filteredAnalytics.length} websites');
     } catch (e) {
       setState(() {
         _error = 'Failed to load analytics: $e';
         _isLoadingSummary = false;
         _isLoadingAnalytics = false;
       });
-      print('❌ Failed to load data: $e');
     }
   }
 
@@ -206,9 +188,6 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
 
       // No longer filtering analytics - all users see all sites
       List<WebsiteStockAnalytics> filteredAnalytics = analytics;
-      print(
-        '✅ [FullAnalytics] Showing all ${analytics.length} sites for all users',
-      );
 
       setState(() {
         _websiteAnalytics = filteredAnalytics;
@@ -842,11 +821,9 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
       try {
         return DateTime.parse(value);
       } catch (e) {
-        print('Error parsing DateTime from string: $value, error: $e');
         return null;
       }
     }
-    print('Unexpected DateTime type: ${value.runtimeType}');
     return null;
   }
 

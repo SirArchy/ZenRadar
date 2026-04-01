@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, empty_catches
 
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
@@ -441,10 +441,6 @@ class DatabaseService {
     int totalItems = countResult.first['count'] as int;
     int totalPages = (totalItems / itemsPerPage).ceil();
 
-    print('Database query - WHERE: $whereClause');
-    print('Database query - ARGS: $whereArgs');
-    print('Database query - Total items found: $totalItems');
-
     // Get paginated results
     String orderBy =
         'matcha_products.$sortBy ${sortAscending ? 'ASC' : 'DESC'}';
@@ -456,8 +452,6 @@ class DatabaseService {
       ORDER BY $orderBy 
       LIMIT $itemsPerPage OFFSET $offset
     ''';
-
-    print('Database query - SELECT: $selectQuery');
 
     final List<Map<String, dynamic>> maps = await db.rawQuery(
       selectQuery,
@@ -1298,9 +1292,7 @@ class _PlatformDatabaseService {
         final firestoreFavorites =
             await FirestoreService.instance.getFavoriteProductIds();
         return firestoreFavorites.toList();
-      } catch (e) {
-        print('Failed to get Firestore favorites, falling back to local: $e');
-      }
+      } catch (e) {}
     }
 
     // Get from local storage
@@ -1331,11 +1323,7 @@ class _PlatformDatabaseService {
         return products
             .where((product) => favoriteIds.contains(product.id))
             .toList();
-      } catch (e) {
-        print(
-          'Failed to get Firestore favorite products, falling back to local: $e',
-        );
-      }
+      } catch (e) {}
     }
 
     // Get from local storage
@@ -1451,9 +1439,7 @@ class _PlatformDatabaseService {
     if (await _isServerMode()) {
       // For server mode, we don't directly insert products to Firestore
       // The cloud service handles product updates
-      if (kDebugMode) {
-        print('Server mode: Product updates handled by cloud service');
-      }
+      if (kDebugMode) {}
     } else {
       // Use local database for local mode
       if (kIsWeb) {
@@ -1483,11 +1469,7 @@ class _PlatformDatabaseService {
   }
 
   Future<List<PriceHistory>> getPriceHistoryForProduct(String productId) async {
-    if (kDebugMode) {
-      print(
-        '🔍 _PlatformDatabaseService.getPriceHistoryForProduct($productId)',
-      );
-    }
+    if (kDebugMode) {}
 
     // Apply subscription-based history limits to Firestore queries
     final subscriptionService = SubscriptionService.instance;
@@ -1496,22 +1478,16 @@ class _PlatformDatabaseService {
         tier.historyLimitDays >= 3650 ? null : tier.historyLimitDays;
 
     if (await _isServerMode()) {
-      if (kDebugMode) {
-        print('📊 Using Firestore for price history');
-      }
+      if (kDebugMode) {}
       return await FirestoreService.instance.getPriceHistoryForProduct(
         productId,
         limitDays: limitDays,
       );
     } else if (kIsWeb) {
-      if (kDebugMode) {
-        print('🌐 Web mode - price history not supported');
-      }
+      if (kDebugMode) {}
       return []; // Web doesn't support price history yet
     } else {
-      if (kDebugMode) {
-        print('💾 Using local database for price history');
-      }
+      if (kDebugMode) {}
       return await DatabaseService.instance.getPriceHistoryForProduct(
         productId,
       );
@@ -1519,29 +1495,19 @@ class _PlatformDatabaseService {
   }
 
   Future<PriceAnalytics> getPriceAnalyticsForProduct(String productId) async {
-    if (kDebugMode) {
-      print(
-        '🔍 _PlatformDatabaseService.getPriceAnalyticsForProduct($productId)',
-      );
-    }
+    if (kDebugMode) {}
 
     if (await _isServerMode()) {
-      if (kDebugMode) {
-        print('📊 Using Firestore for price analytics');
-      }
+      if (kDebugMode) {}
       return await FirestoreService.instance.getPriceAnalyticsForProduct(
         productId,
       );
     } else if (kIsWeb) {
-      if (kDebugMode) {
-        print('🌐 Web mode - creating analytics from empty history');
-      }
+      if (kDebugMode) {}
       final priceHistory = await getPriceHistoryForProduct(productId);
       return PriceAnalytics.fromHistory(priceHistory);
     } else {
-      if (kDebugMode) {
-        print('💾 Using local database for price analytics');
-      }
+      if (kDebugMode) {}
       return await DatabaseService.instance.getPriceAnalyticsForProduct(
         productId,
       );
@@ -1562,30 +1528,20 @@ class _PlatformDatabaseService {
     String productId, {
     int? limitDays,
   }) async {
-    if (kDebugMode) {
-      print(
-        '🔍 _PlatformDatabaseService.getStockAnalyticsForProduct($productId, limitDays: $limitDays)',
-      );
-    }
+    if (kDebugMode) {}
 
     if (await _isServerMode()) {
-      if (kDebugMode) {
-        print('📊 Using Firestore for stock analytics');
-      }
+      if (kDebugMode) {}
       return await FirestoreService.instance.getStockAnalyticsForProduct(
         productId,
         limitDays: limitDays,
       );
     } else if (kIsWeb) {
-      if (kDebugMode) {
-        print('🌐 Web mode - stock analytics not supported');
-      }
+      if (kDebugMode) {}
       // For web, get stock history and create analytics - but web doesn't implement stock history yet
       return StockAnalytics.fromHistory([]);
     } else {
-      if (kDebugMode) {
-        print('💾 Using local database for stock analytics');
-      }
+      if (kDebugMode) {}
       return await DatabaseService.instance.getStockAnalyticsForProduct(
         productId,
         limitDays: limitDays,
@@ -1597,11 +1553,7 @@ class _PlatformDatabaseService {
     String productId, {
     int? limitDays,
   }) async {
-    if (kDebugMode) {
-      print(
-        '🔍 _PlatformDatabaseService.getStockHistoryForProduct($productId, limitDays: $limitDays)',
-      );
-    }
+    if (kDebugMode) {}
 
     // Apply subscription-based day limits if not explicitly specified
     int? effectiveLimitDays = limitDays;
@@ -1613,23 +1565,17 @@ class _PlatformDatabaseService {
     }
 
     if (await _isServerMode()) {
-      if (kDebugMode) {
-        print('📊 Using Firestore for stock history');
-      }
+      if (kDebugMode) {}
       return await FirestoreService.instance.getStockHistoryForProduct(
         productId,
         limitDays: effectiveLimitDays,
       );
     } else if (kIsWeb) {
-      if (kDebugMode) {
-        print('🌐 Web mode - stock history not supported');
-      }
+      if (kDebugMode) {}
       // Web doesn't support stock history yet
       return [];
     } else {
-      if (kDebugMode) {
-        print('💾 Using local database for stock history');
-      }
+      if (kDebugMode) {}
       return await DatabaseService.instance.getStockHistoryForProduct(
         productId,
         limitDays: limitDays,

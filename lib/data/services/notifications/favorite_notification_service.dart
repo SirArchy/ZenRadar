@@ -22,9 +22,7 @@ class FavoriteNotificationService {
   /// Initialize the service and start monitoring favorite products
   Future<void> initializeService() async {
     if (_isListening) {
-      if (kDebugMode) {
-        print('🔔 Favorite notification service already running');
-      }
+      if (kDebugMode) {}
       return;
     }
 
@@ -33,9 +31,7 @@ class FavoriteNotificationService {
 
       if (!settings.notificationsEnabled ||
           !settings.favoriteProductNotifications) {
-        if (kDebugMode) {
-          print('🔕 Favorite notifications disabled in settings');
-        }
+        if (kDebugMode) {}
         return;
       }
 
@@ -45,13 +41,9 @@ class FavoriteNotificationService {
       // FCM subscriptions are already handled by BackendService.initializeFCM()
       // No need to call updateFavoriteSubscriptions() again here
 
-      if (kDebugMode) {
-        print('🔔 Favorite notification service initialized');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to initialize favorite notification service: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -60,9 +52,7 @@ class FavoriteNotificationService {
     _isListening = false;
     _lastKnownState.clear();
 
-    if (kDebugMode) {
-      print('🔕 Favorite notification service stopped');
-    }
+    if (kDebugMode) {}
   }
 
   /// Start monitoring favorite products for changes
@@ -75,15 +65,9 @@ class FavoriteNotificationService {
       // For now, we'll implement a periodic check
       _startPeriodicCheck();
 
-      if (kDebugMode) {
-        print(
-          '🔔 Started monitoring ${_lastKnownState.length} favorite products',
-        );
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to start monitoring: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -97,15 +81,9 @@ class FavoriteNotificationService {
         _lastKnownState[product.id] = product;
       }
 
-      if (kDebugMode) {
-        print(
-          '📊 Loaded initial state for ${favorites.length} favorite products',
-        );
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to load initial state: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -143,15 +121,9 @@ class FavoriteNotificationService {
         _lastKnownState[currentProduct.id] = currentProduct;
       }
 
-      if (kDebugMode) {
-        print(
-          '🔍 Checked ${currentFavorites.length} favorite products for changes',
-        );
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to check for changes: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -174,9 +146,7 @@ class FavoriteNotificationService {
         await _sendPriceChangeNotification(oldProduct, newProduct);
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to send notification for ${newProduct.name}: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -210,13 +180,9 @@ class FavoriteNotificationService {
         productUrl: product.url,
       );
 
-      if (kDebugMode) {
-        print('📬 Sent stock notification for ${product.name}');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to send stock notification: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -248,23 +214,15 @@ class FavoriteNotificationService {
         payload: newProduct.url,
       );
 
-      if (kDebugMode) {
-        print(
-          '💰 Sent price notification for ${newProduct.name}: $oldPrice → $newPrice',
-        );
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to send price notification: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
   /// Manually trigger a check for all favorite products
   Future<void> manualCheck() async {
-    if (kDebugMode) {
-      print('🔍 Manual check triggered for favorite products');
-    }
+    if (kDebugMode) {}
     await _checkForChanges();
   }
 
@@ -281,9 +239,7 @@ class FavoriteNotificationService {
       await initializeService();
     }
 
-    if (kDebugMode) {
-      print('⚙️ Updated favorite notification service settings');
-    }
+    if (kDebugMode) {}
   }
 
   /// Get current monitoring status

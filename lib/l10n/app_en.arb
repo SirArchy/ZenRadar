@@ -1270,6 +1270,932 @@
   "@maximum": {
     "description": "Maximum price label"
   },
+
+  "signInToSyncSettingsAcrossDevices": "Sign in to sync your settings across devices",
+  "@signInToSyncSettingsAcrossDevices": {
+    "description": "Prompt shown on settings screen when user is not signed in"
+  },
+
+  "masterSwitchForAllNotifications": "Master switch for all notifications",
+  "@masterSwitchForAllNotifications": {
+    "description": "Subtitle for the master notifications toggle"
+  },
+
+  "favoriteProductAlerts": "Favorite Product Alerts",
+  "@favoriteProductAlerts": {
+    "description": "Title for favorite product notifications setting"
+  },
+
+  "getNotifiedAboutFavoriteChanges": "Get notified about changes to your favorite products",
+  "@getNotifiedAboutFavoriteChanges": {
+    "description": "Subtitle for favorite product alerts"
+  },
+
+  "notifyWhenFavoritePricesChange": "Notify when prices change for favorite products",
+  "@notifyWhenFavoritePricesChange": {
+    "description": "Subtitle for favorite price change notifications"
+  },
+
+  "cloudNotificationsDeliveredInstantly": "Cloud notifications are delivered instantly when stock changes are detected by our servers.",
+  "@cloudNotificationsDeliveredInstantly": {
+    "description": "Explanation text for cloud notifications"
+  },
+
+  "monitoringFavoriteProducts": "Monitoring {count} favorite products",
+  "@monitoringFavoriteProducts": {
+    "description": "Current monitored favorites count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "favoriteMonitoringInactive": "Favorite monitoring inactive",
+  "@favoriteMonitoringInactive": {
+    "description": "Shown when favorite monitoring is disabled"
+  },
+
+  "monitoredSites": "Monitored Sites",
+  "@monitoredSites": {
+    "description": "Settings section title for monitored sites"
+  },
+
+  "serverMonitoredWebsites": "Server-Monitored Websites",
+  "@serverMonitoredWebsites": {
+    "description": "Title for server monitored websites info box"
+  },
+
+  "allSupportedSitesMonitoredByServer": "All supported matcha websites are automatically monitored by our servers. Data is synchronized to your device regularly.",
+  "@allSupportedSitesMonitoredByServer": {
+    "description": "Description for server-side monitoring"
+  },
+
+  "productsCount": "{count} products",
+  "@productsCount": {
+    "description": "Product count label for a monitored site",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "suggestNewWebsite": "Suggest New Website",
+  "@suggestNewWebsite": {
+    "description": "Button and dialog title for suggesting a new site"
+  },
+
+  "requestMonitoringForAdditionalSites": "Request monitoring for additional matcha sites",
+  "@requestMonitoringForAdditionalSites": {
+    "description": "Subtitle for suggest new website setting"
+  },
+
+  "aboutZenRadar": "About ZenRadar",
+  "@aboutZenRadar": {
+    "description": "About card title"
+  },
+
+  "aboutZenRadarDescription": "ZenRadar helps you monitor matcha availability across multiple Japanese tea retailers. Never miss your favorite matcha again!",
+  "@aboutZenRadarDescription": {
+    "description": "About app description text"
+  },
+
+  "versionNumber": "Version: {version}",
+  "@versionNumber": {
+    "description": "App version label with value",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+
+  "showPricesInOriginalSiteCurrency": "Show prices in original site currency",
+  "@showPricesInOriginalSiteCurrency": {
+    "description": "Preferred currency subtitle for original currency"
+  },
+
+  "showPricesInCurrency": "Show prices in {currency}",
+  "@showPricesInCurrency": {
+    "description": "Preferred currency subtitle for selected currency",
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+
+  "contactMe": "Contact Me",
+  "@contactMe": {
+    "description": "Contact section title"
+  },
+
+  "contact": "Contact",
+  "@contact": {
+    "description": "Contact action label"
+  },
+
+  "github": "GitHub",
+  "@github": {
+    "description": "GitHub label"
+  },
+
+  "linkedIn": "LinkedIn",
+  "@linkedIn": {
+    "description": "LinkedIn label"
+  },
+
+  "payPal": "PayPal",
+  "@payPal": {
+    "description": "PayPal label"
+  },
+
+  "feedbackAndSuggestions": "Feedback & Suggestions",
+  "@feedbackAndSuggestions": {
+    "description": "Feedback section title"
+  },
+
+  "submitFeedback": "Submit Feedback",
+  "@submitFeedback": {
+    "description": "Feedback list tile title"
+  },
+
+  "shareIdeasOnFeedbackBoard": "Share your ideas and suggestions on our feedback board",
+  "@shareIdeasOnFeedbackBoard": {
+    "description": "Feedback list tile subtitle"
+  },
+
+  "feedbackImprovesZenRadar": "Your feedback helps improve ZenRadar! Vote on existing ideas or submit new ones.",
+  "@feedbackImprovesZenRadar": {
+    "description": "Feedback encouragement text"
+  },
+
+  "helpExpandZenRadar": "Help us expand ZenRadar by suggesting a new matcha website to monitor!",
+  "@helpExpandZenRadar": {
+    "description": "Suggest website dialog intro"
+  },
+
+  "websiteName": "Website Name",
+  "@websiteName": {
+    "description": "Website name field label"
+  },
+
+  "websiteNameHint": "e.g. \"Uji Tea Company\"",
+  "@websiteNameHint": {
+    "description": "Website name field hint"
+  },
+
+  "pleaseEnterWebsiteName": "Please enter the website name",
+  "@pleaseEnterWebsiteName": {
+    "description": "Website name validation error"
+  },
+
+  "websiteUrl": "Website URL",
+  "@websiteUrl": {
+    "description": "Website URL field label"
+  },
+
+  "websiteUrlHint": "https://example.com",
+  "@websiteUrlHint": {
+    "description": "Website URL field hint"
+  },
+
+  "pleaseEnterWebsiteUrl": "Please enter the website URL",
+  "@pleaseEnterWebsiteUrl": {
+    "description": "Website URL validation error"
+  },
+
+  "pleaseEnterValidUrl": "Please enter a valid URL",
+  "@pleaseEnterValidUrl": {
+    "description": "Website URL invalid format error"
+  },
+
+  "additionalInformationOptional": "Additional Information (Optional)",
+  "@additionalInformationOptional": {
+    "description": "Additional info field label"
+  },
+
+  "additionalInformationHint": "Special features, product types, etc.",
+  "@additionalInformationHint": {
+    "description": "Additional info field hint"
+  },
+
+  "sendSuggestion": "Send Suggestion",
+  "@sendSuggestion": {
+    "description": "Send suggestion button label"
+  },
+
+  "thankYouSuggestionEmailOpened": "Thank you for your suggestion! Email app opened.",
+  "@thankYouSuggestionEmailOpened": {
+    "description": "Success snackbar when suggestion email opens"
+  },
+
+  "couldNotOpenEmailAppWithError": "Could not open email app: {error}",
+  "@couldNotOpenEmailAppWithError": {
+    "description": "Error snackbar when email app cannot be opened",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "chooseTheme": "Choose Theme",
+  "@chooseTheme": {
+    "description": "Theme picker dialog title"
+  },
+
+  "chooseCurrency": "Choose Currency",
+  "@chooseCurrency": {
+    "description": "Currency picker dialog title"
+  },
+
+  "originalNativeSiteCurrency": "Original (native site currency)",
+  "@originalNativeSiteCurrency": {
+    "description": "Label for native site currency in currency picker"
+  },
+
+  "debugTools": "Debug Tools",
+  "@debugTools": {
+    "description": "Debug section title"
+  },
+
+  "testNotification": "Test Notification",
+  "@testNotification": {
+    "description": "Test notification button label"
+  },
+
+  "sendTestNotificationDescription": "Send a test notification to verify that notifications are working correctly.",
+  "@sendTestNotificationDescription": {
+    "description": "Description under test notification button"
+  },
+
+  "zenRadarTestNotificationTitle": "ZenRadar Test Notification",
+  "@zenRadarTestNotificationTitle": {
+    "description": "Title for local test notification"
+  },
+
+  "zenRadarTestNotificationBody": "This is a test notification to verify that notifications are working correctly.",
+  "@zenRadarTestNotificationBody": {
+    "description": "Body for local test notification"
+  },
+
+  "testNotificationSent": "Test notification sent!",
+  "@testNotificationSent": {
+    "description": "Success snackbar when test notification is sent"
+  },
+
+  "failedToSendTestNotification": "Failed to send test notification: {error}",
+  "@failedToSendTestNotification": {
+    "description": "Error snackbar when test notification fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "contactUs": "Contact Us",
+  "@contactUs": {
+    "description": "Contact dialog title"
+  },
+
+  "yourName": "Your Name",
+  "@yourName": {
+    "description": "Name field label"
+  },
+
+  "pleaseEnterYourName": "Please enter your name",
+  "@pleaseEnterYourName": {
+    "description": "Name validation error"
+  },
+
+  "yourEmail": "Your Email",
+  "@yourEmail": {
+    "description": "Email field label"
+  },
+
+  "pleaseEnterYourEmail": "Please enter your email",
+  "@pleaseEnterYourEmail": {
+    "description": "Email required validation"
+  },
+
+  "pleaseEnterValidEmail": "Please enter a valid email",
+  "@pleaseEnterValidEmail": {
+    "description": "Email format validation"
+  },
+
+  "yourMessage": "Your Message",
+  "@yourMessage": {
+    "description": "Message field label"
+  },
+
+  "pleaseEnterYourMessage": "Please enter your message",
+  "@pleaseEnterYourMessage": {
+    "description": "Message required validation"
+  },
+
+  "emailAppOpenedSuccessfully": "Email app opened successfully!",
+  "@emailAppOpenedSuccessfully": {
+    "description": "Success message after opening email app"
+  },
+
+  "sendEmail": "Send Email",
+  "@sendEmail": {
+    "description": "Send email button label"
+  },
+
+  "emailAddressCopiedToClipboard": "Email address copied to clipboard!",
+  "@emailAddressCopiedToClipboard": {
+    "description": "Snackbar text after copying contact email"
+  },
+
+  "unlockFullPotentialPremium": "Unlock the full potential of ZenRadar with Premium:",
+  "@unlockFullPotentialPremium": {
+    "description": "Upgrade dialog intro text"
+  },
+
+  "unlimitedFavoriteProducts": "Unlimited favorite products",
+  "@unlimitedFavoriteProducts": {
+    "description": "Premium feature item"
+  },
+
+  "hourlyCheckFrequency": "Hourly check frequency",
+  "@hourlyCheckFrequency": {
+    "description": "Premium feature item"
+  },
+
+  "fullPriceAndStockHistory": "Full price & stock history",
+  "@fullPriceAndStockHistory": {
+    "description": "Premium feature item"
+  },
+
+  "comingSoon": "Coming soon",
+  "@comingSoon": {
+    "description": "Coming soon label"
+  },
+
+  "paymentIntegrationComingSoon": "Payment integration coming soon! Follow development for updates.",
+  "@paymentIntegrationComingSoon": {
+    "description": "Upgrade dialog payment status note"
+  },
+
+  "maybeLater": "Maybe Later",
+  "@maybeLater": {
+    "description": "Dismiss action for upgrade prompt"
+  },
+
+  "getPremium": "Get Premium",
+  "@getPremium": {
+    "description": "Primary action to open premium upgrade"
+  },
+
+  "clearOldActivitiesConfirm": "This will remove scan activities older than 30 days. Continue?",
+  "@clearOldActivitiesConfirm": {
+    "description": "Confirmation text for clearing old scan activities"
+  },
+
+  "clearAllActivitiesConfirm": "This will permanently delete ALL scan activities. This action cannot be undone. Continue?",
+  "@clearAllActivitiesConfirm": {
+    "description": "Confirmation text for deleting all scan activities"
+  },
+
+  "deleteAll": "Delete All",
+  "@deleteAll": {
+    "description": "Delete all button label"
+  },
+
+  "oldActivitiesClearedSuccessfully": "Old activities cleared successfully",
+  "@oldActivitiesClearedSuccessfully": {
+    "description": "Success message after clearing old activities"
+  },
+
+  "allActivitiesClearedSuccessfully": "All activities cleared successfully",
+  "@allActivitiesClearedSuccessfully": {
+    "description": "Success message after clearing all activities"
+  },
+
+  "errorClearingActivitiesWithError": "Error clearing activities: {error}",
+  "@errorClearingActivitiesWithError": {
+    "description": "Error message when clearing activities fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "refreshActivities": "Refresh activities",
+  "@refreshActivities": {
+    "description": "Tooltip for refreshing activities"
+  },
+
+  "noServerScansFound": "No server scans found",
+  "@noServerScansFound": {
+    "description": "Empty state title for recent scans"
+  },
+
+  "serverScanActivitiesAppearHere": "Server scan activities will appear here",
+  "@serverScanActivitiesAppearHere": {
+    "description": "Empty state subtitle for recent scans"
+  },
+
+  "clearAllFilters": "Clear All Filters",
+  "@clearAllFilters": {
+    "description": "Button label to clear all active filters"
+  },
+
+  "confirmRemoveProductsFromFavorites": "Are you sure you want to remove {count} products from your favorites?",
+  "@confirmRemoveProductsFromFavorites": {
+    "description": "Confirmation prompt for bulk removing favorites",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "remove": "Remove",
+  "@remove": {
+    "description": "Remove action label"
+  },
+
+  "getUnlimitedHistoryAccess": "Get unlimited access to price and stock history:",
+  "@getUnlimitedHistoryAccess": {
+    "description": "Intro line in premium upgrade dialog"
+  },
+
+  "bulletFullPriceAndStockHistory": "• Full price & stock history",
+  "@bulletFullPriceAndStockHistory": {
+    "description": "Premium feature bullet"
+  },
+
+  "bulletUnlimitedFavoriteProducts": "• Unlimited favorite products",
+  "@bulletUnlimitedFavoriteProducts": {
+    "description": "Premium feature bullet"
+  },
+
+  "bulletMonitorAllVendorSites": "• Monitor all vendor sites",
+  "@bulletMonitorAllVendorSites": {
+    "description": "Premium feature bullet"
+  },
+
+  "bulletHourlyCheckFrequency": "• Hourly check frequency",
+  "@bulletHourlyCheckFrequency": {
+    "description": "Premium feature bullet"
+  },
+
+  "upgradeNow": "Upgrade Now",
+  "@upgradeNow": {
+    "description": "Upgrade button label"
+  },
+
+  "backToSignIn": "Back to Sign In",
+  "@backToSignIn": {
+    "description": "Back action on email verification screen"
+  },
+
+  "pleaseVerifyEmailBeforeContinuing": "Please verify your email before continuing",
+  "@pleaseVerifyEmailBeforeContinuing": {
+    "description": "Error shown when email is not yet verified"
+  },
+
+  "enterEmailForResetLink": "Enter your email address to receive a password reset link.",
+  "@enterEmailForResetLink": {
+    "description": "Instruction text in reset password dialog"
+  },
+
+  "passwordResetEmailSentTo": "Password reset email sent to {email}",
+  "@passwordResetEmailSentTo": {
+    "description": "Success message after sending reset email",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+
+  "errorSendingResetEmail": "Error sending reset email",
+  "@errorSendingResetEmail": {
+    "description": "Fallback error when reset email fails"
+  },
+
+  "sendResetEmail": "Send Reset Email",
+  "@sendResetEmail": {
+    "description": "Action button in reset password dialog"
+  },
+
+  "errorLoadingAnalyticsWithError": "Error loading analytics: {error}",
+  "@errorLoadingAnalyticsWithError": {
+    "description": "Error snackbar on product detail analytics load",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "failedToUpdateFavorite": "Failed to update favorite",
+  "@failedToUpdateFavorite": {
+    "description": "Error when favorite update request fails"
+  },
+
+  "addedToFavoritesNotificationEnabled": "📱 Added to favorites - you'll get notifications when it's back in stock!",
+  "@addedToFavoritesNotificationEnabled": {
+    "description": "Snackbar when product is added to favorites"
+  },
+
+  "removedFromFavorites": "Removed from favorites",
+  "@removedFromFavorites": {
+    "description": "Snackbar when product is removed from favorites"
+  },
+
+  "errorUpdatingFavoriteWithError": "Error updating favorite: {error}",
+  "@errorUpdatingFavoriteWithError": {
+    "description": "Error snackbar for favorite update",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "selectCurrency": "Select Currency",
+  "@selectCurrency": {
+    "description": "Currency selection menu title and tooltip"
+  },
+
+  "priceAnalytics": "Price Analytics",
+  "@priceAnalytics": {
+    "description": "Price analytics section title"
+  },
+
+  "noPriceHistoryAvailable": "No Price History Available",
+  "@noPriceHistoryAvailable": {
+    "description": "Empty state title for missing price history"
+  },
+
+  "priceTrackingStartsNextScan": "Price tracking will begin with the next scan",
+  "@priceTrackingStartsNextScan": {
+    "description": "Empty state subtitle for missing price history"
+  },
+
+  "current": "Current",
+  "@current": {
+    "description": "Current value label"
+  },
+
+  "lowest": "Lowest",
+  "@lowest": {
+    "description": "Lowest value label"
+  },
+
+  "highest": "Highest",
+  "@highest": {
+    "description": "Highest value label"
+  },
+
+  "average": "Average",
+  "@average": {
+    "description": "Average value label"
+  },
+
+  "loadingPriceHistory": "Loading price history...",
+  "@loadingPriceHistory": {
+    "description": "Loading label for price chart"
+  },
+
+  "unknown": "Unknown",
+  "@unknown": {
+    "description": "Fallback value when data is unknown"
+  },
+
+  "site": "Site",
+  "@site": {
+    "description": "Product site label"
+  },
+
+  "weight": "Weight",
+  "@weight": {
+    "description": "Product weight label"
+  },
+
+  "originalCurrency": "Original Currency",
+  "@originalCurrency": {
+    "description": "Label for original product currency"
+  },
+
+  "firstSeen": "First Seen",
+  "@firstSeen": {
+    "description": "First seen timestamp label"
+  },
+
+  "lastChecked": "Last Checked",
+  "@lastChecked": {
+    "description": "Last checked timestamp label"
+  },
+
+  "priceDataPoints": "Price Data Points",
+  "@priceDataPoints": {
+    "description": "Label for total price data points"
+  },
+
+  "availability": "Availability",
+  "@availability": {
+    "description": "Stock availability label"
+  },
+
+  "volatility": "Volatility",
+  "@volatility": {
+    "description": "Stock volatility label"
+  },
+
+  "high": "High",
+  "@high": {
+    "description": "High status label"
+  },
+
+  "stable": "Stable",
+  "@stable": {
+    "description": "Stable status label"
+  },
+
+  "trend": "Trend",
+  "@trend": {
+    "description": "Trend label"
+  },
+
+  "selectDate": "Select Date",
+  "@selectDate": {
+    "description": "Select date label"
+  },
+
+  "fullAccess": "Full Access",
+  "@fullAccess": {
+    "description": "Full access badge label"
+  },
+
+  "premiumAccess": "Premium Access",
+  "@premiumAccess": {
+    "description": "Premium access banner title"
+  },
+
+  "viewingFullHistoryUnlimitedAccess": "Viewing full price & stock history with unlimited access",
+  "@viewingFullHistoryUnlimitedAccess": {
+    "description": "Premium banner description"
+  },
+
+  "limitedHistoryAccess": "Limited History Access",
+  "@limitedHistoryAccess": {
+    "description": "Limited access banner title"
+  },
+
+  "freeTierHistoryLimitBanner": "Free tier shows last {days} days. Upgrade for full history access.",
+  "@freeTierHistoryLimitBanner": {
+    "description": "Limited access banner description",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+
+  "fullPremiumNoCardRequired": "Get full premium access instantly. No credit card required.",
+  "@fullPremiumNoCardRequired": {
+    "description": "Trial section helper text"
+  },
+
+  "upgradeDirectlyWithPayment": "Or upgrade directly with payment",
+  "@upgradeDirectlyWithPayment": {
+    "description": "Secondary upgrade CTA"
+  },
+
+  "freeTrialActive": "Free Trial Active",
+  "@freeTrialActive": {
+    "description": "Active trial status title"
+  },
+
+  "daysRemaining": "{days} days remaining",
+  "@daysRemaining": {
+    "description": "Remaining trial days",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+
+  "upgradeNowKeepPremium": "Upgrade Now & Keep Premium",
+  "@upgradeNowKeepPremium": {
+    "description": "CTA when trial is active"
+  },
+
+  "failedToLoadActivitiesWithError": "Failed to load activities: {error}",
+  "@failedToLoadActivitiesWithError": {
+    "description": "Error snackbar when activities fail to load",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "failedToRefreshActivitiesWithError": "Failed to refresh server activities: {error}",
+  "@failedToRefreshActivitiesWithError": {
+    "description": "Error snackbar when force refresh fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "noStockUpdateDetailsForScan": "No stock update details available for this scan",
+  "@noStockUpdateDetailsForScan": {
+    "description": "Shown when no crawl request id is available"
+  },
+
+  "noDetailedProductUpdatesForScan": "No detailed product updates found for this scan",
+  "@noDetailedProductUpdatesForScan": {
+    "description": "Shown when stock and price updates are empty"
+  },
+
+  "errorLoadingStockUpdatesWithError": "Error loading stock updates: {error}",
+  "@errorLoadingStockUpdatesWithError": {
+    "description": "Error snackbar when stock updates query fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "crawlTriggeredSuccessfully": "Crawl triggered successfully! ID: {requestId}",
+  "@crawlTriggeredSuccessfully": {
+    "description": "Success message after triggering a manual crawl",
+    "placeholders": {
+      "requestId": {
+        "type": "String"
+      }
+    }
+  },
+
+  "failedToTriggerCrawlWithError": "Failed to trigger crawl: {error}",
+  "@failedToTriggerCrawlWithError": {
+    "description": "Error message for failed manual crawl trigger",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "checkingServerStatus": "Checking server status...",
+  "@checkingServerStatus": {
+    "description": "Fallback status text while server health is unknown"
+  },
+
+  "failedToLoadDailyStockData": "Failed to load daily stock data",
+  "@failedToLoadDailyStockData": {
+    "description": "Error shown when daily stock history query fails"
+  },
+
+  "addingProductsToFavorites": "Adding {count} products to favorites...",
+  "@addingProductsToFavorites": {
+    "description": "Progress message while bulk-adding favorites",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "errorAddingProductsToFavoritesWithError": "Error adding products to favorites: {error}",
+  "@errorAddingProductsToFavoritesWithError": {
+    "description": "Error snackbar when bulk add favorites fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "errorRemovingProductsFromFavoritesWithError": "Error removing products from favorites: {error}",
+  "@errorRemovingProductsFromFavoritesWithError": {
+    "description": "Error snackbar when bulk remove favorites fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "notificationsEnabledSuccessfully": "Notifications enabled successfully!",
+  "@notificationsEnabledSuccessfully": {
+    "description": "Success message after notification permission granted"
+  },
+
+  "notificationPermissionDeniedEnableLater": "Notification permission denied. You can enable it later in Settings.",
+  "@notificationPermissionDeniedEnableLater": {
+    "description": "Message when notification permission is denied"
+  },
+
+  "errorRequestingNotificationPermissionWithError": "Error requesting notification permission: {error}",
+  "@errorRequestingNotificationPermissionWithError": {
+    "description": "Error snackbar when requesting notifications fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "setupErrorWithError": "Setup error: {error}",
+  "@setupErrorWithError": {
+    "description": "Onboarding setup error",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "redirectingToSecureCheckout": "Redirecting to secure checkout... 🚀",
+  "@redirectingToSecureCheckout": {
+    "description": "Snackbar shown before opening checkout"
+  },
+
+  "errorWithDetails": "Error: {error}",
+  "@errorWithDetails": {
+    "description": "Generic error snackbar with details",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "freeTrialStartedEnjoyPremium": "🎉 7-day free trial started! Enjoy premium features!",
+  "@freeTrialStartedEnjoyPremium": {
+    "description": "Success message after starting free trial"
+  },
+
+  "errorStartingTrialWithError": "Error starting trial: {error}",
+  "@errorStartingTrialWithError": {
+    "description": "Error message for trial start failure",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "enterPriceForBound": "Enter {bound} Price",
+  "@enterPriceForBound": {
+    "description": "Dialog title for manual minimum/maximum price input",
+    "placeholders": {
+      "bound": {
+        "type": "String"
+      }
+    }
+  },
+
+  "unableToStartTrialMaybeUsed": "Unable to start trial. You may have already used it.",
+  "@unableToStartTrialMaybeUsed": {
+    "description": "Message shown when trial cannot be started"
+  },
+
+  "priceInCurrency": "Price in {currency}",
+  "@priceInCurrency": {
+    "description": "Input label for manual price entry in a selected currency",
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+
+  "displayNameOptional": "Display Name (Optional)",
+  "@displayNameOptional": {
+    "description": "Display name field label in sign-up form"
+  },
+
+  "upgrade": "Upgrade",
+  "@upgrade": {
+    "description": "Generic short upgrade action label"
+  },
+
+  "youAlreadyHavePremiumAccess": "You already have Premium access!",
+  "@youAlreadyHavePremiumAccess": {
+    "description": "Message shown when user already has premium tier"
+  },
+
+  "startingTrial": "Starting Trial...",
+  "@startingTrial": {
+    "description": "Loading label while starting free trial"
+  },
+
   "days": "days",
   "@days": {
     "description": "Days label"

@@ -40,26 +40,15 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     // Verify authentication state before starting preload
     final authService = AuthService.instance;
     if (!authService.isSignedIn || authService.currentUser == null) {
-      print('⚠️ Cannot start preload service - user not authenticated');
       return;
     }
-
-    print(
-      '🚀 Initializing preload service for authenticated user: ${authService.currentUser?.email}',
-    );
 
     // Add a small delay to ensure all services are fully initialized
     Future.delayed(const Duration(milliseconds: 500), () {
       // Double-check authentication is still valid before proceeding
       if (authService.isSignedIn && authService.currentUser != null) {
-        PreloadService.instance.startBackgroundPreload().catchError((error) {
-          print('❌ Preload service initialization failed: $error');
-        });
-      } else {
-        print(
-          '⚠️ Authentication state changed, skipping preload initialization',
-        );
-      }
+        PreloadService.instance.startBackgroundPreload().catchError((error) {});
+      } else {}
     });
   }
 
@@ -139,4 +128,3 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     );
   }
 }
-

@@ -1,3 +1,5 @@
+// ignore_for_file: empty_catches
+
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -68,9 +70,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
         _currentTier = tier;
         _tierComparison = comparison;
       });
-    } catch (e) {
-      debugPrint('Error loading subscription data: $e');
-    }
+    } catch (e) {}
   }
 
   @override
@@ -631,6 +631,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
   }
 
   Widget _buildUpgradeButton() {
+    final l10n = AppLocalizations.of(context)!;
     if (_currentTier == SubscriptionTier.premium) {
       return Container(
         width: double.infinity,
@@ -644,10 +645,10 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
           children: [
             Icon(Icons.check_circle, color: Colors.green.shade700),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
-                'You already have Premium access!',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                l10n.youAlreadyHavePremiumAccess,
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -679,7 +680,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
                           )
                           : const Icon(Icons.play_arrow, size: 24),
                   label: Text(
-                    _isLoading ? 'Starting Trial...' : 'Start 7-Day Free Trial',
+                    _isLoading ? l10n.startingTrial : l10n.startFreeTrial,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -697,7 +698,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
               ),
               const SizedBox(height: 12),
               Text(
-                'Get full premium access instantly. No credit card required.',
+                l10n.fullPremiumNoCardRequired,
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                 textAlign: TextAlign.center,
               ),
@@ -708,7 +709,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.amber.shade700,
                 ),
-                child: const Text('Or upgrade directly with payment'),
+                child: Text(l10n.upgradeDirectlyWithPayment),
               ),
             ],
           );
@@ -732,7 +733,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Free Trial Active',
+                        l10n.freeTrialActive,
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           color: Colors.blue.shade800,
@@ -743,7 +744,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${trialStatus!.daysRemaining} days remaining',
+                  l10n.daysRemaining(trialStatus!.daysRemaining),
                   style: TextStyle(color: Colors.blue.shade700),
                 ),
                 const SizedBox(height: 12),
@@ -758,7 +759,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text('Upgrade Now & Keep Premium'),
+                    child: Text(l10n.upgradeNowKeepPremium),
                   ),
                 ),
               ],
@@ -853,6 +854,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
   }
 
   Future<void> _handleUpgrade() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _isLoading = true);
 
     try {
@@ -869,21 +871,20 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
       // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Redirecting to secure checkout... 🚀'),
+          SnackBar(
+            content: Text(l10n.redirectingToSecureCheckout),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
     } catch (e) {
-      debugPrint('Error starting upgrade: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(l10n.errorWithDetails('$e')),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 4),
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -895,30 +896,28 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
   }
 
   Future<void> _handleStartTrial() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _isLoading = true);
     try {
       await PaymentService.instance.startFreeTrial();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              '🎉 7-day free trial started! Enjoy premium features!',
-            ),
+          SnackBar(
+            content: Text(l10n.freeTrialStartedEnjoyPremium),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
         // Close the upgrade screen since user now has premium access
         Navigator.of(context).pop();
       }
     } catch (e) {
-      debugPrint('Error starting trial: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error starting trial: $e'),
+            content: Text(l10n.errorStartingTrialWithError('$e')),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 4),
+            duration: const Duration(seconds: 4),
           ),
         );
       }

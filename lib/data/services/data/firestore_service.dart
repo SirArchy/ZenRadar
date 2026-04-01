@@ -32,9 +32,7 @@ class FirestoreService {
     if (!_isInitialized) {
       _firestore = FirebaseFirestore.instance;
       _isInitialized = true;
-      if (kDebugMode) {
-        print('Firestore service initialized');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -65,9 +63,7 @@ class FirestoreService {
       }
     }
 
-    if (kDebugMode) {
-      print('🔄 Converted site names $siteNames to keys $siteKeys');
-    }
+    if (kDebugMode) {}
 
     return siteKeys;
   }
@@ -85,9 +81,7 @@ class FirestoreService {
 
       // Apply filters
       if (filter != null) {
-        if (kDebugMode) {
-          print('🔍 Applying filter: ${filter.toString()}');
-        }
+        if (kDebugMode) {}
 
         if (filter.inStock != null) {
           query = query.where('isInStock', isEqualTo: filter.inStock);
@@ -96,9 +90,7 @@ class FirestoreService {
         if (filter.sites != null && filter.sites!.isNotEmpty) {
           // Convert display names to site keys for Firestore query
           final siteKeys = _convertSiteNamesToKeys(filter.sites!);
-          if (kDebugMode) {
-            print('🌐 Filtering by sites: ${filter.sites} -> $siteKeys');
-          }
+          if (kDebugMode) {}
           query = query.where('site', whereIn: siteKeys);
         }
 
@@ -178,11 +170,7 @@ class FirestoreService {
         }
       }
 
-      if (kDebugMode) {
-        print(
-          'Loaded ${filteredProducts.length} products from Firestore (page $page)',
-        );
-      }
+      if (kDebugMode) {}
 
       return PaginatedProducts(
         products: filteredProducts,
@@ -192,9 +180,7 @@ class FirestoreService {
         itemsPerPage: itemsPerPage,
       );
     } catch (e) {
-      if (kDebugMode) {
-        print('Error loading products from Firestore: $e');
-      }
+      if (kDebugMode) {}
       rethrow;
     }
   }
@@ -264,15 +250,11 @@ class FirestoreService {
         }
       }
 
-      if (kDebugMode) {
-        print('Loaded ${products.length} products from Firestore');
-      }
+      if (kDebugMode) {}
 
       return products;
     } catch (e) {
-      if (kDebugMode) {
-        print('Error loading all products from Firestore: $e');
-      }
+      if (kDebugMode) {}
       rethrow;
     }
   }
@@ -288,9 +270,7 @@ class FirestoreService {
 
       return null;
     } catch (e) {
-      if (kDebugMode) {
-        print('Error loading product by ID from Firestore: $e');
-      }
+      if (kDebugMode) {}
       rethrow;
     }
   }
@@ -363,9 +343,7 @@ class FirestoreService {
         return products;
       });
     } catch (e) {
-      if (kDebugMode) {
-        print('Error listening to products from Firestore: $e');
-      }
+      if (kDebugMode) {}
       rethrow;
     }
   }
@@ -427,15 +405,11 @@ class FirestoreService {
       // Convert site keys to display names
       final siteNames = _convertSiteKeysToNames(siteKeys);
 
-      if (kDebugMode) {
-        print('🌐 Found sites: $siteKeys -> $siteNames');
-      }
+      if (kDebugMode) {}
 
       return siteNames;
     } catch (e) {
-      if (kDebugMode) {
-        print('Error loading unique sites from Firestore: $e');
-      }
+      if (kDebugMode) {}
       return [];
     }
   }
@@ -455,9 +429,7 @@ class FirestoreService {
       categories.sort();
       return categories;
     } catch (e) {
-      if (kDebugMode) {
-        print('Error loading unique categories from Firestore: $e');
-      }
+      if (kDebugMode) {}
       return [];
     }
   }
@@ -467,9 +439,7 @@ class FirestoreService {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        if (kDebugMode) {
-          print('No authenticated user for favorites');
-        }
+        if (kDebugMode) {}
         return <String>{};
       }
 
@@ -491,9 +461,7 @@ class FirestoreService {
 
       return favoriteIds;
     } catch (e) {
-      if (kDebugMode) {
-        print('Error loading user favorites from Firestore: $e');
-      }
+      if (kDebugMode) {}
       return <String>{};
     }
   }
@@ -503,9 +471,7 @@ class FirestoreService {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        if (kDebugMode) {
-          print('No authenticated user - cannot add to favorites');
-        }
+        if (kDebugMode) {}
         return;
       }
 
@@ -525,14 +491,10 @@ class FirestoreService {
           'addedAt': FieldValue.serverTimestamp(),
         });
 
-        if (kDebugMode) {
-          print('Product $productId added to favorites in Firestore');
-        }
+        if (kDebugMode) {}
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Error adding favorite to Firestore: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -541,9 +503,7 @@ class FirestoreService {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        if (kDebugMode) {
-          print('No authenticated user - cannot remove from favorites');
-        }
+        if (kDebugMode) {}
         return;
       }
 
@@ -559,13 +519,9 @@ class FirestoreService {
         await doc.reference.delete();
       }
 
-      if (kDebugMode) {
-        print('Product $productId removed from favorites in Firestore');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('Error removing favorite from Firestore: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -607,9 +563,7 @@ class FirestoreService {
         );
       }).toList();
     } catch (e) {
-      if (kDebugMode) {
-        print('Error fetching products for site $siteKey: $e');
-      }
+      if (kDebugMode) {}
       return [];
     }
   }
@@ -647,9 +601,7 @@ class FirestoreService {
         );
       }).toList();
     } catch (e) {
-      if (kDebugMode) {
-        print('Error fetching stock history for site $siteKey: $e');
-      }
+      if (kDebugMode) {}
       return [];
     }
   }
@@ -680,9 +632,7 @@ class FirestoreService {
         };
       }).toList();
     } catch (e) {
-      if (kDebugMode) {
-        print('Error fetching crawl requests: $e');
-      }
+      if (kDebugMode) {}
       return [];
     }
   }
@@ -741,21 +691,13 @@ class FirestoreService {
 
       // If no updates found using crawlRequestId, try to fallback to timestamp-based search
       if (stockUpdates.isEmpty) {
-        if (kDebugMode) {
-          print(
-            'No stock updates found with crawlRequestId $crawlRequestId, trying timestamp fallback...',
-          );
-        }
+        if (kDebugMode) {}
         return await getStockUpdatesByTimestamp(crawlRequestId);
       }
 
       return stockUpdates;
     } catch (e) {
-      if (kDebugMode) {
-        print(
-          'Error fetching stock updates for crawl request $crawlRequestId: $e',
-        );
-      }
+      if (kDebugMode) {}
       return [];
     }
   }
@@ -773,9 +715,7 @@ class FirestoreService {
               .get();
 
       if (!crawlRequestDoc.exists) {
-        if (kDebugMode) {
-          print('Crawl request $crawlRequestId not found');
-        }
+        if (kDebugMode) {}
         return [];
       }
 
@@ -785,9 +725,7 @@ class FirestoreService {
           crawlData['completedAt'] ?? crawlData['updatedAt'] ?? DateTime.now();
 
       if (startTime == null) {
-        if (kDebugMode) {
-          print('No start time found for crawl request $crawlRequestId');
-        }
+        if (kDebugMode) {}
         return [];
       }
 
@@ -799,11 +737,7 @@ class FirestoreService {
       startTimestamp = startTimestamp.subtract(const Duration(minutes: 5));
       endTimestamp = endTimestamp.add(const Duration(minutes: 5));
 
-      if (kDebugMode) {
-        print(
-          'Searching for stock updates between $startTimestamp and $endTimestamp',
-        );
-      }
+      if (kDebugMode) {}
 
       // Try to query all stock history entries first, then filter by timestamp in memory
       // This avoids potential indexing issues with timestamp queries
@@ -818,9 +752,7 @@ class FirestoreService {
                 .orderBy('timestamp', descending: true)
                 .get();
       } catch (e) {
-        if (kDebugMode) {
-          print('Timestamp query failed, trying to get all recent entries: $e');
-        }
+        if (kDebugMode) {}
         // Fallback: get recent entries and filter manually
         querySnapshot =
             await firestore
@@ -886,19 +818,11 @@ class FirestoreService {
         }
       }
 
-      if (kDebugMode) {
-        print(
-          'Found ${stockUpdates.length} stock updates using timestamp fallback',
-        );
-      }
+      if (kDebugMode) {}
 
       return stockUpdates;
     } catch (e) {
-      if (kDebugMode) {
-        print(
-          'Error fetching stock updates by timestamp for crawl request $crawlRequestId: $e',
-        );
-      }
+      if (kDebugMode) {}
       return [];
     }
   }
@@ -952,21 +876,13 @@ class FirestoreService {
 
       // If no updates found using crawlRequestId, try to fallback to timestamp-based search
       if (priceUpdates.isEmpty) {
-        if (kDebugMode) {
-          print(
-            'No price updates found with crawlRequestId $crawlRequestId, trying timestamp fallback...',
-          );
-        }
+        if (kDebugMode) {}
         return await getPriceUpdatesByTimestamp(crawlRequestId);
       }
 
       return priceUpdates;
     } catch (e) {
-      if (kDebugMode) {
-        print(
-          'Error fetching price updates for crawl request $crawlRequestId: $e',
-        );
-      }
+      if (kDebugMode) {}
       return [];
     }
   }
@@ -984,9 +900,7 @@ class FirestoreService {
               .get();
 
       if (!crawlRequestDoc.exists) {
-        if (kDebugMode) {
-          print('Crawl request $crawlRequestId not found');
-        }
+        if (kDebugMode) {}
         return [];
       }
 
@@ -996,9 +910,7 @@ class FirestoreService {
           crawlData['completedAt'] ?? crawlData['updatedAt'] ?? DateTime.now();
 
       if (startTime == null) {
-        if (kDebugMode) {
-          print('No start time found for crawl request $crawlRequestId');
-        }
+        if (kDebugMode) {}
         return [];
       }
 
@@ -1010,11 +922,7 @@ class FirestoreService {
       startTimestamp = startTimestamp.subtract(const Duration(minutes: 5));
       endTimestamp = endTimestamp.add(const Duration(minutes: 5));
 
-      if (kDebugMode) {
-        print(
-          'Searching for price updates between $startTimestamp and $endTimestamp',
-        );
-      }
+      if (kDebugMode) {}
 
       // Try multiple query strategies to handle different field names and indexing issues
       QuerySnapshot<Map<String, dynamic>>? querySnapshot;
@@ -1028,15 +936,9 @@ class FirestoreService {
                 .where('timestamp', isLessThanOrEqualTo: endTimestamp)
                 .orderBy('timestamp', descending: true)
                 .get();
-        if (kDebugMode) {
-          print(
-            'Strategy 1 (timestamp range): Found ${querySnapshot.docs.length} entries',
-          );
-        }
+        if (kDebugMode) {}
       } catch (e) {
-        if (kDebugMode) {
-          print('Strategy 1 failed: $e');
-        }
+        if (kDebugMode) {}
       }
 
       // Strategy 2: Try date field with range query (if timestamp failed)
@@ -1049,15 +951,9 @@ class FirestoreService {
                   .where('date', isLessThanOrEqualTo: endTimestamp)
                   .orderBy('date', descending: true)
                   .get();
-          if (kDebugMode) {
-            print(
-              'Strategy 2 (date range): Found ${querySnapshot.docs.length} entries',
-            );
-          }
+          if (kDebugMode) {}
         } catch (e) {
-          if (kDebugMode) {
-            print('Strategy 2 failed: $e');
-          }
+          if (kDebugMode) {}
         }
       }
 
@@ -1070,15 +966,9 @@ class FirestoreService {
                   .orderBy('timestamp', descending: true)
                   .limit(100)
                   .get();
-          if (kDebugMode) {
-            print(
-              'Strategy 3 (recent entries): Found ${querySnapshot.docs.length} entries',
-            );
-          }
+          if (kDebugMode) {}
         } catch (e) {
-          if (kDebugMode) {
-            print('Strategy 3 also failed: $e');
-          }
+          if (kDebugMode) {}
           // Final fallback - try with date field
           try {
             querySnapshot =
@@ -1087,15 +977,9 @@ class FirestoreService {
                     .orderBy('date', descending: true)
                     .limit(100)
                     .get();
-            if (kDebugMode) {
-              print(
-                'Strategy 3b (recent by date): Found ${querySnapshot.docs.length} entries',
-              );
-            }
+            if (kDebugMode) {}
           } catch (e2) {
-            if (kDebugMode) {
-              print('All strategies failed: $e2');
-            }
+            if (kDebugMode) {}
             return [];
           }
         }
@@ -1152,19 +1036,11 @@ class FirestoreService {
         }
       }
 
-      if (kDebugMode) {
-        print(
-          'Found ${priceUpdates.length} price updates using timestamp fallback',
-        );
-      }
+      if (kDebugMode) {}
 
       return priceUpdates;
     } catch (e) {
-      if (kDebugMode) {
-        print(
-          'Error fetching price updates for crawl request $crawlRequestId: $e',
-        );
-      }
+      if (kDebugMode) {}
       return [];
     }
   }
@@ -1216,9 +1092,7 @@ class FirestoreService {
         'max': maxPrice,
       };
     } catch (e) {
-      if (kDebugMode) {
-        print('Error getting price range from Firestore: $e');
-      }
+      if (kDebugMode) {}
       return {'min': 0.0, 'max': 1000.0};
     }
   }
@@ -1234,9 +1108,7 @@ class FirestoreService {
   Future<void> insertScanActivity(dynamic scanActivity) async {
     // Scan activities are generated by the server in server mode
     // This is a no-op for client-side
-    if (kDebugMode) {
-      print('insertScanActivity: Not applicable in server mode');
-    }
+    if (kDebugMode) {}
   }
 
   /// Get price analytics for a product
@@ -1245,9 +1117,7 @@ class FirestoreService {
       final priceHistory = await getPriceHistoryForProduct(productId);
       return PriceAnalytics.fromHistory(priceHistory);
     } catch (e) {
-      if (kDebugMode) {
-        print('Error getting price analytics from Firestore: $e');
-      }
+      if (kDebugMode) {}
       return PriceAnalytics.fromHistory([]);
     }
   }
@@ -1259,16 +1129,10 @@ class FirestoreService {
   }) async {
     try {
       if (kDebugMode) {
-        print(
-          '🔍 Loading price history for product: $productId (limitDays: $limitDays)',
-        );
-
         // Check authentication status
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
-          print('👤 Authenticated as: ${user.email ?? user.uid}');
         } else {
-          print('❌ No authenticated user - this will fail!');
           return [];
         }
       }
@@ -1288,9 +1152,7 @@ class FirestoreService {
 
       final snapshot = await query.orderBy('date', descending: false).get();
 
-      if (kDebugMode) {
-        print('📊 Found ${snapshot.docs.length} price history entries');
-      }
+      if (kDebugMode) {}
 
       final priceHistory =
           snapshot.docs
@@ -1299,11 +1161,7 @@ class FirestoreService {
 
                 if (data == null) return null;
 
-                if (kDebugMode) {
-                  print(
-                    '💰 Price entry: ${data['date']} - ${data['price']} ${data['currency']}',
-                  );
-                }
+                if (kDebugMode) {}
 
                 // Handle the price field which might be a large number that needs conversion
                 double priceValue = 0.0;
@@ -1321,11 +1179,7 @@ class FirestoreService {
                     priceValue = priceValue / 100.0;
                   }
 
-                  if (kDebugMode) {
-                    print(
-                      '💰 Price converted: $rawPrice -> $priceValue $currency',
-                    );
-                  }
+                  if (kDebugMode) {}
                 }
 
                 return PriceHistory(
@@ -1341,15 +1195,11 @@ class FirestoreService {
               .cast<PriceHistory>()
               .toList();
 
-      if (kDebugMode) {
-        print('✅ Processed ${priceHistory.length} price history entries');
-      }
+      if (kDebugMode) {}
 
       return priceHistory;
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error getting price history from Firestore: $e');
-      }
+      if (kDebugMode) {}
       return [];
     }
   }
@@ -1366,9 +1216,7 @@ class FirestoreService {
       );
       return StockAnalytics.fromHistory(stockHistory);
     } catch (e) {
-      if (kDebugMode) {
-        print('Error getting stock analytics from Firestore: $e');
-      }
+      if (kDebugMode) {}
       return StockAnalytics.fromHistory([]);
     }
   }
@@ -1380,16 +1228,10 @@ class FirestoreService {
   }) async {
     try {
       if (kDebugMode) {
-        print(
-          '🔍 Loading stock history for product: $productId (limitDays: $limitDays)',
-        );
-
         // Check authentication status
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
-          print('👤 Authenticated as: ${user.email ?? user.uid}');
         } else {
-          print('❌ No authenticated user for stock history - this will fail!');
           return [];
         }
       }
@@ -1411,19 +1253,13 @@ class FirestoreService {
       final snapshot =
           await query.limit(1000).get(); // Limit to prevent huge queries
 
-      if (kDebugMode) {
-        print('📊 Found ${snapshot.docs.length} stock history entries');
-      }
+      if (kDebugMode) {}
 
       final stockHistory =
           snapshot.docs.map((doc) {
             final data = doc.data();
 
-            if (kDebugMode) {
-              print(
-                '📈 Stock entry: ${data['timestamp']} - inStock: ${data['isInStock']}',
-              );
-            }
+            if (kDebugMode) {}
 
             return StockHistory(
               productId: data['productId'] ?? '',
@@ -1432,15 +1268,11 @@ class FirestoreService {
             );
           }).toList();
 
-      if (kDebugMode) {
-        print('✅ Processed ${stockHistory.length} stock history entries');
-      }
+      if (kDebugMode) {}
 
       return stockHistory;
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error getting stock history from Firestore: $e');
-      }
+      if (kDebugMode) {}
       return [];
     }
   }
@@ -1475,9 +1307,7 @@ class FirestoreService {
         );
       }).toList();
     } catch (e) {
-      if (kDebugMode) {
-        print('Error getting stock history for day from Firestore: $e');
-      }
+      if (kDebugMode) {}
       return [];
     }
   }
@@ -1487,9 +1317,7 @@ class FirestoreService {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        if (kDebugMode) {
-          print('No authenticated user for user settings');
-        }
+        if (kDebugMode) {}
         return null;
       }
 
@@ -1497,20 +1325,14 @@ class FirestoreService {
           await firestore.collection('user_settings').doc(user.uid).get();
 
       if (doc.exists) {
-        if (kDebugMode) {
-          print('✅ Loaded user settings from Firestore');
-        }
+        if (kDebugMode) {}
         return doc.data();
       } else {
-        if (kDebugMode) {
-          print('No user settings found in Firestore');
-        }
+        if (kDebugMode) {}
         return null;
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error loading user settings from Firestore: $e');
-      }
+      if (kDebugMode) {}
       return null;
     }
   }
@@ -1520,9 +1342,7 @@ class FirestoreService {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        if (kDebugMode) {
-          print('No authenticated user - cannot save user settings');
-        }
+        if (kDebugMode) {}
         return;
       }
 
@@ -1538,13 +1358,9 @@ class FirestoreService {
           .doc(user.uid)
           .set(settingsWithMeta, SetOptions(merge: true));
 
-      if (kDebugMode) {
-        print('✅ Saved user settings to Firestore');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error saving user settings to Firestore: $e');
-      }
+      if (kDebugMode) {}
       rethrow;
     }
   }
@@ -1554,9 +1370,7 @@ class FirestoreService {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        if (kDebugMode) {
-          print('No authenticated user - cannot update user settings');
-        }
+        if (kDebugMode) {}
         return;
       }
 
@@ -1573,13 +1387,9 @@ class FirestoreService {
           .doc(user.uid)
           .set(updatesWithMeta, SetOptions(merge: true));
 
-      if (kDebugMode) {
-        print('✅ Updated user settings in Firestore');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error updating user settings in Firestore: $e');
-      }
+      if (kDebugMode) {}
       rethrow;
     }
   }

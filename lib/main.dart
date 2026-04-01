@@ -20,10 +20,7 @@ void main() async {
 
     // Initialize remaining services in background
     _initializeBackgroundServices();
-  } catch (e) {
-    if (kDebugMode) {
-      print('Critical initialization failed: $e');
-    }
+  } catch (_) {
     // Still start the app, but with degraded functionality
     runApp(const ZenRadarApp());
   }
@@ -36,10 +33,6 @@ Future<void> _initializeCriticalServices() async {
 
   // Theme service for UI rendering
   await ThemeService.instance.init();
-
-  if (kDebugMode) {
-    print('Critical services initialized');
-  }
 }
 
 /// Initialize remaining services in background without blocking UI
@@ -73,14 +66,8 @@ Future<void> _initializeBackgroundServices() async {
       // Request basic permissions
       requestInitialPermissions();
     }
-
-    if (kDebugMode) {
-      print('Background services initialized');
-    }
-  } catch (e) {
-    if (kDebugMode) {
-      print('Background service initialization failed: $e');
-    }
+  } catch (_) {
+    // Ignore background initialization errors.
   }
 }
 

@@ -12,23 +12,14 @@ class ImageCacheManager {
 
   /// Initialize image cache management
   Future<void> initialize() async {
-    if (kDebugMode) {
-      print('🚀 ImageCacheManager: Initializing...');
-    }
+    if (kDebugMode) {}
 
     // Clean up expired cache entries on startup
     await ImageCacheService.instance.cleanupExpiredCache();
 
     // Log cache statistics
-    final stats = ImageCacheService.instance.cacheStats;
-    final sizeInfo = await ImageCacheService.instance.getCacheSizeInfo();
 
-    if (kDebugMode) {
-      print('📊 ImageCache Stats: ${stats.toString()}');
-      print(
-        '💾 ImageCache Size: ${sizeInfo['totalSizeMB']}MB (${sizeInfo['totalFiles']} files)',
-      );
-    }
+    if (kDebugMode) {}
   }
 
   /// Preload images for visible products
@@ -37,11 +28,7 @@ class ImageCacheManager {
 
     // On web, browser handles image caching automatically
     if (kIsWeb) {
-      if (kDebugMode) {
-        print(
-          '🌐 ImageCacheManager: Skipping preload on web platform (${imageUrls.length} images)',
-        );
-      }
+      if (kDebugMode) {}
       return;
     }
 
@@ -55,11 +42,7 @@ class ImageCacheManager {
       }
 
       if (uncachedUrls.isNotEmpty) {
-        if (kDebugMode) {
-          print(
-            '📸 ImageCacheManager: Preloading ${uncachedUrls.length}/${imageUrls.length} uncached images',
-          );
-        }
+        if (kDebugMode) {}
 
         await ImageCacheService.instance.preloadProductImages(
           uncachedUrls,
@@ -68,16 +51,10 @@ class ImageCacheManager {
           cacheDuration: const Duration(days: 7),
         );
       } else {
-        if (kDebugMode) {
-          print(
-            '✅ ImageCacheManager: All ${imageUrls.length} images already cached',
-          );
-        }
+        if (kDebugMode) {}
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ ImageCacheManager: Error preloading images: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -123,11 +100,7 @@ class ImageCacheManager {
 
       if (totalSizeMB > 150) {
         // 150MB threshold
-        if (kDebugMode) {
-          print(
-            '🧹 ImageCacheManager: Cache size is ${totalSizeMB}MB, cleaning up...',
-          );
-        }
+        if (kDebugMode) {}
 
         // First try cleaning up expired entries
         await ImageCacheService.instance.cleanupExpiredCache();
@@ -140,33 +113,23 @@ class ImageCacheManager {
 
         // If still too large, clear all cache
         if (newTotalSizeMB > 100) {
-          if (kDebugMode) {
-            print(
-              '🧹 ImageCacheManager: Still large after cleanup, clearing all cache...',
-            );
-          }
+          if (kDebugMode) {}
           await ImageCacheService.instance.clearAllImages();
         }
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ ImageCacheManager: Error managing cache size: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
   /// Force refresh image cache (for settings/debugging)
   Future<void> refreshCache() async {
-    if (kDebugMode) {
-      print('🔄 ImageCacheManager: Refreshing cache...');
-    }
+    if (kDebugMode) {}
 
     await ImageCacheService.instance.clearAllImages();
     await PreloadService.instance.refreshPreloadedData();
 
-    if (kDebugMode) {
-      print('✅ ImageCacheManager: Cache refreshed');
-    }
+    if (kDebugMode) {}
   }
 
   /// Get formatted cache statistics for UI display

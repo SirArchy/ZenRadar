@@ -94,16 +94,10 @@ class SubscriptionService extends ChangeNotifier {
           ),
         );
 
-        if (kDebugMode) {
-          print(
-            '📱 Trial status synced from Firestore: used=$trialUsed, active=${trialStartedAt != null && trialEndsAt != null && DateTime.now().isBefore(trialEndsAt)}',
-          );
-        }
+        if (kDebugMode) {}
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error syncing trial status from Firestore: $e');
-      }
+      if (kDebugMode) {}
       // Don't throw error to avoid disrupting app flow
     }
   }
@@ -131,13 +125,9 @@ class SubscriptionService extends ChangeNotifier {
 
       await FirestoreService.instance.updateUserSettings(updates);
 
-      if (kDebugMode) {
-        print('💾 Trial status saved to Firestore');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error saving trial status to Firestore: $e');
-      }
+      if (kDebugMode) {}
       // Don't throw error to avoid disrupting local trial functionality
     }
   }
@@ -152,11 +142,7 @@ class SubscriptionService extends ChangeNotifier {
 
       // Check if user can start trial
       if (!settings.canStartTrial) {
-        if (kDebugMode) {
-          print(
-            '❌ Cannot start trial: User has already used trial or has active trial',
-          );
-        }
+        if (kDebugMode) {}
         return false;
       }
 
@@ -179,18 +165,14 @@ class SubscriptionService extends ChangeNotifier {
         trialEndsAt: trialEnd,
       );
 
-      if (kDebugMode) {
-        print('🎉 Trial started! Expires: $trialEnd');
-      }
+      if (kDebugMode) {}
 
       // Notify listeners about the change
       notifyListeners();
 
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error starting trial: $e');
-      }
+      if (kDebugMode) {}
       return false;
     }
   }
@@ -215,9 +197,7 @@ class SubscriptionService extends ChangeNotifier {
   Future<void> setDebugPremiumMode(bool enabled) async {
     if (kDebugMode) {
       _debugPremiumMode = enabled;
-      if (kDebugMode) {
-        print('🐛 Debug premium mode ${enabled ? 'enabled' : 'disabled'}');
-      }
+      if (kDebugMode) {}
 
       // Update premium status in Firebase for cloud functions
       try {
@@ -227,13 +207,9 @@ class SubscriptionService extends ChangeNotifier {
         // Also sync subscription status to get the updated data
         await syncSubscriptionStatus();
 
-        if (kDebugMode) {
-          print('💾 Debug premium mode synced with Firebase');
-        }
+        if (kDebugMode) {}
       } catch (e) {
-        if (kDebugMode) {
-          print('❌ Error syncing debug premium mode with Firebase: $e');
-        }
+        if (kDebugMode) {}
         // Don't throw error to avoid disrupting local debug functionality
       }
 
@@ -261,18 +237,12 @@ class SubscriptionService extends ChangeNotifier {
         ),
       );
 
-      if (kDebugMode) {
-        print(
-          '📱 Subscription status synced: ${subscriptionStatus.toString()}',
-        );
-      }
+      if (kDebugMode) {}
 
       // Notify listeners about the change
       notifyListeners();
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error syncing subscription status: $e');
-      }
+      if (kDebugMode) {}
       // Don't throw error to avoid disrupting app flow
     }
   }
@@ -298,9 +268,7 @@ class SubscriptionService extends ChangeNotifier {
         tier: await getCurrentTier(),
       );
     } catch (e) {
-      if (kDebugMode) {
-        print('Error checking favorite limits: $e');
-      }
+      if (kDebugMode) {}
       // Even on error, allow favorites
       return FavoriteValidationResult(
         canAdd: true,
@@ -328,9 +296,7 @@ class SubscriptionService extends ChangeNotifier {
         recommendedSites: settings.defaultEnabledSites,
       );
     } catch (e) {
-      if (kDebugMode) {
-        print('Error checking vendor limits: $e');
-      }
+      if (kDebugMode) {}
       return VendorValidationResult(
         canEnable: false,
         requestedCount: 0,
@@ -357,9 +323,7 @@ class SubscriptionService extends ChangeNotifier {
         tier: settings.subscriptionTier,
       );
     } catch (e) {
-      if (kDebugMode) {
-        print('Error checking frequency limits: $e');
-      }
+      if (kDebugMode) {}
       return FrequencyValidationResult(
         canSet: false,
         requestedMinutes: requestedMinutes,
@@ -403,13 +367,9 @@ class SubscriptionService extends ChangeNotifier {
         );
       });
 
-      if (kDebugMode) {
-        print('✅ Subscription updated: $tier (expires: $expiresAt)');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to update subscription: $e');
-      }
+      if (kDebugMode) {}
       rethrow;
     }
   }
@@ -430,13 +390,9 @@ class SubscriptionService extends ChangeNotifier {
         await _downgradeToFree();
       }
 
-      if (kDebugMode) {
-        print('✅ Subscription status verified: ${settings.subscriptionTier}');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to verify subscription status: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -459,14 +415,9 @@ class SubscriptionService extends ChangeNotifier {
       // This could be implemented as a user choice rather than automatic
       // to avoid data loss without user consent
 
-      if (kDebugMode) {
-        print('📉 User downgraded to free tier due to expired subscription');
-        print('💡 Note: Existing favorites beyond free limit are preserved');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to downgrade to free tier: $e');
-      }
+      if (kDebugMode) {}
       rethrow;
     }
   }

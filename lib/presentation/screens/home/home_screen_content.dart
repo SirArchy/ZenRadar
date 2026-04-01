@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print, use_build_context_synchronously
+// ignore_for_file: avoid_print, use_build_context_synchronously, empty_catches
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -146,13 +146,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     }
     if (filter.searchTerm?.isNotEmpty == true) {
       prefs.setString('filter_searchTerm', filter.searchTerm!);
-      debugPrint('🔍 Saving searchTerm: "${filter.searchTerm}"');
     } else {
       prefs.remove('filter_searchTerm');
-      debugPrint('🔍 Removing searchTerm from preferences');
     }
-
-    debugPrint('Saved filter: ${filter.toString()}');
   }
 
   // Helper to restore filter from shared_preferences
@@ -174,9 +170,6 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     // Get search term and ensure it's null if empty
     final searchTerm = prefs.getString('filter_searchTerm');
     final cleanSearchTerm = searchTerm?.isNotEmpty == true ? searchTerm : null;
-    debugPrint(
-      '🔍 Loading searchTerm from prefs: "$searchTerm" -> clean: "$cleanSearchTerm"',
-    );
 
     final restoredFilter = ProductFilter(
       inStock:
@@ -197,7 +190,6 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       searchTerm: cleanSearchTerm,
     );
 
-    debugPrint('Restored filter: ${restoredFilter.toString()}');
     return restoredFilter;
   }
 
@@ -301,7 +293,6 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         // Check if search was cleared when losing focus
         final currentText = _searchController.text.trim();
         if (currentText.isEmpty && _searchQuery.isNotEmpty) {
-          debugPrint('🔍 Search cleared on focus loss - clearing filter');
           _onSearchChanged('');
         }
 
@@ -321,9 +312,6 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       final currentText = _searchController.text;
       // Only react if the text is different from our current state
       if (currentText != _searchQuery) {
-        debugPrint(
-          '🔍 Controller listener caught text change: "$_searchQuery" -> "$currentText"',
-        );
         _onSearchChanged(currentText);
       }
     });
@@ -387,9 +375,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
           }
         });
       }
-    } catch (e) {
-      print('Error checking tutorial status: $e');
-    }
+    } catch (e) {}
   }
 
   void _dismissTutorial() async {
@@ -399,18 +385,14 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
     try {
       await SettingsService.instance.markHomeScreenTutorialSeen();
-    } catch (e) {
-      print('Error marking tutorial as seen: $e');
-    }
+    } catch (e) {}
   }
 
   Future<void> _loadSubscriptionStatus() async {
     try {
       // Load subscription status for other features that might need it
       await SubscriptionService.instance.isPremiumUser();
-    } catch (e) {
-      print('Error loading subscription status: $e');
-    }
+    } catch (e) {}
   }
 
   Future<int> _getFavoriteCount() async {
@@ -429,9 +411,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       setState(() {
         _recentSearches = searches;
       });
-    } catch (e) {
-      print('Error loading recent searches: $e');
-    }
+    } catch (e) {}
   }
 
   Future<void> _loadRecommendations() async {
@@ -449,7 +429,6 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         _isLoadingRecommendations = false;
       });
     } catch (e) {
-      print('Error loading recommendations: $e');
       setState(() {
         _isLoadingRecommendations = false;
       });
@@ -493,15 +472,11 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
   Future<void> _restoreFilterAndLoadProducts() async {
     final restoredFilter = await _loadFilterFromPrefs();
-    debugPrint(
-      '🔍 Restoring filter with searchTerm: "${restoredFilter.searchTerm}"',
-    );
     setState(() {
       _filter = restoredFilter;
       _searchController.text = restoredFilter.searchTerm ?? '';
       _searchQuery = restoredFilter.searchTerm ?? '';
     });
-    debugPrint('🔍 Set search controller text to: "${_searchController.text}"');
     await _loadProducts();
 
     // Setup endless scroll listener
@@ -547,9 +522,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       if (oldCurrency != settings.preferredCurrency) {
         await _loadFilterOptions();
       }
-    } catch (e) {
-      print('Error loading settings: $e');
-    }
+    } catch (e) {}
   }
 
   Future<void> _loadFavorites() async {
@@ -559,9 +532,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       setState(() {
         _favoriteProductIds = favorites.toSet();
       });
-    } catch (e) {
-      print('Error loading favorites: $e');
-    }
+    } catch (e) {}
   }
 
   Future<void> _toggleFavorite(String productId) async {
@@ -605,11 +576,14 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         );
       }
     } catch (e) {
-      print('Error toggling favorite: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating favorite: $e'),
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.errorUpdatingFavoriteWithError('$e'),
+            ),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
@@ -643,7 +617,6 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         });
       }
     } catch (e) {
-      print('Error loading filter options: $e');
       // Set sensible defaults
       if (mounted) {
         setState(() {
@@ -757,7 +730,6 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         }
       });
     } catch (e) {
-      print('Error loading products: $e');
       setState(() {
         _isLoading = false;
         _isLoadingMore = false;
@@ -936,11 +908,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
   void _onSearchChanged(String query) {
     final trimmedQuery = query.trim();
-    debugPrint('🔍 Search changed: "$query" -> trimmed: "$trimmedQuery"');
 
     // Prevent unnecessary updates if the search term hasn't actually changed
     if (trimmedQuery == _searchQuery) {
-      debugPrint('🔍 Search term unchanged, skipping update');
       return;
     }
 
@@ -950,13 +920,11 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         searchTerm: trimmedQuery.isEmpty ? null : trimmedQuery,
       );
     });
-    debugPrint('🔍 Updated filter searchTerm: ${_filter.searchTerm}');
     _saveFilterToPrefs(_filter);
     _loadProducts();
   }
 
   void _clearSearch() {
-    debugPrint('🔍 Clear search called');
     setState(() {
       _isUpdatingSearchProgrammatically = true;
       _searchController.clear();
@@ -964,7 +932,6 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       _searchQuery = '';
       _filter = _filter.copyWith(clearSearchTerm: true);
     });
-    debugPrint('🔍 After clear - filter searchTerm: ${_filter.searchTerm}');
     _searchFocusNode.unfocus();
     _saveFilterToPrefs(_filter);
     _loadProducts();
@@ -2415,7 +2382,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         child: OutlinedButton.icon(
           onPressed: _clearAllFilters,
           icon: const Icon(Icons.clear_all, size: 18),
-          label: const Text('Clear All Filters'),
+          label: Text(AppLocalizations.of(context)!.clearAllFilters),
           style: OutlinedButton.styleFrom(
             foregroundColor: Theme.of(context).colorScheme.onSurface,
             side: BorderSide(
@@ -2459,7 +2426,11 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                   ),
                 ),
                 const SizedBox(width: 16),
-                Text('Adding ${productsToAdd.length} products to favorites...'),
+                Text(
+                  AppLocalizations.of(
+                    context,
+                  )!.addingProductsToFavorites(productsToAdd.length),
+                ),
               ],
             ),
             duration: const Duration(seconds: 3),
@@ -2511,12 +2482,15 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         }
       }
     } catch (e) {
-      print('Error bulk adding to favorites: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error adding products to favorites: $e'),
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.errorAddingProductsToFavoritesWithError('$e'),
+            ),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
@@ -2538,19 +2512,21 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         context: context,
         builder:
             (context) => AlertDialog(
-              title: const Text('Remove from Favorites'),
+              title: Text(AppLocalizations.of(context)!.removeFromFavorites),
               content: Text(
-                'Are you sure you want to remove ${favoriteProducts.length} products from your favorites?',
+                AppLocalizations.of(
+                  context,
+                )!.confirmRemoveProductsFromFavorites(favoriteProducts.length),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancel'),
+                  child: Text(AppLocalizations.of(context)!.cancel),
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(true),
                   style: TextButton.styleFrom(foregroundColor: Colors.red),
-                  child: const Text('Remove'),
+                  child: Text(AppLocalizations.of(context)!.remove),
                 ),
               ],
             ),
@@ -2590,9 +2566,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
           isFavorite: false,
         );
         // Note: Removal shouldn't hit subscription limits, but we could log errors if needed
-        if (!result.success) {
-          print('Failed to remove favorite ${product.id}: ${result.error}');
-        }
+        if (!result.success) {}
       }
 
       // Update local state
@@ -2615,12 +2589,15 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         );
       }
     } catch (e) {
-      print('Error bulk removing from favorites: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error removing products from favorites: $e'),
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.errorRemovingProductsFromFavoritesWithError('$e'),
+            ),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
@@ -2643,4 +2620,3 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     );
   }
 }
-

@@ -1,5 +1,4 @@
-﻿import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:zenradar/data/services/auth/auth_service.dart';
@@ -62,7 +61,6 @@ class PaymentService {
         throw Exception('Failed to create checkout session: ${error['error']}');
       }
     } catch (e) {
-      debugPrint('Error creating checkout session: $e');
       rethrow;
     }
   }
@@ -97,7 +95,6 @@ class PaymentService {
         );
       }
     } catch (e) {
-      debugPrint('Error creating customer portal session: $e');
       rethrow;
     }
   }
@@ -128,7 +125,6 @@ class PaymentService {
         throw Exception('Failed to get subscription status: ${error['error']}');
       }
     } catch (e) {
-      debugPrint('Error getting subscription status: $e');
       // Return free status on error to prevent app crashes
       return SubscriptionStatus.free();
     }
@@ -181,7 +177,6 @@ class PaymentService {
         throw Exception('Failed to create checkout session');
       }
     } catch (e) {
-      debugPrint('Error starting premium upgrade: $e');
       rethrow;
     }
   }
@@ -194,7 +189,6 @@ class PaymentService {
           SubscriptionService.instance;
       return await subscriptionService.startTrial();
     } catch (e) {
-      debugPrint('Error starting free trial: $e');
       return false;
     }
   }
@@ -207,7 +201,6 @@ class PaymentService {
           SubscriptionService.instance;
       return await subscriptionService.getTrialStatus();
     } catch (e) {
-      debugPrint('Error getting trial status: $e');
       return TrialStatus(
         canStart: false,
         isActive: false,
@@ -228,7 +221,6 @@ class PaymentService {
         throw Exception('Failed to create customer portal session');
       }
     } catch (e) {
-      debugPrint('Error opening subscription management: $e');
       rethrow;
     }
   }
@@ -252,16 +244,12 @@ class PaymentService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        debugPrint(
-          'Debug premium mode ${enabled ? 'enabled' : 'disabled'}: ${data['message']}',
-        );
         return data['success'] ?? false;
       } else {
         final error = jsonDecode(response.body);
         throw Exception('Failed to set debug premium mode: ${error['error']}');
       }
     } catch (e) {
-      debugPrint('Error setting debug premium mode: $e');
       return false;
     }
   }

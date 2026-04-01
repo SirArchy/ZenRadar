@@ -230,7 +230,6 @@ class _ProductDetailCardState extends State<ProductDetailCard> {
                                 final url = widget.product.imageUrl!;
                                 if (!_loggedImageErrors.contains(url)) {
                                   _loggedImageErrors.add(url);
-                                  print('Failed to load product image: $url');
                                 }
                                 return _buildImageErrorFallback(context, url);
                               },
@@ -439,7 +438,6 @@ class _ProductDetailCardState extends State<ProductDetailCard> {
                               final url = widget.product.imageUrl!;
                               if (!_loggedImageErrors.contains(url)) {
                                 _loggedImageErrors.add(url);
-                                print('Failed to load product image: $url');
                               }
                               return _buildImageErrorFallback(context, url);
                             },
@@ -677,4 +675,3 @@ class _ProductDetailCardState extends State<ProductDetailCard> {
     }
   }
 }
-

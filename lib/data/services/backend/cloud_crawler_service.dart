@@ -22,8 +22,6 @@ class CloudCrawlerService {
     required String userId,
   }) async {
     try {
-      print('🔥 Triggering manual crawl for user: $userId');
-
       final response = await http
           .post(
             Uri.parse(_cloudFunctionUrl),
@@ -36,7 +34,6 @@ class CloudCrawlerService {
         final responseData = json.decode(response.body);
         final requestId = responseData['requestId'] as String;
 
-        print('✅ Manual crawl triggered successfully: $requestId');
         return requestId;
       } else {
         throw Exception(
@@ -44,7 +41,6 @@ class CloudCrawlerService {
         );
       }
     } catch (e) {
-      print('❌ Error triggering manual crawl: $e');
       rethrow;
     }
   }
@@ -69,7 +65,6 @@ class CloudCrawlerService {
         message: isHealthy ? 'Server is responding' : 'Server not responding',
       );
     } catch (e) {
-      print('❌ Error checking server health: $e');
       return ServerHealthStatus(
         isHealthy: false,
         lastCrawlTime: null,
@@ -86,8 +81,6 @@ class CloudCrawlerService {
     String? userId,
   }) async {
     try {
-      print('🚀 Triggering simple crawl request');
-
       // Generate a fake request ID for now
       final requestId = 'crawl_${DateTime.now().millisecondsSinceEpoch}';
 
@@ -97,10 +90,8 @@ class CloudCrawlerService {
         const Duration(seconds: 1),
       ); // Simulate network delay
 
-      print('✅ Crawl request created: $requestId');
       return requestId;
     } catch (e) {
-      print('❌ Error creating crawl request: $e');
       rethrow;
     }
   }

@@ -1,4 +1,4 @@
-﻿export 'auth/auth_service.dart';
+export 'auth/auth_service.dart';
 export 'backend/backend_service.dart';
 export 'backend/cloud_crawler_service.dart';
 export 'notifications/notification_service.dart';
@@ -26,5 +26,3 @@ export 'analytics/website_analytics_service.dart';
 export 'analytics/recommendation_service.dart';
 export 'analytics/search_history_service.dart';
 export 'media/image_url_processor.dart';
-
-

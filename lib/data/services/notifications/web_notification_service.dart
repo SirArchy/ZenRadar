@@ -10,9 +10,7 @@ class WebNotificationService {
   static WebNotificationService get instance => _instance;
 
   Future<void> init() async {
-    if (kDebugMode) {
-      print('Web notification service initialized');
-    }
+    if (kDebugMode) {}
     // In a real implementation, you'd request notification permissions
     // using the browser's Notification API
   }
@@ -22,9 +20,7 @@ class WebNotificationService {
     required String siteName,
     required String productId,
   }) async {
-    if (kDebugMode) {
-      print('Stock alert: $productName is back in stock on $siteName');
-    }
+    if (kDebugMode) {}
     // In a real implementation, you'd use the browser's Notification API
     // new Notification("Stock Alert", {
     //   body: "$productName is back in stock on $siteName!",
@@ -36,39 +32,27 @@ class WebNotificationService {
     required List<String> productNames,
     required String siteName,
   }) async {
-    if (kDebugMode) {
-      print(
-        'Summary notification: ${productNames.length} products back in stock on $siteName',
-      );
-    }
+    if (kDebugMode) {}
     // In a real implementation, you'd use the browser's Notification API
   }
 
   Future<void> showTestNotification() async {
-    if (kDebugMode) {
-      print('Test notification sent (web mode)');
-    }
+    if (kDebugMode) {}
     // In a real implementation, you'd show a browser notification
   }
 
   Future<void> cancelAll() async {
-    if (kDebugMode) {
-      print('All notifications cancelled (web mode)');
-    }
+    if (kDebugMode) {}
     // In a real implementation, you'd cancel browser notifications
   }
 
   Future<void> cancelNotification(int id) async {
-    if (kDebugMode) {
-      print('Notification $id cancelled (web mode)');
-    }
+    if (kDebugMode) {}
     // In a real implementation, you'd cancel specific browser notification
   }
 
   Future<void> requestPermissions() async {
-    if (kDebugMode) {
-      print('Notification permissions requested (web mode)');
-    }
+    if (kDebugMode) {}
     // In a real implementation, you'd request browser notification permissions
   }
 }

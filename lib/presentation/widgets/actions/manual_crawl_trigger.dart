@@ -1,6 +1,7 @@
-﻿// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:zenradar/data/services/backend/cloud_crawler_service.dart';
 
 /// Widget to trigger manual crawls in server mode
@@ -56,9 +57,10 @@ class _ManualCrawlTriggerState extends State<ManualCrawlTrigger> {
         widget.onCrawlTriggered!();
       }
 
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Crawl triggered successfully! ID: $requestId'),
+          content: Text(l10n.crawlTriggeredSuccessfully(requestId)),
           backgroundColor: Colors.green,
         ),
       );
@@ -67,9 +69,10 @@ class _ManualCrawlTriggerState extends State<ManualCrawlTrigger> {
         _lastError = e.toString();
       });
 
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to trigger crawl: $e'),
+          content: Text(l10n.failedToTriggerCrawlWithError('$e')),
           backgroundColor: Colors.red,
         ),
       );
@@ -150,7 +153,11 @@ class _ManualCrawlTriggerState extends State<ManualCrawlTrigger> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                           : const Icon(Icons.play_arrow),
-                  label: Text(_isTriggering ? 'Triggering...' : 'Start Crawl'),
+                  label: Text(
+                    _isTriggering
+                        ? AppLocalizations.of(context)!.starting
+                        : AppLocalizations.of(context)!.startScan,
+                  ),
                 ),
 
                 const SizedBox(width: 8),
@@ -162,7 +169,7 @@ class _ManualCrawlTriggerState extends State<ManualCrawlTrigger> {
                     });
                   },
                   icon: const Icon(Icons.select_all),
-                  label: const Text('Select All'),
+                  label: Text(AppLocalizations.of(context)!.selectAll),
                 ),
 
                 const SizedBox(width: 8),
@@ -174,7 +181,7 @@ class _ManualCrawlTriggerState extends State<ManualCrawlTrigger> {
                     });
                   },
                   icon: const Icon(Icons.clear),
-                  label: const Text('Clear All'),
+                  label: Text(AppLocalizations.of(context)!.clearAll),
                 ),
               ],
             ),
@@ -199,7 +206,7 @@ class _ManualCrawlTriggerState extends State<ManualCrawlTrigger> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Last crawl request: $_lastRequestId',
+                        '${AppLocalizations.of(context)!.lastScan}: $_lastRequestId',
                         style: const TextStyle(fontSize: 12),
                       ),
                     ),
@@ -381,7 +388,9 @@ class _ServerHealthWidgetState extends State<ServerHealthWidget> {
                 style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
             ] else ...[
-              const Center(child: Text('Checking server status...')),
+              Center(
+                child: Text(AppLocalizations.of(context)!.checkingServerStatus),
+              ),
             ],
           ],
         ),

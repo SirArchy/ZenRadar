@@ -76,9 +76,7 @@ class ImageCacheService {
 
       return imageCacheDir;
     } catch (e) {
-      if (kDebugMode) {
-        print('⚠️ ImageCache: Could not access cache directory: $e');
-      }
+      if (kDebugMode) {}
       rethrow;
     }
   }
@@ -104,9 +102,7 @@ class ImageCacheService {
         return DateTime.now().isBefore(expiration);
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('🔍 ImageCache: Error checking cache metadata for $cacheKey: $e');
-      }
+      if (kDebugMode) {}
     }
 
     return false;
@@ -119,9 +115,7 @@ class ImageCacheService {
     // Check memory cache first
     if (_memoryCache.containsKey(cacheKey)) {
       _cacheHits++;
-      if (kDebugMode) {
-        print('📸 ImageCache: Memory hit for $cacheKey');
-      }
+      if (kDebugMode) {}
       return _memoryCache[cacheKey];
     }
 
@@ -143,11 +137,7 @@ class ImageCacheService {
               _addToMemoryCache(cacheKey, imageData);
 
               _cacheHits++;
-              if (kDebugMode) {
-                print(
-                  '💾 ImageCache: Disk hit for $cacheKey (${imageData.length} bytes)',
-                );
-              }
+              if (kDebugMode) {}
               return imageData;
             }
           } else {
@@ -156,16 +146,12 @@ class ImageCacheService {
           }
         }
       } catch (e) {
-        if (kDebugMode) {
-          print('⚠️ ImageCache: Error reading disk cache for $cacheKey: $e');
-        }
+        if (kDebugMode) {}
       }
     }
 
     _cacheMisses++;
-    if (kDebugMode) {
-      print('❌ ImageCache: Miss for $cacheKey');
-    }
+    if (kDebugMode) {}
     return null;
   }
 
@@ -179,9 +165,7 @@ class ImageCacheService {
 
     try {
       _networkRequests++;
-      if (kDebugMode) {
-        print('🌐 ImageCache: Downloading $imageUrl');
-      }
+      if (kDebugMode) {}
 
       final response = await http
           .get(
@@ -202,11 +186,7 @@ class ImageCacheService {
 
         // Check image size
         if (imageData.length > _maxImageSizeBytes) {
-          if (kDebugMode) {
-            print(
-              '⚠️ ImageCache: Image too large (${imageData.length} bytes), skipping cache',
-            );
-          }
+          if (kDebugMode) {}
           return imageData; // Return but don't cache
         }
 
@@ -218,23 +198,15 @@ class ImageCacheService {
           cacheDuration ?? _defaultCacheDuration,
         );
 
-        if (kDebugMode) {
-          print(
-            '✅ ImageCache: Downloaded and cached $cacheKey (${imageData.length} bytes)',
-          );
-        }
+        if (kDebugMode) {}
 
         return imageData;
       } else {
-        if (kDebugMode) {
-          print('❌ ImageCache: HTTP ${response.statusCode} for $imageUrl');
-        }
+        if (kDebugMode) {}
         return null;
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ ImageCache: Download error for $imageUrl: $e');
-      }
+      if (kDebugMode) {}
       return null;
     }
   }
@@ -259,13 +231,9 @@ class ImageCacheService {
         // Store metadata
         await _storeCacheMetadata(cacheKey, originalUrl, cacheDuration);
 
-        if (kDebugMode) {
-          print('💾 ImageCache: Stored to disk $cacheKey');
-        }
+        if (kDebugMode) {}
       } catch (e) {
-        if (kDebugMode) {
-          print('⚠️ ImageCache: Error storing to disk for $cacheKey: $e');
-        }
+        if (kDebugMode) {}
       }
     }
   }
@@ -276,9 +244,7 @@ class ImageCacheService {
     while (_memoryCache.length >= _maxMemoryCacheSize) {
       final oldestKey = _memoryCache.keys.first;
       _memoryCache.remove(oldestKey);
-      if (kDebugMode) {
-        print('🧹 ImageCache: Removed $oldestKey from memory cache');
-      }
+      if (kDebugMode) {}
     }
 
     _memoryCache[cacheKey] = imageData;
@@ -329,18 +295,14 @@ class ImageCacheService {
           await file.delete();
         }
       } catch (e) {
-        if (kDebugMode) {
-          print('⚠️ ImageCache: Error removing disk cache for $cacheKey: $e');
-        }
+        if (kDebugMode) {}
       }
     }
 
     // Remove metadata
     await CacheService.clearCache('img_meta_$cacheKey');
 
-    if (kDebugMode) {
-      print('🗑️ ImageCache: Removed $cacheKey');
-    }
+    if (kDebugMode) {}
   }
 
   /// Clear all cached images
@@ -360,9 +322,7 @@ class ImageCacheService {
           }
         }
       } catch (e) {
-        if (kDebugMode) {
-          print('⚠️ ImageCache: Error clearing disk cache: $e');
-        }
+        if (kDebugMode) {}
       }
     }
 
@@ -374,9 +334,7 @@ class ImageCacheService {
     _cacheMisses = 0;
     _networkRequests = 0;
 
-    if (kDebugMode) {
-      print('🧹 ImageCache: Cleared all cached images');
-    }
+    if (kDebugMode) {}
   }
 
   /// Get cache size information
@@ -404,9 +362,7 @@ class ImageCacheService {
           }
         }
       } catch (e) {
-        if (kDebugMode) {
-          print('⚠️ ImageCache: Error calculating cache size: $e');
-        }
+        if (kDebugMode) {}
       }
     }
 
@@ -454,15 +410,11 @@ class ImageCacheService {
           }
         }
       } catch (e) {
-        if (kDebugMode) {
-          print('⚠️ ImageCache: Error during cleanup: $e');
-        }
+        if (kDebugMode) {}
       }
     }
 
-    if (kDebugMode && cleanedCount > 0) {
-      print('🧹 ImageCache: Cleaned up $cleanedCount expired cache entries');
-    }
+    if (kDebugMode && cleanedCount > 0) {}
   }
 
   /// Preload images for a list of products
@@ -473,19 +425,12 @@ class ImageCacheService {
   }) async {
     if (imageUrls.isEmpty) return;
 
-    if (kDebugMode) {
-      print('🚀 ImageCache: Preloading ${imageUrls.length} product images');
-    }
+    if (kDebugMode) {}
 
     // On web, skip manual image downloading to avoid CORS issues
     // The browser handles image caching automatically
     if (kIsWeb) {
-      if (kDebugMode) {
-        print(
-          '🌐 ImageCache: Skipping preload on web (browser handles caching)',
-        );
-        print('✅ ImageCache: Preloading completed');
-      }
+      if (kDebugMode) {}
       return;
     }
 
@@ -498,17 +443,11 @@ class ImageCacheService {
     }
 
     if (uncachedUrls.isEmpty) {
-      if (kDebugMode) {
-        print('✅ ImageCache: All images already cached');
-      }
+      if (kDebugMode) {}
       return;
     }
 
-    if (kDebugMode) {
-      print(
-        '📥 ImageCache: Downloading ${uncachedUrls.length} uncached images',
-      );
-    }
+    if (kDebugMode) {}
 
     // Download images with concurrency limit
     final futures = <Future<void>>[];
@@ -534,9 +473,6 @@ class ImageCacheService {
 
     await Future.wait(futures);
 
-    if (kDebugMode) {
-      print('✅ ImageCache: Preloading completed');
-    }
+    if (kDebugMode) {}
   }
 }
-

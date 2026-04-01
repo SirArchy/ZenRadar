@@ -1,4 +1,4 @@
-﻿// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, empty_catches
 
 import 'dart:async';
 import 'package:zenradar/models/website_stock_analytics.dart';
@@ -57,7 +57,6 @@ class WebsiteAnalyticsService {
         cacheKey,
       );
       if (cachedSummary != null) {
-        print('Using cached fast summary for $timeRange');
         return cachedSummary;
       }
     }
@@ -87,7 +86,6 @@ class WebsiteAnalyticsService {
 
       return summary;
     } catch (e) {
-      print('Error getting fast summary: $e');
       return {};
     }
   }
@@ -121,7 +119,6 @@ class WebsiteAnalyticsService {
         cacheKey,
       );
       if (cachedAnalytics != null) {
-        print('Using cached website analytics for $timeRange');
         return cachedAnalytics
             .map(
               (item) =>
@@ -150,12 +147,8 @@ class WebsiteAnalyticsService {
         duration: const Duration(minutes: 15),
       );
 
-      print(
-        'Cached website analytics for $timeRange (${analytics.length} sites)',
-      );
       return analytics;
     } catch (e) {
-      print('Error getting website analytics: $e');
       return [];
     }
   }
@@ -184,7 +177,6 @@ class WebsiteAnalyticsService {
         cacheKey,
       );
       if (cachedSummary != null) {
-        print('Using cached analytics summary for $timeRange');
         // Convert string dates back to DateTime objects
         final result = Map<String, dynamic>.from(cachedSummary);
         if (result['mostRecentUpdate'] != null) {
@@ -266,10 +258,8 @@ class WebsiteAnalyticsService {
         duration: const Duration(minutes: 15),
       );
 
-      print('Cached analytics summary for $timeRange');
       return summary;
     } catch (e) {
-      print('Error getting analytics summary: $e');
       return {
         'totalWebsites': 0,
         'activeWebsites': 0,
@@ -322,9 +312,7 @@ class WebsiteAnalyticsService {
 
         websiteAnalytics.add(analytics);
       }
-    } catch (e) {
-      print('Error getting Firestore website analytics: $e');
-    }
+    } catch (e) {}
 
     return websiteAnalytics;
   }
@@ -370,9 +358,7 @@ class WebsiteAnalyticsService {
 
         websiteAnalytics.add(analytics);
       }
-    } catch (e) {
-      print('Error getting local website analytics: $e');
-    }
+    } catch (e) {}
 
     return websiteAnalytics;
   }
@@ -456,9 +442,7 @@ class WebsiteAnalyticsService {
           trends[siteName] = _processStockTrendsData(history, timeRange);
         }
       }
-    } catch (e) {
-      print('Error getting website stock trends: $e');
-    }
+    } catch (e) {}
 
     return trends;
   }

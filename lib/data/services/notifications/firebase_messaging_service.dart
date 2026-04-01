@@ -26,17 +26,13 @@ class FirebaseMessagingService {
   /// Initialize Firebase Cloud Messaging
   Future<void> initialize() async {
     if (kIsWeb) {
-      if (kDebugMode) {
-        print('🌐 FCM: Web platform - using web notifications');
-      }
+      if (kDebugMode) {}
       return;
     }
 
     // Prevent duplicate initialization
     if (_isInitialized) {
-      if (kDebugMode) {
-        print('🔔 FCM: Already initialized, skipping');
-      }
+      if (kDebugMode) {}
       return;
     }
 
@@ -54,17 +50,13 @@ class FirebaseMessagingService {
         sound: true,
       );
 
-      if (kDebugMode) {
-        print('🔔 FCM: Permission granted: ${settings.authorizationStatus}');
-      }
+      if (kDebugMode) {}
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional) {
         // Get FCM token for this device
         _fcmToken = await _messaging!.getToken();
-        if (kDebugMode) {
-          print('📱 FCM Token: $_fcmToken');
-        }
+        if (kDebugMode) {}
 
         // Save token to user preferences and send to server
         await _saveFCMToken();
@@ -73,18 +65,12 @@ class FirebaseMessagingService {
         await _configureMessageHandlers();
 
         _isInitialized = true;
-        if (kDebugMode) {
-          print('✅ FCM: Successfully initialized');
-        }
+        if (kDebugMode) {}
       } else {
-        if (kDebugMode) {
-          print('❌ FCM: Permission denied');
-        }
+        if (kDebugMode) {}
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ FCM: Failed to initialize: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -110,12 +96,7 @@ class FirebaseMessagingService {
 
   /// Handle messages when app is in foreground
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
-    if (kDebugMode) {
-      print('📨 FCM: Foreground message received');
-      print('Title: ${message.notification?.title}');
-      print('Body: ${message.notification?.body}');
-      print('Data: ${message.data}');
-    }
+    if (kDebugMode) {}
 
     // Show local notification even when app is in foreground
     await _showLocalNotification(message);
@@ -123,10 +104,7 @@ class FirebaseMessagingService {
 
   /// Handle messages when app is opened from background
   Future<void> _handleBackgroundMessage(RemoteMessage message) async {
-    if (kDebugMode) {
-      print('📨 FCM: Background message opened');
-      print('Data: ${message.data}');
-    }
+    if (kDebugMode) {}
 
     // Handle navigation based on message data
     await _handleNotificationNavigation(message.data);
@@ -146,30 +124,19 @@ class FirebaseMessagingService {
         );
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ FCM: Failed to show local notification: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
   /// Handle navigation when notification is tapped
   Future<void> _handleNotificationNavigation(Map<String, dynamic> data) async {
     try {
-      final type = data['type'];
-      final productId = data['productId'];
-
-      if (kDebugMode) {
-        print(
-          '🔗 FCM: Handling navigation - type: $type, productId: $productId',
-        );
-      }
+      if (kDebugMode) {}
 
       // Here you would implement navigation logic
       // For example, navigate to product detail page
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ FCM: Failed to handle navigation: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -186,13 +153,9 @@ class FirebaseMessagingService {
       // Send token to Firebase backend
       await _sendTokenToServer(_fcmToken!);
 
-      if (kDebugMode) {
-        print('💾 FCM: Token saved locally and sent to server');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ FCM: Failed to save token: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -235,10 +198,7 @@ class FirebaseMessagingService {
           'https://europe-west3-zenradar-acb85.cloudfunctions.net';
       final endpoint = '$functionsUrl/registerFCMToken';
 
-      if (kDebugMode) {
-        print('FCM: Sending token to server: $endpoint');
-        print('📤 FCM: User ID: $userId, Platform: $platform');
-      }
+      if (kDebugMode) {}
 
       final response = await http.post(
         Uri.parse(endpoint),
@@ -247,25 +207,16 @@ class FirebaseMessagingService {
       );
 
       if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        if (kDebugMode) {
-          print('✅ FCM: Token successfully registered on server');
-          print('✅ FCM: Response: ${responseData['message']}');
-        }
+        jsonDecode(response.body);
+        if (kDebugMode) {}
       } else {
-        if (kDebugMode) {
-          print('❌ FCM: Failed to register token on server');
-          print('❌ FCM: Status: ${response.statusCode}');
-          print('❌ FCM: Response: ${response.body}');
-        }
+        if (kDebugMode) {}
         throw Exception(
           'Server returned ${response.statusCode}: ${response.body}',
         );
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ FCM: Error sending token to server: $e');
-      }
+      if (kDebugMode) {}
       // Don't rethrow - we want the app to continue working even if server registration fails
     }
   }
@@ -281,9 +232,7 @@ class FirebaseMessagingService {
     // The server would use the FCM admin SDK to send push notifications
     // to all devices that have the app installed and have favorited this product
 
-    if (kDebugMode) {
-      print('📤 FCM: Would send stock alert for $productName');
-    }
+    if (kDebugMode) {}
   }
 
   /// Send price change notification via FCM
@@ -297,19 +246,13 @@ class FirebaseMessagingService {
   }) async {
     // This would typically be called from your server
 
-    if (kDebugMode) {
-      print(
-        '📤 FCM: Would send price alert for $productName: $oldPrice → $newPrice',
-      );
-    }
+    if (kDebugMode) {}
   }
 
   /// Subscribe to topic for general notifications
   Future<void> subscribeToTopic(String topic) async {
     if (_messaging == null || !_isInitialized) {
-      if (kDebugMode) {
-        print('❌ FCM: Not initialized, cannot subscribe to topic');
-      }
+      if (kDebugMode) {}
       return;
     }
 
@@ -318,9 +261,7 @@ class FirebaseMessagingService {
       // Reduce logging verbosity for individual subscriptions
       // Only log in verbose debug mode or for important topics
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ FCM: Failed to subscribe to topic $topic: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -330,13 +271,9 @@ class FirebaseMessagingService {
 
     try {
       await _messaging!.unsubscribeFromTopic(topic);
-      if (kDebugMode) {
-        print('✅ FCM: Unsubscribed from topic: $topic');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ FCM: Failed to unsubscribe from topic $topic: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -358,11 +295,7 @@ class FirebaseMessagingService {
       final favoriteIds =
           await DatabaseService.platformService.getFavoriteProductIds();
 
-      if (kDebugMode) {
-        print(
-          '🔔 FCM: Starting subscription update for ${favoriteIds.length} favorite products',
-        );
-      }
+      if (kDebugMode) {}
 
       // Subscribe to notifications for favorite products in background
       // Don't await this to avoid blocking the UI
@@ -374,13 +307,9 @@ class FirebaseMessagingService {
         _sendTokenToServer(_fcmToken!);
       }
 
-      if (kDebugMode) {
-        print('✅ FCM: Subscription update initiated (running in background)');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ FCM: Failed to update favorite subscriptions: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -400,12 +329,7 @@ class FirebaseMessagingService {
           eagerError: false, // Continue even if some subscriptions fail
         );
 
-        if (kDebugMode) {
-          final processed = i + batch.length;
-          print(
-            '✅ FCM: Processed batch ${(i ~/ batchSize) + 1} - ${batch.length} subscriptions ($processed/${favoriteIds.length})',
-          );
-        }
+        if (kDebugMode) {}
 
         // Small delay between batches to prevent overwhelming the system
         if (i + batchSize < favoriteIds.length) {
@@ -413,15 +337,9 @@ class FirebaseMessagingService {
         }
       }
 
-      if (kDebugMode) {
-        print(
-          '✅ FCM: All ${favoriteIds.length} favorite product subscriptions completed',
-        );
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ FCM: Error during background subscription: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -433,23 +351,13 @@ class FirebaseMessagingService {
     try {
       if (isFavorite) {
         await subscribeToProduct(productId);
-        if (kDebugMode) {
-          print('✅ FCM: Subscribed to notifications for product: $productId');
-        }
+        if (kDebugMode) {}
       } else {
         await unsubscribeFromProduct(productId);
-        if (kDebugMode) {
-          print(
-            '✅ FCM: Unsubscribed from notifications for product: $productId',
-          );
-        }
+        if (kDebugMode) {}
       }
     } catch (e) {
-      if (kDebugMode) {
-        print(
-          '❌ FCM: Failed to update subscription for product $productId: $e',
-        );
-      }
+      if (kDebugMode) {}
     }
   }
 
@@ -474,13 +382,9 @@ class FirebaseMessagingService {
       _fcmToken = await _messaging!.getToken();
       await _saveFCMToken();
 
-      if (kDebugMode) {
-        print('🔄 FCM: Token refreshed');
-      }
+      if (kDebugMode) {}
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ FCM: Failed to refresh token: $e');
-      }
+      if (kDebugMode) {}
     }
   }
 }
@@ -491,12 +395,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Initialize Firebase if not already done
   // This ensures the handler can work when app is terminated
 
-  if (kDebugMode) {
-    print('📨 FCM: Background message received (app terminated)');
-    print('Title: ${message.notification?.title}');
-    print('Body: ${message.notification?.body}');
-    print('Data: ${message.data}');
-  }
+  if (kDebugMode) {}
 
   // Handle the message - you can show local notifications here
   // or perform other background tasks

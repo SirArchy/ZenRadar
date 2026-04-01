@@ -43,7 +43,7 @@ class _LanguageSelectionDialogState extends State<LanguageSelectionDialog> {
             RadioListTile<String?>(
               title: Row(
                 children: [
-                  const Text('🌐'),
+                  const Icon(Icons.public, size: 20),
                   const SizedBox(width: 8),
                   Text(l10n.systemDefault),
                 ],

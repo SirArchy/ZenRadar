@@ -1,4 +1,4 @@
-// ignore_for_file: unused_element, use_build_context_synchronously
+// ignore_for_file: unused_element, use_build_context_synchronously, empty_catches
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -57,7 +57,6 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       setState(() {});
       await _loadActivities();
     } catch (e) {
-      print('Error loading settings: $e');
       await _loadActivities();
     }
   }
@@ -85,27 +84,22 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     try {
       // Trigger background preloading on first access (if not already started)
       if (!PreloadService.instance.hasCompletedInitialPreload) {
-        PreloadService.instance.startBackgroundPreload().catchError((error) {
-          print('Failed to start preload service: $error');
-        });
+        PreloadService.instance.startBackgroundPreload().catchError((error) {});
       }
 
       List<ScanActivity> activities = [];
 
       // First, try to get cached activities from preload service
       if (PreloadService.instance.hasCompletedInitialPreload) {
-        print('🚀 Loading activities from preload cache...');
         final cachedActivities =
             await PreloadService.instance.getCachedRecentActivities();
         if (cachedActivities != null && cachedActivities.isNotEmpty) {
           activities = cachedActivities;
-          print('✅ Loaded ${activities.length} activities from preload cache');
         }
       }
 
       // If no cached activities, load from Firestore
       if (activities.isEmpty) {
-        print('📡 Loading activities from Firestore...');
         final isPremium = await SubscriptionService.instance.isPremiumUser();
         activities = await _loadServerActivitiesFromFirestore(
           forceRefresh: false,
@@ -115,8 +109,6 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         if (!isPremium && activities.length > 24) {
           activities = activities.take(24).toList();
         }
-
-        print('✅ Loaded ${activities.length} activities from Firestore');
       } else {
         // Apply free mode limitation to cached data too
         final isPremium = await SubscriptionService.instance.isPremiumUser();
@@ -135,7 +127,6 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      print('❌ Error loading activities: $e');
       setState(() {
         _activities = [];
         _totalActivities = 0;
@@ -145,12 +136,13 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
 
       // Show error message to user
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to load activities: $e'),
+            content: Text(l10n.failedToLoadActivitiesWithError('$e')),
             backgroundColor: Colors.red,
             action: SnackBarAction(
-              label: 'Retry',
+              label: l10n.retry,
               onPressed: () => _forceRefreshActivities(),
             ),
           ),
@@ -175,9 +167,6 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       final serverActivities = await _loadServerActivitiesFromFirestore(
         forceRefresh: true,
       );
-      print(
-        'Force refreshed ${serverActivities.length} server activities from Firestore',
-      );
 
       // Apply free mode limitation - only last 24 scans
       final isPremium = await SubscriptionService.instance.isPremiumUser();
@@ -194,7 +183,6 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Error force refreshing server activities: $e');
       setState(() {
         _activities = [];
         _totalActivities = 0;
@@ -203,9 +191,10 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       });
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to refresh server activities: $e'),
+            content: Text(l10n.failedToRefreshActivitiesWithError('$e')),
             backgroundColor: Colors.red,
           ),
         );
@@ -226,9 +215,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       builder:
           (context) => AlertDialog(
             title: Text(l10n.clearOld),
-            content: const Text(
-              'This will remove scan activities older than 30 days. Continue?',
-            ),
+            content: Text(l10n.clearOldActivitiesConfirm),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
@@ -236,7 +223,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Clear'),
+                child: Text(l10n.clearOld),
               ),
             ],
           ),
@@ -248,8 +235,8 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         _loadActivities(); // Reload the list
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Old activities cleared successfully'),
+            SnackBar(
+              content: Text(l10n.oldActivitiesClearedSuccessfully),
               backgroundColor: Colors.green,
             ),
           );
@@ -258,7 +245,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error clearing activities: $e'),
+              content: Text(l10n.errorClearingActivitiesWithError('$e')),
               backgroundColor: Colors.red,
             ),
           );
@@ -274,9 +261,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       builder:
           (context) => AlertDialog(
             title: Text(l10n.clearAll),
-            content: const Text(
-              'This will permanently delete ALL scan activities. This action cannot be undone. Continue?',
-            ),
+            content: Text(l10n.clearAllActivitiesConfirm),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
@@ -285,7 +270,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
                 style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: const Text('Delete All'),
+                child: Text(l10n.deleteAll),
               ),
             ],
           ),
@@ -297,8 +282,8 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         _loadActivities(); // Reload the list
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('All activities cleared successfully'),
+            SnackBar(
+              content: Text(l10n.allActivitiesClearedSuccessfully),
               backgroundColor: Colors.green,
             ),
           );
@@ -307,7 +292,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error clearing activities: $e'),
+              content: Text(l10n.errorClearingActivitiesWithError('$e')),
               backgroundColor: Colors.red,
             ),
           );
@@ -321,7 +306,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: _forceRefreshActivities,
-        tooltip: 'Refresh activities',
+        tooltip: AppLocalizations.of(context)!.refreshActivities,
         child: const Icon(Icons.refresh),
       ),
       body:
@@ -351,19 +336,19 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
             Icon(Icons.history, size: 64, color: Colors.grey),
             const SizedBox(height: 16),
             Text(
-              'No server scans found',
+              AppLocalizations.of(context)!.noServerScansFound,
               style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
             const SizedBox(height: 8),
             Text(
-              'Server scan activities will appear here',
+              AppLocalizations.of(context)!.serverScanActivitiesAppearHere,
               style: const TextStyle(fontSize: 14, color: Colors.grey),
             ),
             if (true) ...[
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _loadActivities,
-                child: const Text('Refresh'),
+                child: Text(AppLocalizations.of(context)!.refresh),
               ),
             ],
           ],
@@ -1015,10 +1000,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       setState(() {
         _weeklyCount = querySnapshot.docs.length;
       });
-
-      print('📊 Loaded weekly count: $_weeklyCount');
     } catch (e) {
-      print('Error loading weekly count: $e');
       // Fallback to loaded activities count
       setState(() {
         _weeklyCount = _getWeeklyCountFromLoaded();
@@ -1091,26 +1073,14 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     final timeFormat = isToday ? DateFormat('HH:mm') : dateFormat;
 
     // Debug logging to verify activity data
-    print('🃏 Building activity card: ${activity.id}');
-    print('   - hasStockUpdates: ${activity.hasStockUpdates}');
-    print('   - itemsScanned: ${activity.itemsScanned}');
-    print('   - details: ${activity.details}');
-    print('   - crawlRequestId: ${activity.crawlRequestId}');
 
     return GestureDetector(
       onTap:
           activity.hasStockUpdates
               ? () {
-                print(
-                  '👆 Tapped on activity with stock updates: ${activity.id}',
-                );
                 _showStockUpdates(activity);
               }
-              : () {
-                print(
-                  '👆 Tapped on activity without stock updates: ${activity.id}',
-                );
-              },
+              : () {},
       child: Card(
         margin: const EdgeInsets.only(bottom: 8),
         child: Padding(
@@ -1252,15 +1222,11 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
 
   /// Show stock updates for a specific scan activity
   Future<void> _showStockUpdates(ScanActivity activity) async {
-    print('🔍 _showStockUpdates called for activity: ${activity.id}');
-    print('🔍 Activity crawlRequestId: ${activity.crawlRequestId}');
-    print('🔍 Activity hasStockUpdates: ${activity.hasStockUpdates}');
-
+    final l10n = AppLocalizations.of(context)!;
     if (activity.crawlRequestId == null) {
-      print('❌ No crawlRequestId found for activity');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No stock update details available for this scan'),
+        SnackBar(
+          content: Text(l10n.noStockUpdateDetailsForScan),
           backgroundColor: Colors.orange,
         ),
       );
@@ -1268,7 +1234,6 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     }
 
     try {
-      print('📱 Showing loading dialog...');
       // Show loading dialog
       showDialog(
         context: context,
@@ -1276,12 +1241,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      print(
-        '🔍 Fetching stock updates for crawlRequestId: ${activity.crawlRequestId}',
-      );
-
       // Debug: Let's see what's actually in the stock_history collection
-      print('🔍 Checking stock_history collection structure...');
       final debugQuery =
           await FirestoreService.instance.firestore
               .collection('stock_history')
@@ -1289,26 +1249,15 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
               .limit(10)
               .get();
 
-      print(
-        '📝 Checking ${debugQuery.docs.length} recent stock history entries...',
-      );
       for (int i = 0; i < debugQuery.docs.length; i++) {
         final doc = debugQuery.docs[i];
         final data = doc.data();
-        print('📝 Entry ${i + 1}: ${data.keys.toList()}');
 
         if (data.containsKey('crawlRequestId')) {
-          print('✅ Found crawlRequestId: ${data['crawlRequestId']}');
-          if (data['crawlRequestId'] == activity.crawlRequestId) {
-            print('🎯 MATCH! This entry matches our target crawlRequestId');
-          }
-        } else {
-          print('❌ No crawlRequestId field in this entry');
-        }
+          if (data['crawlRequestId'] == activity.crawlRequestId) {}
+        } else {}
 
-        if (data.containsKey('timestamp')) {
-          print('🕐 Timestamp: ${data['timestamp']}');
-        }
+        if (data.containsKey('timestamp')) {}
       }
 
       // Get both stock updates and price updates for this crawl request
@@ -1318,18 +1267,12 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       final priceUpdates = await FirestoreService.instance
           .getPriceUpdatesForCrawlRequest(activity.crawlRequestId!);
 
-      print('📊 Found ${stockUpdates.length} stock updates');
-      print('💰 Found ${priceUpdates.length} price updates');
-
       // Combine stock and price updates
       final allUpdates = [...stockUpdates, ...priceUpdates];
 
       // If no updates found, try to get products that were updated during the scan timeframe
       List<Map<String, dynamic>> fallbackUpdates = [];
       if (allUpdates.isEmpty && activity.hasStockUpdates) {
-        print(
-          '🔄 No stock/price updates found by crawlRequestId, trying timestamp fallback...',
-        );
         try {
           // Get the crawl request details to find the time range
           final crawlRequestDoc =
@@ -1348,10 +1291,6 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                   startTime is DateTime ? startTime : startTime.toDate();
               DateTime endTimestamp =
                   endTime is DateTime ? endTime : endTime.toDate();
-
-              print(
-                '🕐 Searching for products updated between $startTimestamp and $endTimestamp',
-              );
 
               // Query products that were last updated during the scan timeframe
               final productsQuery =
@@ -1385,15 +1324,9 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                   'changeType': 'restock',
                 });
               }
-
-              print(
-                '📋 Found ${fallbackUpdates.length} products updated during scan timeframe',
-              );
             }
           }
-        } catch (e) {
-          print('⚠️ Error in fallback stock updates query: $e');
-        }
+        } catch (e) {}
       }
 
       final finalUpdates = allUpdates.isNotEmpty ? allUpdates : fallbackUpdates;
@@ -1422,11 +1355,10 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       if (mounted) Navigator.of(context).pop();
 
       if (convertedUpdates.isEmpty) {
-        print('⚠️ No stock/price updates found even with fallback method');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No detailed product updates found for this scan'),
+            SnackBar(
+              content: Text(l10n.noDetailedProductUpdatesForScan),
               backgroundColor: Colors.orange,
             ),
           );
@@ -1434,9 +1366,6 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         return;
       }
 
-      print(
-        '🚀 Navigating to StockUpdatesScreen with ${convertedUpdates.length} updates',
-      );
       // Navigate to stock updates screen
       if (mounted) {
         Navigator.of(context).push(
@@ -1450,7 +1379,6 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         );
       }
     } catch (e) {
-      print('❌ Error in _showStockUpdates: $e');
       // Close loading dialog if still open
       if (mounted && Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
@@ -1459,7 +1387,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error loading stock updates: $e'),
+            content: Text(l10n.errorLoadingStockUpdatesWithError('$e')),
             backgroundColor: Colors.red,
           ),
         );
@@ -1479,9 +1407,6 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         cacheKey,
       );
       if (cachedActivities != null) {
-        print(
-          'Using cached server activities (${cachedActivities.length} items)',
-        );
         return cachedActivities
             .map((item) => ScanActivity.fromJson(item as Map<String, dynamic>))
             .toList();
@@ -1489,17 +1414,12 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     }
 
     try {
-      print('Loading server activities from Firestore...');
-
       // Use FirestoreService to get crawl requests
       final crawlRequests = await FirestoreService.instance.getCrawlRequests(
         limit: 50, // Increased limit to get more recent activities
       );
 
-      print('Retrieved ${crawlRequests.length} crawl requests from Firestore');
-
       if (crawlRequests.isEmpty) {
-        print('No crawl requests found in Firestore');
         return [];
       }
 
@@ -1507,25 +1427,13 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
 
       for (final crawlRequest in crawlRequests) {
         try {
-          print(
-            'Processing crawl request: ${crawlRequest['id']} (status: ${crawlRequest['status']})',
-          );
           final activity = _convertCrawlRequestToScanActivity(crawlRequest);
           activities.add(activity);
-          print(
-            'Converted: ${activity.itemsScanned} products, ${activity.hasStockUpdates ? activity.details : 'no updates'}',
-          );
         } catch (e) {
-          print('Error converting crawl request ${crawlRequest['id']}: $e');
-          print('Crawl request data keys: ${crawlRequest.keys.toList()}');
           // Continue with other requests even if one fails
           continue;
         }
       }
-
-      print(
-        'Successfully converted ${activities.length}/${crawlRequests.length} server activities',
-      );
 
       // Sort activities by timestamp (most recent first)
       activities.sort((a, b) => b.timestamp.compareTo(a.timestamp));
@@ -1537,15 +1445,9 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
         duration: const Duration(minutes: 10),
       );
 
-      print('Cached ${activities.length} server activities');
-
       return activities;
     } catch (e) {
-      print('Error loading server activities from Firestore: $e');
-      print('Error type: ${e.runtimeType}');
-      if (e is Exception) {
-        print('Exception details: ${e.toString()}');
-      }
+      if (e is Exception) {}
       rethrow; // Re-throw to be handled by calling method
     }
   }
@@ -1554,11 +1456,6 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
   ScanActivity _convertCrawlRequestToScanActivity(
     Map<String, dynamic> crawlRequest,
   ) {
-    print('🔄 Raw crawl request data: ${crawlRequest.keys.toList()}');
-    print('🔄 Crawl request status: ${crawlRequest['status']}');
-    print('🔄 Crawl request stockUpdates: ${crawlRequest['stockUpdates']}');
-    print('🔄 Crawl request priceUpdates: ${crawlRequest['priceUpdates']}');
-
     final status = crawlRequest['status'] ?? 'unknown';
     final createdAt = crawlRequest['createdAt'];
     final completedAt = crawlRequest['completedAt'];
@@ -1616,16 +1513,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     String actualStatus = status;
     if (completedAt != null && status == 'running') {
       actualStatus = 'completed';
-      print('Status corrected from "running" to "completed" (has completedAt)');
     }
-
-    print(' Converting crawl request to ScanActivity:');
-    print('   - requestId: $requestId');
-    print('   - hasStockUpdates: $hasStockUpdates');
-    print('   - stockUpdates count: $stockUpdates');
-    print('   - priceUpdates count: $priceUpdates');
-    print('   - totalProducts: $totalProducts');
-    print('   - status: $status -> $actualStatus');
 
     // Build detailed status message based on actual data
     String details;
@@ -1692,11 +1580,6 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
           requestId, // Add the crawl request ID for detailed stock updates
     );
 
-    print('✅ Created ScanActivity: ${scanActivity.id}');
-    print('   - hasStockUpdates: ${scanActivity.hasStockUpdates}');
-    print('   - crawlRequestId: ${scanActivity.crawlRequestId}');
-
     return scanActivity;
   }
 }
-

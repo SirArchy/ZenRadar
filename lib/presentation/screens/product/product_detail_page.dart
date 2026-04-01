@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, empty_catches
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -109,11 +109,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       });
 
       // Debug info
-      debugPrint('Product currency: ${widget.product.currency}');
-      debugPrint('Product price: ${widget.product.price}');
-      debugPrint('Product priceValue: ${widget.product.priceValue}');
-      debugPrint('User preferred currency: ${settings.preferredCurrency}');
-      debugPrint('Selected currency: $_selectedCurrency');
 
       _convertAllPrices();
     } catch (e) {
@@ -129,30 +124,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     setState(() => _isLoading = true);
 
     try {
-      debugPrint(
-        '🔍 Loading price and stock history for product: ${widget.product.id}',
-      );
-      debugPrint(
-        '📋 Product details: ${widget.product.name} - ${widget.product.site}',
-      );
-
       final analytics = await _db.getPriceAnalyticsForProduct(
         widget.product.id,
       );
-      debugPrint(
-        '💰 Price analytics loaded: ${analytics.totalDataPoints} data points',
-      );
-      if (analytics.totalDataPoints > 0) {
-        debugPrint(
-          '💰 Price range: ${analytics.lowestPrice} - ${analytics.highestPrice} ${widget.product.currency}',
-        );
-      }
+      if (analytics.totalDataPoints > 0) {}
 
       final stockAnalytics = await _db.getStockAnalyticsForProduct(
         widget.product.id,
-      );
-      debugPrint(
-        '📈 Stock analytics loaded: ${stockAnalytics.statusPoints.length} status points',
       );
 
       setState(() {
@@ -164,12 +142,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       // Convert prices after loading analytics
       _convertAllPrices();
     } catch (e) {
-      debugPrint('❌ Error loading analytics for ${widget.product.id}: $e');
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error loading analytics: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.errorLoadingAnalyticsWithError('$e'),
+            ),
+          ),
+        );
       }
     }
   }
@@ -187,9 +170,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           _selectedTimeRange = 'day';
         }
       });
-    } catch (e) {
-      debugPrint('Error loading subscription status: $e');
-    }
+    } catch (e) {}
   }
 
   Future<void> _convertAllPrices() async {
@@ -214,15 +195,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
     // Convert current price
     if (widget.product.priceValue != null) {
-      debugPrint(
-        'Converting price: ${widget.product.priceValue} from $fromCurrency to $toCurrency',
-      );
       final converted = await _currencyConverter.convert(
         fromCurrency,
         toCurrency,
         widget.product.priceValue!,
       );
-      debugPrint('Converted price result: $converted');
       setState(() {
         _convertedPrice = converted;
       });
@@ -281,9 +258,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       setState(() {
         _isFavorite = favorites.contains(widget.product.id);
       });
-    } catch (e) {
-      print('Error loading favorite status: $e');
-    }
+    } catch (e) {}
   }
 
   Future<void> _toggleFavorite() async {
@@ -317,11 +292,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         );
       }
     } catch (e) {
-      print('Error toggling favorite: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating favorite: $e'),
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.errorUpdatingFavoriteWithError('$e'),
+            ),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
@@ -696,6 +674,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Widget _buildPriceChart() {
+    final l10n = AppLocalizations.of(context)!;
     if (_isLoading) {
       return Card(
         child: Padding(
@@ -778,23 +757,23 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         (context) =>
                             _isPremium
                                 ? [
-                                  const PopupMenuItem(
+                                  PopupMenuItem(
                                     value: 'day',
-                                    child: Text('7 Days'),
+                                    child: Text(l10n.last7Days),
                                   ),
-                                  const PopupMenuItem(
+                                  PopupMenuItem(
                                     value: 'week',
-                                    child: Text('1 Month'),
+                                    child: Text(l10n.last30Days),
                                   ),
-                                  const PopupMenuItem(
+                                  PopupMenuItem(
                                     value: 'month',
-                                    child: Text('1 Year'),
+                                    child: Text(l10n.year),
                                   ),
                                 ]
                                 : [
-                                  const PopupMenuItem(
+                                  PopupMenuItem(
                                     value: 'day',
-                                    child: Text('7 Days'),
+                                    child: Text(l10n.last7Days),
                                   ),
                                 ],
                     child: Chip(
@@ -850,23 +829,23 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       (context) =>
                           _isPremium
                               ? [
-                                const PopupMenuItem(
+                                PopupMenuItem(
                                   value: 'day',
-                                  child: Text('7 Days'),
+                                  child: Text(l10n.last7Days),
                                 ),
-                                const PopupMenuItem(
+                                PopupMenuItem(
                                   value: 'week',
-                                  child: Text('1 Month'),
+                                  child: Text(l10n.last30Days),
                                 ),
-                                const PopupMenuItem(
+                                PopupMenuItem(
                                   value: 'month',
-                                  child: Text('1 Year'),
+                                  child: Text(l10n.year),
                                 ),
                               ]
                               : [
-                                const PopupMenuItem(
+                                PopupMenuItem(
                                   value: 'day',
-                                  child: Text('7 Days'),
+                                  child: Text(l10n.last7Days),
                                 ),
                               ],
                   child: Chip(
@@ -985,6 +964,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Widget _buildStockChart() {
+    final l10n = AppLocalizations.of(context)!;
     if (_isLoading) {
       return const Card(
         child: Padding(
@@ -1148,23 +1128,23 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         (context) =>
                             _isPremium
                                 ? [
-                                  const PopupMenuItem(
+                                  PopupMenuItem(
                                     value: 'day',
-                                    child: Text('Today'),
+                                    child: Text(l10n.today),
                                   ),
-                                  const PopupMenuItem(
+                                  PopupMenuItem(
                                     value: 'week',
-                                    child: Text('This Week'),
+                                    child: Text(l10n.thisWeek),
                                   ),
-                                  const PopupMenuItem(
+                                  PopupMenuItem(
                                     value: 'month',
-                                    child: Text('This Month'),
+                                    child: Text(l10n.thisMonth),
                                   ),
                                 ]
                                 : [
-                                  const PopupMenuItem(
+                                  PopupMenuItem(
                                     value: 'day',
-                                    child: Text('Last 7 Days'),
+                                    child: Text(l10n.last7Days),
                                   ),
                                 ],
                     child: Container(
@@ -1253,9 +1233,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   }
 
                   if (snapshot.hasError || !snapshot.hasData) {
-                    return const Center(
-                      child: Text('Failed to load daily stock data'),
-                    );
+                    return Center(child: Text(l10n.failedToLoadDailyStockData));
                   }
 
                   return ImprovedStockGrid(
@@ -1623,7 +1601,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   vertical: 6,
                 ),
               ),
-              child: const Text('Upgrade', style: TextStyle(fontSize: 12)),
+              child: Text(
+                AppLocalizations.of(context)!.upgrade,
+                style: const TextStyle(fontSize: 12),
+              ),
             ),
           ],
         ),
@@ -1637,23 +1618,27 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Upgrade to Premium'),
-          content: const Column(
+          title: Text(AppLocalizations.of(context)!.upgradeToPremium),
+          content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Get unlimited access to price and stock history:'),
+              Text(AppLocalizations.of(context)!.getUnlimitedHistoryAccess),
               SizedBox(height: 16),
-              Text('• Full price & stock history'),
-              Text('• Unlimited favorite products'),
-              Text('• Monitor all vendor sites'),
-              Text('• Hourly check frequency'),
+              Text(
+                AppLocalizations.of(context)!.bulletFullPriceAndStockHistory,
+              ),
+              Text(
+                AppLocalizations.of(context)!.bulletUnlimitedFavoriteProducts,
+              ),
+              Text(AppLocalizations.of(context)!.bulletMonitorAllVendorSites),
+              Text(AppLocalizations.of(context)!.bulletHourlyCheckFrequency),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Maybe Later'),
+              child: Text(AppLocalizations.of(context)!.maybeLater),
             ),
             ElevatedButton(
               onPressed: () {
@@ -1667,7 +1652,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ),
                 );
               },
-              child: const Text('Upgrade Now'),
+              child: Text(AppLocalizations.of(context)!.upgradeNow),
             ),
           ],
         );
@@ -1689,4 +1674,3 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 }
-
