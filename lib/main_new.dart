@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:zenradar/services/backend_service.dart';
-import 'services/notification_service.dart';
-import 'services/background_service.dart';
-import 'screens/main_screen.dart';
+import 'package:zenradar/data/services/services.dart';
+import 'package:zenradar/presentation/screens/screens.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

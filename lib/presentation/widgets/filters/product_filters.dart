@@ -1,0 +1,926 @@
+import 'package:flutter/material.dart';
+import 'package:zenradar/models/matcha_product.dart';
+import 'package:zenradar/data/services/settings/settings_service.dart';
+import 'package:zenradar/data/services/pricing/product_price_converter.dart';
+
+class ProductFilters extends StatefulWidget {
+  final ProductFilter filter;
+  final Function(ProductFilter) onFilterChanged;
+  final List<String> availableSites;
+  final List<String> availableCategories;
+  final Map<String, double> priceRange;
+  final ScrollController? scrollController;
+  final VoidCallback? onClose;
+
+  const ProductFilters({
+    super.key,
+    required this.filter,
+    required this.onFilterChanged,
+    required this.availableSites,
+    required this.availableCategories,
+    required this.priceRange,
+    this.scrollController,
+    this.onClose,
+  });
+
+  @override
+  State<ProductFilters> createState() => _ProductFiltersState();
+}
+
+class _ProductFiltersState extends State<ProductFilters> {
+  late ProductFilter _currentFilter;
+  late RangeValues _priceRangeValues;
+  bool _isSiteFilterExpanded = false; // Add state for expandable site filter
+  bool _isCategoryFilterExpanded =
+      false; // Add state for expandable category filter
+  String _preferredCurrency = 'EUR';
+  ProductPriceConverter? _priceConverter;
+
+  // ScrollControllers for the Scrollbars
+  final ScrollController _siteScrollController = ScrollController();
+  final ScrollController _categoryScrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _currentFilter = widget.filter;
+
+    // Ensure price range values are within bounds
+    final minPrice = widget.priceRange['min']!;
+    final maxPrice = widget.priceRange['max']!;
+    final currentMin = _currentFilter.minPrice ?? minPrice;
+    final currentMax = _currentFilter.maxPrice ?? maxPrice;
+
+    _priceRangeValues = RangeValues(
+      currentMin.clamp(minPrice, maxPrice),
+      currentMax.clamp(minPrice, maxPrice),
+    );
+
+    // Auto-expand if sites are already selected
+    _isSiteFilterExpanded = _currentFilter.sites?.isNotEmpty ?? false;
+    _isCategoryFilterExpanded = _currentFilter.categories?.isNotEmpty ?? false;
+    _initializeCurrency();
+  }
+
+  Future<void> _initializeCurrency() async {
+    final settings = await SettingsService.instance.getSettings();
+    setState(() {
+      _preferredCurrency = settings.preferredCurrency;
+      _priceConverter = ProductPriceConverter();
+    });
+  }
+
+  @override
+  void didUpdateWidget(ProductFilters oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Update filter if it changed
+    if (widget.filter != oldWidget.filter) {
+      _currentFilter = widget.filter;
+    }
+
+    // Update price range if the available range changed or filter changed
+    if (widget.priceRange != oldWidget.priceRange ||
+        widget.filter != oldWidget.filter) {
+      final minPrice = widget.priceRange['min']!;
+      final maxPrice = widget.priceRange['max']!;
+      final currentMin = _currentFilter.minPrice ?? minPrice;
+      final currentMax = _currentFilter.maxPrice ?? maxPrice;
+
+      setState(() {
+        _priceRangeValues = RangeValues(
+          currentMin.clamp(minPrice, maxPrice),
+          currentMax.clamp(minPrice, maxPrice),
+        );
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _siteScrollController.dispose();
+    _categoryScrollController.dispose();
+    super.dispose();
+  }
+
+  void _updateFilter(ProductFilter newFilter) {
+    setState(() {
+      _currentFilter = newFilter;
+    });
+    widget.onFilterChanged(newFilter);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 600;
+
+    return SingleChildScrollView(
+      controller: widget.scrollController,
+      padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
+      physics: const BouncingScrollPhysics(),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(
+                context,
+              ).colorScheme.shadow.withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar for draggable sheet
+            if (widget.scrollController != null)
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+
+            Row(
+              children: [
+                const Icon(Icons.filter_list),
+                const SizedBox(width: 8),
+                Text(
+                  'Filters',
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 16 : 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                // Always show clear all button
+                TextButton(
+                  onPressed: _clearFilters,
+                  child: Text(
+                    'Clear All',
+                    style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
+                  ),
+                ),
+                if (widget.onClose != null)
+                  IconButton(
+                    onPressed: widget.onClose,
+                    icon: const Icon(Icons.close),
+                    tooltip: 'Close filters',
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Site Filter
+            _buildSiteFilter(isSmallScreen),
+            const SizedBox(height: 16),
+
+            // Category Filter
+            if (widget.availableCategories.isNotEmpty) ...[
+              _buildCategoryFilter(isSmallScreen),
+              const SizedBox(height: 16),
+            ],
+
+            // Price Range Filter
+            _buildPriceRangeFilter(isSmallScreen),
+            const SizedBox(height: 16),
+
+            // Favorites Toggle
+            _buildFavoritesToggle(isSmallScreen),
+            const SizedBox(height: 16),
+
+            // Bottom padding for safe area
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+          ],
+        ), // Close Column
+      ), // Close Container
+    ); // Close SingleChildScrollView
+  }
+
+  Widget _buildSiteFilter(bool isSmallScreen) {
+    final selectedSites = _currentFilter.sites ?? <String>[];
+    final availableSitesWithoutAll =
+        widget.availableSites.where((site) => site != 'All').toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Sites',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: isSmallScreen ? 14 : 16,
+              ),
+            ),
+            const Spacer(),
+            if (selectedSites.isNotEmpty)
+              TextButton(
+                onPressed: () {
+                  _updateFilter(_currentFilter.copyWith(sites: <String>[]));
+                },
+                child: Text(
+                  'Clear',
+                  style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+
+        // Summary when collapsed or detailed view when expanded
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.3),
+            ),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            children: [
+              // Header with summary and expand/collapse button
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _isSiteFilterExpanded = !_isSiteFilterExpanded;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          selectedSites.isEmpty
+                              ? 'All sites'
+                              : selectedSites.length ==
+                                  availableSitesWithoutAll.length
+                              ? 'All sites (${selectedSites.length})'
+                              : '${selectedSites.length} of ${availableSitesWithoutAll.length} sites',
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 14 : 16,
+                            fontWeight:
+                                selectedSites.isNotEmpty
+                                    ? FontWeight.w500
+                                    : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        _isSiteFilterExpanded
+                            ? Icons.expand_less
+                            : Icons.expand_more,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Expandable content
+              if (_isSiteFilterExpanded) ...[
+                const Divider(height: 1),
+                // Select All / None toggle
+                CheckboxListTile(
+                  title: Text(
+                    selectedSites.length == availableSitesWithoutAll.length
+                        ? 'Deselect All'
+                        : 'Select All',
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 14 : 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  value:
+                      selectedSites.length == availableSitesWithoutAll.length,
+                  tristate: true,
+                  onChanged: (value) {
+                    if (selectedSites.length ==
+                        availableSitesWithoutAll.length) {
+                      // Deselect all
+                      _updateFilter(_currentFilter.copyWith(sites: <String>[]));
+                    } else {
+                      // Select all
+                      _updateFilter(
+                        _currentFilter.copyWith(
+                          sites: List<String>.from(availableSitesWithoutAll),
+                        ),
+                      );
+                    }
+                  },
+                  dense: isSmallScreen,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+                const Divider(height: 1),
+                // Individual site checkboxes
+                Container(
+                  constraints: BoxConstraints(
+                    maxHeight: isSmallScreen ? 150 : 200,
+                  ), // Responsive height limit
+                  child: Scrollbar(
+                    controller: _siteScrollController,
+                    thumbVisibility: true,
+                    child: SingleChildScrollView(
+                      controller: _siteScrollController,
+                      child: Column(
+                        children:
+                            availableSitesWithoutAll
+                                .map(
+                                  (site) => CheckboxListTile(
+                                    title: Text(
+                                      site,
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 14 : 16,
+                                      ),
+                                    ),
+                                    value: selectedSites.contains(site),
+                                    onChanged: (isChecked) {
+                                      final newSelectedSites =
+                                          List<String>.from(selectedSites);
+                                      if (isChecked == true) {
+                                        newSelectedSites.add(site);
+                                      } else {
+                                        newSelectedSites.remove(site);
+                                      }
+                                      _updateFilter(
+                                        _currentFilter.copyWith(
+                                          sites: newSelectedSites,
+                                        ),
+                                      );
+                                    },
+                                    dense: isSmallScreen,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        // Show selected sites as chips when collapsed
+        if (!_isSiteFilterExpanded && selectedSites.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children:
+                selectedSites
+                    .take(3)
+                    .map(
+                      (site) => Chip(
+                        label: Text(
+                          site,
+                          style: TextStyle(fontSize: isSmallScreen ? 11 : 12),
+                        ),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                        deleteIcon: const Icon(Icons.close, size: 16),
+                        onDeleted: () {
+                          final newSelectedSites = List<String>.from(
+                            selectedSites,
+                          );
+                          newSelectedSites.remove(site);
+                          _updateFilter(
+                            _currentFilter.copyWith(sites: newSelectedSites),
+                          );
+                        },
+                      ),
+                    )
+                    .toList()
+                  ..addAll(
+                    selectedSites.length > 3
+                        ? [
+                          Chip(
+                            label: Text(
+                              '+${selectedSites.length - 3} more',
+                              style: TextStyle(
+                                fontSize: isSmallScreen ? 11 : 12,
+                              ),
+                            ),
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ]
+                        : [],
+                  ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildCategoryFilter(bool isSmallScreen) {
+    final selectedCategories = _currentFilter.categories ?? <String>[];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Categories',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: isSmallScreen ? 14 : 16,
+              ),
+            ),
+            const Spacer(),
+            if (selectedCategories.isNotEmpty)
+              TextButton(
+                onPressed: () {
+                  _updateFilter(
+                    _currentFilter.copyWith(categories: <String>[]),
+                  );
+                },
+                child: Text(
+                  'Clear',
+                  style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+
+        // Summary when collapsed or detailed view when expanded
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.3),
+            ),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            children: [
+              // Header with summary and expand/collapse button
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _isCategoryFilterExpanded = !_isCategoryFilterExpanded;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          selectedCategories.isEmpty
+                              ? 'All categories'
+                              : selectedCategories.length ==
+                                  widget.availableCategories.length
+                              ? 'All categories (${selectedCategories.length})'
+                              : '${selectedCategories.length} of ${widget.availableCategories.length} categories',
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 14 : 16,
+                            fontWeight:
+                                selectedCategories.isNotEmpty
+                                    ? FontWeight.w500
+                                    : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        _isCategoryFilterExpanded
+                            ? Icons.expand_less
+                            : Icons.expand_more,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Expandable content
+              if (_isCategoryFilterExpanded) ...[
+                const Divider(height: 1),
+                // Select All / None toggle
+                CheckboxListTile(
+                  title: Text(
+                    selectedCategories.length ==
+                            widget.availableCategories.length
+                        ? 'Deselect All'
+                        : 'Select All',
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 14 : 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  value:
+                      selectedCategories.length ==
+                      widget.availableCategories.length,
+                  tristate: true,
+                  onChanged: (value) {
+                    if (selectedCategories.length ==
+                        widget.availableCategories.length) {
+                      // Deselect all
+                      _updateFilter(
+                        _currentFilter.copyWith(categories: <String>[]),
+                      );
+                    } else {
+                      // Select all
+                      _updateFilter(
+                        _currentFilter.copyWith(
+                          categories: List<String>.from(
+                            widget.availableCategories,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  dense: isSmallScreen,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+                const Divider(height: 1),
+                // Individual category checkboxes
+                Container(
+                  constraints: BoxConstraints(
+                    maxHeight: isSmallScreen ? 150 : 200,
+                  ), // Responsive height limit
+                  child: Scrollbar(
+                    controller: _categoryScrollController,
+                    thumbVisibility: true,
+                    child: SingleChildScrollView(
+                      controller: _categoryScrollController,
+                      child: Column(
+                        children:
+                            widget.availableCategories
+                                .map(
+                                  (category) => CheckboxListTile(
+                                    title: Text(
+                                      category,
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 14 : 16,
+                                      ),
+                                    ),
+                                    value: selectedCategories.contains(
+                                      category,
+                                    ),
+                                    onChanged: (isChecked) {
+                                      final newSelectedCategories =
+                                          List<String>.from(selectedCategories);
+                                      if (isChecked == true) {
+                                        newSelectedCategories.add(category);
+                                      } else {
+                                        newSelectedCategories.remove(category);
+                                      }
+                                      _updateFilter(
+                                        _currentFilter.copyWith(
+                                          categories: newSelectedCategories,
+                                        ),
+                                      );
+                                    },
+                                    dense: isSmallScreen,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        // Show selected categories as chips when collapsed
+        if (!_isCategoryFilterExpanded && selectedCategories.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children:
+                selectedCategories
+                    .take(3)
+                    .map(
+                      (category) => Chip(
+                        label: Text(
+                          category,
+                          style: TextStyle(fontSize: isSmallScreen ? 11 : 12),
+                        ),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                        deleteIcon: const Icon(Icons.close, size: 16),
+                        onDeleted: () {
+                          final newSelectedCategories = List<String>.from(
+                            selectedCategories,
+                          );
+                          newSelectedCategories.remove(category);
+                          _updateFilter(
+                            _currentFilter.copyWith(
+                              categories: newSelectedCategories,
+                            ),
+                          );
+                        },
+                      ),
+                    )
+                    .toList()
+                  ..addAll(
+                    selectedCategories.length > 3
+                        ? [
+                          Chip(
+                            label: Text(
+                              '+${selectedCategories.length - 3} more',
+                              style: TextStyle(
+                                fontSize: isSmallScreen ? 11 : 12,
+                              ),
+                            ),
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ]
+                        : [],
+                  ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildPriceRangeFilter(bool isSmallScreen) {
+    final minPrice = widget.priceRange['min']!;
+    final maxPrice = widget.priceRange['max']!;
+
+    if (minPrice >= maxPrice) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Price Range',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: isSmallScreen ? 14 : 16,
+          ),
+        ),
+        const SizedBox(height: 8),
+        RangeSlider(
+          values: _priceRangeValues,
+          min: minPrice,
+          max: maxPrice,
+          divisions: 20,
+          labels: RangeLabels(
+            _formatPrice(_priceRangeValues.start),
+            _formatPrice(_priceRangeValues.end),
+          ),
+          onChanged: (values) {
+            setState(() {
+              _priceRangeValues = values;
+            });
+          },
+          onChangeEnd: (values) {
+            _updateFilter(
+              _currentFilter.copyWith(
+                minPrice: values.start,
+                maxPrice: values.end,
+              ),
+            );
+          },
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            GestureDetector(
+              onTap: () => _showPriceInputDialog(true, _priceRangeValues.start),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.3),
+                  ),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  _formatPrice(_priceRangeValues.start),
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 12 : 14,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+            ),
+            GestureDetector(
+              onTap: () => _showPriceInputDialog(false, _priceRangeValues.end),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.3),
+                  ),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  _formatPrice(_priceRangeValues.end),
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 12 : 14,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  String _formatPrice(double price) {
+    if (_priceConverter == null) {
+      return '€${price.toStringAsFixed(2)}'; // Default to EUR
+    }
+
+    // For now, just format without conversion until we can implement async conversion
+    // The price values in the slider are already in EUR from the backend
+    final symbol = _priceConverter!.getCurrencySymbol(_preferredCurrency);
+
+    // Apply a simple conversion multiplier for display purposes
+    double displayPrice = price;
+    switch (_preferredCurrency) {
+      case 'JPY':
+        displayPrice = price * 130; // Approximate EUR to JPY
+        return '$symbol${displayPrice.round()}'; // Yen doesn't use decimals
+      case 'USD':
+        displayPrice = price * 1.1; // Approximate EUR to USD
+        return '$symbol${displayPrice.toStringAsFixed(2)}';
+      case 'CAD':
+        displayPrice = price * 1.5; // Approximate EUR to CAD
+        return '$symbol${displayPrice.toStringAsFixed(2)}';
+      case 'EUR':
+        return '$symbol${displayPrice.toStringAsFixed(2).replaceAll('.', ',')}';
+      default:
+        return '$symbol${displayPrice.toStringAsFixed(2)}';
+    }
+  }
+
+  Future<void> _showPriceInputDialog(bool isMin, double currentValue) async {
+    final controller = TextEditingController(
+      text:
+          isMin
+              ? _priceRangeValues.start.toStringAsFixed(2)
+              : _priceRangeValues.end.toStringAsFixed(2),
+    );
+
+    final result = await showDialog<double>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('Enter ${isMin ? 'Minimum' : 'Maximum'} Price'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: controller,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Price in $_preferredCurrency',
+                    prefixText:
+                        _priceConverter?.getCurrencySymbol(
+                          _preferredCurrency,
+                        ) ??
+                        '€',
+                    border: const OutlineInputBorder(),
+                  ),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Range: ${_formatPrice(widget.priceRange['min']!)} - ${_formatPrice(widget.priceRange['max']!)}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  final value = double.tryParse(controller.text);
+                  if (value != null) {
+                    Navigator.of(context).pop(value);
+                  }
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+    );
+
+    if (result != null) {
+      final minPrice = widget.priceRange['min']!;
+      final maxPrice = widget.priceRange['max']!;
+
+      // Clamp the value to valid range
+      final clampedValue = result.clamp(minPrice, maxPrice);
+
+      setState(() {
+        if (isMin) {
+          _priceRangeValues = RangeValues(
+            clampedValue.clamp(minPrice, _priceRangeValues.end),
+            _priceRangeValues.end,
+          );
+        } else {
+          _priceRangeValues = RangeValues(
+            _priceRangeValues.start,
+            clampedValue.clamp(_priceRangeValues.start, maxPrice),
+          );
+        }
+      });
+
+      _updateFilter(
+        _currentFilter.copyWith(
+          minPrice: _priceRangeValues.start,
+          maxPrice: _priceRangeValues.end,
+        ),
+      );
+    }
+  }
+
+  Widget _buildFavoritesToggle(bool isSmallScreen) {
+    return CheckboxListTile(
+      title: Text(
+        'Favorites only',
+        style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+      ),
+      subtitle: Text(
+        'Show only products marked as favorites',
+        style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
+      ),
+      value: _currentFilter.favoritesOnly,
+      dense: isSmallScreen,
+      contentPadding: EdgeInsets.zero,
+      onChanged: (value) {
+        _updateFilter(_currentFilter.copyWith(favoritesOnly: value ?? false));
+      },
+    );
+  }
+
+  void _clearFilters() {
+    // Preserve the stock filter (inStock) while clearing other filters
+    final clearedFilter = ProductFilter(
+      inStock: _currentFilter.inStock, // Preserve stock filter from home screen
+      showDiscontinued:
+          _currentFilter.showDiscontinued, // Preserve this as well
+      favoritesOnly: false, // Clear favorites filter
+      searchTerm: null, // Explicitly clear search term
+    );
+    setState(() {
+      _currentFilter = clearedFilter;
+      _priceRangeValues = RangeValues(
+        widget.priceRange['min']!,
+        widget.priceRange['max']!,
+      );
+    });
+    widget.onFilterChanged(clearedFilter);
+  }
+}

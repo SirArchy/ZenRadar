@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print
 
-import 'lib/services/image_url_processor.dart';
+// ignore: library_prefixes
+import 'test_url_processing.dart' as ImageUrlProcessor;
 
 void main() {
   // Test URLs from your examples

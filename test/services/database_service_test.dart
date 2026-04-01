@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zenradar/services/database_service.dart';
+import 'package:zenradar/data/services/data/database_service.dart';
 import 'package:zenradar/models/matcha_product.dart';
 import 'package:zenradar/models/scan_activity.dart';
 

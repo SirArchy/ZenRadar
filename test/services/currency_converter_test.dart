@@ -1,7 +1,7 @@
 // ignore_for_file: avoid_print
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zenradar/services/currency_converter_service.dart';
+import 'package:zenradar/data/services/pricing/currency_converter_service.dart';
 
 void main() {
   // Initialize bindings for tests that use SharedPreferences

@@ -1,10 +1,10 @@
-// Example: How to add language selection to settings_screen.dart
+﻿// Example: How to add language selection to settings_screen.dart
 // This is a reference implementation showing how to integrate the language selector
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import '../services/localization_service.dart';
-import '../widgets/language_selection_dialog.dart';
+import 'package:zenradar/data/services/settings/localization_service.dart';
+import 'package:zenradar/presentation/widgets/dialogs/language_selection_dialog.dart';
 
 class LanguageSettingsExample extends StatefulWidget {
   const LanguageSettingsExample({super.key});

@@ -3,17 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:zenradar/services/backend_service.dart';
+import 'package:zenradar/data/services/services.dart';
 import 'firebase_options.dart';
-import 'services/notification_service.dart';
-import 'services/background_service.dart';
-import 'services/database_service.dart';
-import 'services/firestore_service.dart';
-import 'services/theme_service.dart';
-import 'services/battery_optimization_service.dart';
-import 'services/favorite_notification_service.dart';
-import 'services/localization_service.dart';
-import 'screens/app_initializer.dart';
+import 'package:zenradar/presentation/screens/screens.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 void main() async {
