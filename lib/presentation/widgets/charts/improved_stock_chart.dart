@@ -45,86 +45,118 @@ class ImprovedStockChart extends StatelessWidget {
 
     return SizedBox(
       height: 280,
-      child: LineChart(
-        LineChartData(
-          gridData: _buildGridData(context),
-          titlesData: _buildTitlesData(context, downsampledPoints),
-          borderData: _buildBorderData(context),
-          lineBarsData: [_buildStockLineData(context, downsampledPoints)],
-          lineTouchData: _buildTouchData(context, downsampledPoints),
-          minX:
-              downsampledPoints.first.timestamp.millisecondsSinceEpoch
-                  .toDouble(),
-          maxX:
-              downsampledPoints.last.timestamp.millisecondsSinceEpoch
-                  .toDouble(),
-          minY: -0.1,
-          maxY: 1.1,
-          extraLinesData: _buildStockLevels(context),
-        ),
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final chartWidth = constraints.maxWidth;
+          return LineChart(
+            LineChartData(
+              gridData: _buildGridData(context, downsampledPoints, chartWidth),
+              titlesData: _buildTitlesData(
+                context,
+                downsampledPoints,
+                chartWidth,
+              ),
+              borderData: _buildBorderData(context),
+              lineBarsData: [_buildStockLineData(context, downsampledPoints)],
+              lineTouchData: _buildTouchData(context, downsampledPoints),
+              minX:
+                  downsampledPoints.first.timestamp.millisecondsSinceEpoch
+                      .toDouble(),
+              maxX:
+                  downsampledPoints.last.timestamp.millisecondsSinceEpoch
+                      .toDouble(),
+              minY: -0.1,
+              maxY: 1.1,
+              extraLinesData: _buildStockLevels(context),
+            ),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        },
       ),
     );
   }
 
-  // Downsample stock data to prevent too many data points
+  // Keep structural transitions, then window-sample for stable rendering.
   List<StockStatusPoint> _downsampleStockData(List<StockStatusPoint> points) {
-    if (points.length <= 50) {
-      return points; // No need to downsample small datasets
+    final compressed = _compressTransitions(points);
+    final targetPoints = _targetPointCount();
+    if (compressed.length <= targetPoints) {
+      return compressed;
     }
 
-    int targetPoints;
+    final startMs = compressed.first.timestamp.millisecondsSinceEpoch;
+    final endMs = compressed.last.timestamp.millisecondsSinceEpoch;
+    final durationMs = (endMs - startMs).clamp(1, 1 << 31);
+    final bucketMs = (durationMs / targetPoints).ceil();
+
+    final windowed = <StockStatusPoint>[compressed.first];
+    int bucketStart = startMs;
+    int index = 0;
+
+    while (bucketStart <= endMs && index < compressed.length) {
+      final bucketEnd = bucketStart + bucketMs;
+      final bucket = <StockStatusPoint>[];
+
+      while (index < compressed.length) {
+        final ms = compressed[index].timestamp.millisecondsSinceEpoch;
+        if (ms < bucketEnd) {
+          bucket.add(compressed[index]);
+          index++;
+        } else {
+          break;
+        }
+      }
+
+      if (bucket.isNotEmpty) {
+        final middle = bucket[bucket.length ~/ 2];
+        if (windowed.last.timestamp != middle.timestamp) {
+          windowed.add(middle);
+        }
+        final lastInBucket = bucket.last;
+        if (windowed.last.timestamp != lastInBucket.timestamp) {
+          windowed.add(lastInBucket);
+        }
+      }
+
+      bucketStart = bucketEnd;
+    }
+
+    if (windowed.last.timestamp != compressed.last.timestamp) {
+      windowed.add(compressed.last);
+    }
+
+    return _compressTransitions(windowed);
+  }
+
+  List<StockStatusPoint> _compressTransitions(List<StockStatusPoint> points) {
+    if (points.length <= 2) return points;
+
+    final compressed = <StockStatusPoint>[points.first];
+    for (int i = 1; i < points.length - 1; i++) {
+      if (points[i].isInStock != compressed.last.isInStock) {
+        compressed.add(points[i]);
+      }
+    }
+    if (compressed.last.timestamp != points.last.timestamp) {
+      compressed.add(points.last);
+    }
+    return compressed;
+  }
+
+  int _targetPointCount() {
     switch (timeRange) {
       case 'day':
       case 'today':
-        targetPoints = 24; // Hourly points
-        break;
+        return 30;
       case 'week':
-        targetPoints = 14; // Twice daily
-        break;
+        return 36;
       case 'month':
-        targetPoints = 30; // Daily points
-        break;
+        return 40;
       case 'all':
       default:
-        targetPoints = 50; // Fixed number for all time
-        break;
+        return 52;
     }
-
-    if (points.length <= targetPoints) return points;
-
-    // Use step-based sampling but preserve state changes
-    final downsampled = <StockStatusPoint>[];
-    final step = (points.length / targetPoints).ceil();
-
-    // Always include first point
-    downsampled.add(points.first);
-
-    // Sample points while preserving state changes
-    bool lastInStock = points.first.isInStock;
-    for (int i = step; i < points.length; i += step) {
-      final point = points[i];
-
-      // Always include state changes
-      if (point.isInStock != lastInStock) {
-        // Include the previous point if it's not already included
-        if (i > 0 && !downsampled.contains(points[i - 1])) {
-          downsampled.add(points[i - 1]);
-        }
-        downsampled.add(point);
-        lastInStock = point.isInStock;
-      } else {
-        downsampled.add(point);
-      }
-    }
-
-    // Always include the last point
-    if (!downsampled.contains(points.last)) {
-      downsampled.add(points.last);
-    }
-
-    return downsampled;
   }
 
   Widget _buildEmptyState(BuildContext context) {
@@ -271,37 +303,60 @@ class ImprovedStockChart extends StatelessWidget {
         // Chart
         SizedBox(
           height: 260,
-          child: LineChart(
-            LineChartData(
-              gridData: _buildGridData(context),
-              titlesData: _buildTitlesData(context, downsampledPoints),
-              borderData: _buildBorderData(context),
-              lineBarsData: [_buildStockLineData(context, downsampledPoints)],
-              lineTouchData: _buildTouchData(context, downsampledPoints),
-              minX:
-                  downsampledPoints.first.timestamp.millisecondsSinceEpoch
-                      .toDouble(),
-              maxX:
-                  downsampledPoints.last.timestamp.millisecondsSinceEpoch
-                      .toDouble(),
-              minY: -0.1,
-              maxY: 1.1,
-              extraLinesData: _buildStockLevels(context),
-            ),
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final chartWidth = constraints.maxWidth;
+              return LineChart(
+                LineChartData(
+                  gridData: _buildGridData(
+                    context,
+                    downsampledPoints,
+                    chartWidth,
+                  ),
+                  titlesData: _buildTitlesData(
+                    context,
+                    downsampledPoints,
+                    chartWidth,
+                  ),
+                  borderData: _buildBorderData(context),
+                  lineBarsData: [
+                    _buildStockLineData(context, downsampledPoints),
+                  ],
+                  lineTouchData: _buildTouchData(context, downsampledPoints),
+                  minX:
+                      downsampledPoints.first.timestamp.millisecondsSinceEpoch
+                          .toDouble(),
+                  maxX:
+                      downsampledPoints.last.timestamp.millisecondsSinceEpoch
+                          .toDouble(),
+                  minY: -0.1,
+                  maxY: 1.1,
+                  extraLinesData: _buildStockLevels(context),
+                ),
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            },
           ),
         ),
       ],
     );
   }
 
-  FlGridData _buildGridData(BuildContext context) {
+  FlGridData _buildGridData(
+    BuildContext context,
+    List<StockStatusPoint> points,
+    double chartWidth,
+  ) {
+    final interval = _getTimeInterval(
+      points,
+      _idealBottomLabelCount(chartWidth),
+    );
     return FlGridData(
       show: true,
       drawVerticalLine: true,
       drawHorizontalLine: false, // No horizontal lines for stock chart
-      verticalInterval: _getTimeInterval(),
+      verticalInterval: interval,
       getDrawingVerticalLine:
           (value) => FlLine(
             color: Theme.of(context).colorScheme.outline.withAlpha(30),
@@ -314,13 +369,18 @@ class ImprovedStockChart extends StatelessWidget {
   FlTitlesData _buildTitlesData(
     BuildContext context,
     List<StockStatusPoint> points,
+    double chartWidth,
   ) {
+    final interval = _getTimeInterval(
+      points,
+      _idealBottomLabelCount(chartWidth),
+    );
     return FlTitlesData(
       bottomTitles: AxisTitles(
         sideTitles: SideTitles(
           showTitles: true,
-          reservedSize: 35,
-          interval: _getTimeInterval(),
+          reservedSize: 38,
+          interval: interval,
           getTitlesWidget:
               (value, meta) => _buildTimeTitle(context, value, meta),
         ),
@@ -328,7 +388,7 @@ class ImprovedStockChart extends StatelessWidget {
       leftTitles: AxisTitles(
         sideTitles: SideTitles(
           showTitles: true,
-          reservedSize: 80,
+          reservedSize: 70,
           interval: 1.0, // Only show at Y=0 and Y=1
           getTitlesWidget:
               (value, meta) => _buildStockTitle(context, value, meta),
@@ -352,7 +412,7 @@ class ImprovedStockChart extends StatelessWidget {
         child: Text(
           text,
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 10,
             color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
             fontWeight: FontWeight.w500,
           ),
@@ -388,20 +448,17 @@ class ImprovedStockChart extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 2), // Reduced from 4 to 2
-            Flexible(
-              // Wrap Text with Flexible to prevent overflow
-              child: Text(
-                text,
-                style: TextStyle(
-                  fontSize: 9, // Reduced from 10 to 9
-                  color: color,
-                  fontWeight: FontWeight.w600,
-                ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 2),
+            Text(
+              text,
+              style: TextStyle(
+                fontSize: 8,
+                color: color,
+                fontWeight: FontWeight.w600,
               ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ],
         ),
@@ -437,11 +494,11 @@ class ImprovedStockChart extends StatelessWidget {
       spots: spots,
       isCurved: false, // Step-like chart for binary stock status
       isStepLineChart: true, // This creates the step effect
-      color: Colors.blue,
+      color: Theme.of(context).colorScheme.primary,
       barWidth: 3,
       isStrokeCapRound: false,
       dotData: FlDotData(
-        show: spots.length <= 24, // Show dots for hourly or less frequent data
+        show: spots.length <= 16,
         getDotPainter: (spot, percent, barData, index) {
           final isInStock = spot.y > 0.5;
           return FlDotCirclePainter(
@@ -535,7 +592,7 @@ class ImprovedStockChart extends StatelessWidget {
           strokeWidth: 1,
           dashArray: [6, 3],
           label: HorizontalLineLabel(
-            show: true,
+            show: false,
             labelResolver: (line) => 'In Stock',
             style: TextStyle(
               color: Colors.green,
@@ -553,7 +610,7 @@ class ImprovedStockChart extends StatelessWidget {
           strokeWidth: 1,
           dashArray: [6, 3],
           label: HorizontalLineLabel(
-            show: true,
+            show: false,
             labelResolver: (line) => 'Out of Stock',
             style: TextStyle(
               color: Colors.red,
@@ -568,14 +625,21 @@ class ImprovedStockChart extends StatelessWidget {
     );
   }
 
-  double _getTimeInterval() {
-    if (stockPoints.isEmpty || stockPoints.length == 1) {
+  int _idealBottomLabelCount(double chartWidth) {
+    if (chartWidth < 300) return 3;
+    if (chartWidth < 420) return 4;
+    return 5;
+  }
+
+  double _getTimeInterval(List<StockStatusPoint> points, int targetLabels) {
+    if (points.isEmpty || points.length == 1) {
       return const Duration(hours: 1).inMilliseconds.toDouble();
     }
 
-    final totalDuration = stockPoints.last.timestamp.difference(
-      stockPoints.first.timestamp,
+    final totalDuration = points.last.timestamp.difference(
+      points.first.timestamp,
     );
+    final calculated = totalDuration.inMilliseconds / targetLabels;
 
     switch (timeRange) {
       case 'day':
@@ -598,7 +662,9 @@ class ImprovedStockChart extends StatelessWidget {
         } else if (totalDuration.inDays <= 90) {
           return const Duration(days: 15).inMilliseconds.toDouble();
         } else {
-          return const Duration(days: 30).inMilliseconds.toDouble();
+          final minInterval =
+              const Duration(days: 30).inMilliseconds.toDouble();
+          return calculated > minInterval ? calculated : minInterval;
         }
     }
   }

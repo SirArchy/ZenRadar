@@ -65,26 +65,37 @@ class ImprovedPriceChart extends StatelessWidget {
 
     return SizedBox(
       height: 300,
-      child: LineChart(
-        LineChartData(
-          gridData: _buildGridData(context),
-          titlesData: _buildTitlesData(context, downsampledHistory, yMin, yMax),
-          borderData: _buildBorderData(context),
-          lineBarsData: [_buildLineBarData(context, spots)],
-          lineTouchData: _buildTouchData(context, downsampledHistory),
-          minX: spots.first.x,
-          maxX: spots.last.x,
-          minY: yMin,
-          maxY: yMax,
-          extraLinesData: _buildExtraLines(
-            context,
-            downsampledHistory,
-            yMin,
-            yMax,
-          ),
-        ),
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final chartWidth = constraints.maxWidth;
+          return LineChart(
+            LineChartData(
+              gridData: _buildGridData(context, downsampledHistory, yMin, yMax),
+              titlesData: _buildTitlesData(
+                context,
+                downsampledHistory,
+                yMin,
+                yMax,
+                chartWidth,
+              ),
+              borderData: _buildBorderData(context),
+              lineBarsData: [_buildLineBarData(context, spots)],
+              lineTouchData: _buildTouchData(context, downsampledHistory),
+              minX: spots.first.x,
+              maxX: spots.last.x,
+              minY: yMin,
+              maxY: yMax,
+              extraLinesData: _buildExtraLines(
+                context,
+                downsampledHistory,
+                yMin,
+                yMax,
+              ),
+            ),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        },
       ),
     );
   }
@@ -208,25 +219,39 @@ class ImprovedPriceChart extends StatelessWidget {
           ),
           // Chart showing flat line
           Expanded(
-            child: LineChart(
-              LineChartData(
-                gridData: _buildGridData(context),
-                titlesData: _buildTitlesDataForFlatLine(
-                  context,
-                  spots,
-                  yMin,
-                  yMax,
-                ),
-                borderData: _buildBorderData(context),
-                lineBarsData: [_buildFlatLineBarData(context, spots)],
-                lineTouchData: _buildFlatLineTouchData(context, currentPrice),
-                minX: spots.first.x,
-                maxX: spots.last.x,
-                minY: yMin,
-                maxY: yMax,
-              ),
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final chartWidth = constraints.maxWidth;
+                return LineChart(
+                  LineChartData(
+                    gridData: _buildGridDataForFlatLine(
+                      context,
+                      spots,
+                      yMin,
+                      yMax,
+                    ),
+                    titlesData: _buildTitlesDataForFlatLine(
+                      context,
+                      spots,
+                      yMin,
+                      yMax,
+                      chartWidth,
+                    ),
+                    borderData: _buildBorderData(context),
+                    lineBarsData: [_buildFlatLineBarData(context, spots)],
+                    lineTouchData: _buildFlatLineTouchData(
+                      context,
+                      currentPrice,
+                    ),
+                    minX: spots.first.x,
+                    maxX: spots.last.x,
+                    minY: yMin,
+                    maxY: yMax,
+                  ),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              },
             ),
           ),
         ],
@@ -294,70 +319,129 @@ class ImprovedPriceChart extends StatelessWidget {
         // Chart
         SizedBox(
           height: 240,
-          child: LineChart(
-            LineChartData(
-              gridData: _buildGridData(context),
-              titlesData: _buildTitlesDataForFlatLine(
-                context,
-                spots,
-                yMin,
-                yMax,
-              ),
-              borderData: _buildBorderData(context),
-              lineBarsData: [_buildFlatLineBarData(context, spots)],
-              lineTouchData: _buildFlatLineTouchData(context, currentPrice),
-              minX: spots.first.x,
-              maxX: spots.last.x,
-              minY: yMin,
-              maxY: yMax,
-            ),
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final chartWidth = constraints.maxWidth;
+              return LineChart(
+                LineChartData(
+                  gridData: _buildGridDataForFlatLine(
+                    context,
+                    spots,
+                    yMin,
+                    yMax,
+                  ),
+                  titlesData: _buildTitlesDataForFlatLine(
+                    context,
+                    spots,
+                    yMin,
+                    yMax,
+                    chartWidth,
+                  ),
+                  borderData: _buildBorderData(context),
+                  lineBarsData: [_buildFlatLineBarData(context, spots)],
+                  lineTouchData: _buildFlatLineTouchData(context, currentPrice),
+                  minX: spots.first.x,
+                  maxX: spots.last.x,
+                  minY: yMin,
+                  maxY: yMax,
+                ),
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            },
           ),
         ),
       ],
     );
   }
 
-  // Downsample data based on time range to prevent overlapping
+  // LTTB keeps trend shape better than simple step sampling.
   List<PriceHistory> _downsampleData(List<PriceHistory> history) {
-    if (history.length <= 20) {
-      return history; // No need to downsample small datasets
-    }
-
-    int targetPoints;
-    switch (timeRange) {
-      case 'day':
-        targetPoints = 24; // Hourly points
-        break;
-      case 'week':
-        targetPoints = 14; // Twice daily
-        break;
-      case 'month':
-        targetPoints = 30; // Daily points
-        break;
-      case 'all':
-      default:
-        targetPoints = 50; // Fixed number for all time
-        break;
-    }
-
+    final targetPoints = _targetPointCount();
     if (history.length <= targetPoints) return history;
 
-    // Simple windowing - take every nth element
-    final step = (history.length / targetPoints).ceil();
-    final downsampled = <PriceHistory>[];
+    final sampled = _largestTriangleThreeBuckets(history, targetPoints);
+    sampled.sort((a, b) => a.date.compareTo(b.date));
+    return sampled;
+  }
 
-    for (int i = 0; i < history.length; i += step) {
-      downsampled.add(history[i]);
+  int _targetPointCount() {
+    switch (timeRange) {
+      case 'day':
+      case 'today':
+        return 28;
+      case 'week':
+        return 36;
+      case 'month':
+        return 42;
+      case 'all':
+      default:
+        return 56;
+    }
+  }
+
+  List<PriceHistory> _largestTriangleThreeBuckets(
+    List<PriceHistory> data,
+    int threshold,
+  ) {
+    if (threshold >= data.length || threshold < 3) {
+      return data;
     }
 
-    // Always include the last point
-    if (downsampled.last != history.last) {
-      downsampled.add(history.last);
+    final sampled = <PriceHistory>[];
+    final bucketSize = (data.length - 2) / (threshold - 2);
+    int a = 0;
+    sampled.add(data[a]);
+
+    for (int i = 0; i < threshold - 2; i++) {
+      final avgRangeStart = (i + 1) * bucketSize + 1;
+      final avgRangeEnd = (i + 2) * bucketSize + 1;
+      final avgStart = avgRangeStart.floor().clamp(1, data.length - 1);
+      final avgEnd = avgRangeEnd.floor().clamp(1, data.length);
+
+      double avgX = 0;
+      double avgY = 0;
+      final avgRangeLength = (avgEnd - avgStart).clamp(1, data.length);
+      for (int j = avgStart; j < avgEnd; j++) {
+        avgX += data[j].date.millisecondsSinceEpoch.toDouble();
+        avgY += data[j].price;
+      }
+      avgX /= avgRangeLength;
+      avgY /= avgRangeLength;
+
+      final rangeOffs = (i * bucketSize + 1).floor().clamp(1, data.length - 1);
+      final rangeTo = ((i + 1) * bucketSize + 1).floor().clamp(
+        1,
+        data.length - 1,
+      );
+
+      final pointAX = data[a].date.millisecondsSinceEpoch.toDouble();
+      final pointAY = data[a].price;
+
+      double maxArea = -1;
+      int nextA = rangeOffs;
+
+      for (int j = rangeOffs; j <= rangeTo; j++) {
+        final pointX = data[j].date.millisecondsSinceEpoch.toDouble();
+        final pointY = data[j].price;
+        final area =
+            ((pointAX - avgX) * (pointY - pointAY) -
+                    (pointAX - pointX) * (avgY - pointAY))
+                .abs() *
+            0.5;
+
+        if (area > maxArea) {
+          maxArea = area;
+          nextA = j;
+        }
+      }
+
+      sampled.add(data[nextA]);
+      a = nextA;
     }
 
-    return downsampled;
+    sampled.add(data.last);
+    return sampled;
   }
 
   List<FlSpot> _generateSpots(List<PriceHistory> history) {
@@ -366,13 +450,18 @@ class ImprovedPriceChart extends StatelessWidget {
         .toList();
   }
 
-  FlGridData _buildGridData(BuildContext context) {
+  FlGridData _buildGridData(
+    BuildContext context,
+    List<PriceHistory> history,
+    double yMin,
+    double yMax,
+  ) {
     return FlGridData(
       show: true,
       drawVerticalLine: true,
       drawHorizontalLine: true,
-      horizontalInterval: _getHorizontalInterval(),
-      verticalInterval: _getVerticalInterval(),
+      horizontalInterval: _getPriceInterval(yMin, yMax),
+      verticalInterval: _getTimeInterval(history, 5),
       getDrawingHorizontalLine:
           (value) => FlLine(
             color: Theme.of(context).colorScheme.outline.withAlpha(30),
@@ -393,13 +482,15 @@ class ImprovedPriceChart extends StatelessWidget {
     List<PriceHistory> history,
     double yMin,
     double yMax,
+    double chartWidth,
   ) {
+    final bottomLabelCount = _idealBottomLabelCount(chartWidth);
     return FlTitlesData(
       bottomTitles: AxisTitles(
         sideTitles: SideTitles(
           showTitles: true,
-          reservedSize: 35,
-          interval: _getTimeInterval(history),
+          reservedSize: 38,
+          interval: _getTimeInterval(history, bottomLabelCount),
           getTitlesWidget:
               (value, meta) => _buildDateTitle(context, value, meta),
         ),
@@ -407,7 +498,7 @@ class ImprovedPriceChart extends StatelessWidget {
       leftTitles: AxisTitles(
         sideTitles: SideTitles(
           showTitles: true,
-          reservedSize: 60,
+          reservedSize: 66,
           interval: _getPriceInterval(yMin, yMax),
           getTitlesWidget:
               (value, meta) => _buildPriceTitle(context, value, meta),
@@ -431,7 +522,7 @@ class ImprovedPriceChart extends StatelessWidget {
         child: Text(
           text,
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 10,
             color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
             fontWeight: FontWeight.w500,
           ),
@@ -450,7 +541,7 @@ class ImprovedPriceChart extends StatelessWidget {
         child: Text(
           '${value.toStringAsFixed(value >= 100 ? 0 : 1)}$currencySymbol',
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 10,
             color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
             fontWeight: FontWeight.w500,
           ),
@@ -575,7 +666,7 @@ class ImprovedPriceChart extends StatelessWidget {
           strokeWidth: 1.5,
           dashArray: [8, 4],
           label: HorizontalLineLabel(
-            show: true,
+            show: false,
             labelResolver:
                 (line) => 'Avg: ${avgPrice.toStringAsFixed(2)}$currencySymbol',
             style: TextStyle(
@@ -591,15 +682,18 @@ class ImprovedPriceChart extends StatelessWidget {
     );
   }
 
-  double _getTimeInterval(List<PriceHistory> history) {
+  int _idealBottomLabelCount(double chartWidth) {
+    if (chartWidth < 300) return 3;
+    if (chartWidth < 420) return 4;
+    return 5;
+  }
+
+  double _getTimeInterval(List<PriceHistory> history, int targetLabels) {
     if (history.length <= 1) {
       return const Duration(days: 1).inMilliseconds.toDouble();
     }
 
     final totalDuration = history.last.date.difference(history.first.date);
-
-    // Calculate based on available screen space - aim for 4-6 labels maximum
-    const targetLabels = 5;
     final calculatedInterval = totalDuration.inMilliseconds / targetLabels;
 
     switch (timeRange) {
@@ -643,36 +737,6 @@ class ImprovedPriceChart extends StatelessWidget {
               : minInterval;
         }
     }
-  }
-
-  double _getHorizontalInterval() {
-    if (priceHistory.isEmpty) return 1.0;
-
-    final minPrice = priceHistory
-        .map((h) => h.price)
-        .reduce((a, b) => a < b ? a : b);
-    final maxPrice = priceHistory
-        .map((h) => h.price)
-        .reduce((a, b) => a > b ? a : b);
-    final range = maxPrice - minPrice;
-
-    if (range <= 0) return 1.0;
-
-    // Aim for 4-6 horizontal grid lines
-    final targetLines = 5;
-    final rawInterval = range / targetLines;
-
-    // Round to nice numbers
-    if (rawInterval >= 10) return (rawInterval / 10).round() * 10.0;
-    if (rawInterval >= 5) return (rawInterval / 5).round() * 5.0;
-    if (rawInterval >= 1) return rawInterval.round().toDouble();
-    if (rawInterval >= 0.5) return 0.5;
-    if (rawInterval >= 0.1) return 0.1;
-    return 0.01;
-  }
-
-  double _getVerticalInterval() {
-    return _getTimeInterval(priceHistory);
   }
 
   double _getPriceInterval(double yMin, double yMax) {
@@ -738,31 +802,42 @@ class ImprovedPriceChart extends StatelessWidget {
         // Chart
         SizedBox(
           height: 280,
-          child: LineChart(
-            LineChartData(
-              gridData: _buildGridData(context),
-              titlesData: _buildTitlesData(
-                context,
-                downsampledHistory,
-                yMin,
-                yMax,
-              ),
-              borderData: _buildBorderData(context),
-              lineBarsData: [_buildLineBarData(context, spots)],
-              lineTouchData: _buildTouchData(context, downsampledHistory),
-              minX: spots.first.x,
-              maxX: spots.last.x,
-              minY: yMin,
-              maxY: yMax,
-              extraLinesData: _buildExtraLines(
-                context,
-                downsampledHistory,
-                yMin,
-                yMax,
-              ),
-            ),
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final chartWidth = constraints.maxWidth;
+              return LineChart(
+                LineChartData(
+                  gridData: _buildGridData(
+                    context,
+                    downsampledHistory,
+                    yMin,
+                    yMax,
+                  ),
+                  titlesData: _buildTitlesData(
+                    context,
+                    downsampledHistory,
+                    yMin,
+                    yMax,
+                    chartWidth,
+                  ),
+                  borderData: _buildBorderData(context),
+                  lineBarsData: [_buildLineBarData(context, spots)],
+                  lineTouchData: _buildTouchData(context, downsampledHistory),
+                  minX: spots.first.x,
+                  maxX: spots.last.x,
+                  minY: yMin,
+                  maxY: yMax,
+                  extraLinesData: _buildExtraLines(
+                    context,
+                    downsampledHistory,
+                    yMin,
+                    yMax,
+                  ),
+                ),
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            },
           ),
         ),
       ],
@@ -775,13 +850,15 @@ class ImprovedPriceChart extends StatelessWidget {
     List<FlSpot> spots,
     double yMin,
     double yMax,
+    double chartWidth,
   ) {
+    final bottomLabelCount = _idealBottomLabelCount(chartWidth);
     return FlTitlesData(
       bottomTitles: AxisTitles(
         sideTitles: SideTitles(
           showTitles: true,
-          reservedSize: 35,
-          interval: _getTimeIntervalForFlatLine(spots),
+          reservedSize: 38,
+          interval: _getTimeIntervalForFlatLine(spots, bottomLabelCount),
           getTitlesWidget:
               (value, meta) => _buildDateTitle(context, value, meta),
         ),
@@ -789,7 +866,7 @@ class ImprovedPriceChart extends StatelessWidget {
       leftTitles: AxisTitles(
         sideTitles: SideTitles(
           showTitles: true,
-          reservedSize: 60,
+          reservedSize: 66,
           interval: _getPriceInterval(yMin, yMax),
           getTitlesWidget:
               (value, meta) => _buildPriceTitle(context, value, meta),
@@ -848,12 +925,39 @@ class ImprovedPriceChart extends StatelessWidget {
     );
   }
 
-  double _getTimeIntervalForFlatLine(List<FlSpot> spots) {
+  FlGridData _buildGridDataForFlatLine(
+    BuildContext context,
+    List<FlSpot> spots,
+    double yMin,
+    double yMax,
+  ) {
+    return FlGridData(
+      show: true,
+      drawVerticalLine: true,
+      drawHorizontalLine: true,
+      horizontalInterval: _getPriceInterval(yMin, yMax),
+      verticalInterval: _getTimeIntervalForFlatLine(spots, 5),
+      getDrawingHorizontalLine:
+          (value) => FlLine(
+            color: Theme.of(context).colorScheme.outline.withAlpha(30),
+            strokeWidth: 1,
+            dashArray: [4, 4],
+          ),
+      getDrawingVerticalLine:
+          (value) => FlLine(
+            color: Theme.of(context).colorScheme.outline.withAlpha(30),
+            strokeWidth: 1,
+            dashArray: [4, 4],
+          ),
+    );
+  }
+
+  double _getTimeIntervalForFlatLine(List<FlSpot> spots, int targetLabels) {
     if (spots.length < 2) {
       return const Duration(days: 1).inMilliseconds.toDouble();
     }
 
     final totalDuration = spots.last.x - spots.first.x;
-    return totalDuration / 4; // Show 4-5 time points
+    return totalDuration / targetLabels;
   }
 }

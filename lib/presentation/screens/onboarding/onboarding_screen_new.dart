@@ -72,10 +72,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Container(
             width: 120,
             height: 120,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.asset('lib/assets/animation.gif', fit: BoxFit.cover),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: ClipOval(
+              child: Image.asset(
+                'lib/assets/animation.gif',
+                fit: BoxFit.contain,
+              ),
             ),
           ),
           const SizedBox(height: 32),

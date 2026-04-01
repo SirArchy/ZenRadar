@@ -77,7 +77,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
+                  color: Colors.white,
+                  shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
                       color: colorScheme.primary.withAlpha(25),
@@ -86,11 +87,10 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                     ),
                   ],
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
+                child: ClipOval(
                   child: Image.asset(
                     'lib/assets/animation.gif',
-                    fit: BoxFit.cover,
+                    fit: BoxFit.contain,
                   ),
                 ),
               ),
@@ -590,7 +590,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                 width: 100,
                 height: 100,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
+                  color: Colors.white,
+                  shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
                       color: colorScheme.primary.withAlpha(25),
@@ -599,11 +600,10 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                     ),
                   ],
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
+                child: ClipOval(
                   child: Image.asset(
                     'lib/assets/animation.gif',
-                    fit: BoxFit.cover,
+                    fit: BoxFit.contain,
                   ),
                 ),
               ),
