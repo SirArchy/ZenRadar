@@ -136,7 +136,8 @@ class _ZenRadarAppState extends State<ZenRadarApp> {
       animation: ThemeService.instance,
       builder: (context, child) {
         return MaterialApp(
-          title: 'ZenRadar',
+          onGenerateTitle:
+              (context) => AppLocalizations.of(context)?.appName ?? 'ZenRadar',
           theme: ThemeService.lightTheme,
           darkTheme: ThemeService.darkTheme,
           themeMode: ThemeService.instance.flutterThemeMode,

@@ -536,6 +536,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   }
 
   Future<void> _toggleFavorite(String productId) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       bool wasFavorite = _favoriteProductIds.contains(productId);
       bool newFavoriteState = !wasFavorite;
@@ -548,7 +549,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
       if (!result.success) {
         // Handle other errors
-        _showErrorSnackBar(result.error ?? 'Failed to update favorite');
+        _showErrorSnackBar(result.error ?? l10n.failedToUpdateFavorite);
         return;
       }
 
@@ -567,8 +568,8 @@ class _HomeScreenContentState extends State<HomeScreenContent>
           SnackBar(
             content: Text(
               newFavoriteState
-                  ? '📱 Added to favorites - you\'ll get notifications when it\'s back in stock!'
-                  : 'Removed from favorites',
+                  ? l10n.addedToFavoritesNotificationEnabled
+                  : l10n.removedFromFavorites,
             ),
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
@@ -1231,6 +1232,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   }
 
   Widget _buildCollapsibleFilterContent() {
+    final l10n = AppLocalizations.of(context)!;
     return GestureDetector(
       onTap: () {
         // Prevent tap-outside behavior when tapping inside the filter section
@@ -1285,7 +1287,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Filter Options',
+                    l10n.filterOptions,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: Theme.of(context).colorScheme.onSurface,
@@ -1293,7 +1295,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                   ),
                   const Spacer(),
                   Text(
-                    '${_products.length} products',
+                    l10n.productsCount(_products.length),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(
                         context,
@@ -1346,7 +1348,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
               ),
               const SizedBox(width: 6),
               Text(
-                'Stock Status',
+                AppLocalizations.of(context)!.stockStatus,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -1363,7 +1365,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
             child: Row(
               children: [
                 _buildEnhancedFilterChip(
-                  label: 'All Items',
+                  label: AppLocalizations.of(context)!.allItems,
                   icon: Icons.apps_rounded,
                   isSelected: _filter.inStock == null && !_filter.favoritesOnly,
                   selectedColor: Colors.blue,
@@ -1387,7 +1389,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                   builder: (context, snapshot) {
                     final favoriteCount = snapshot.data ?? 0;
                     return _buildEnhancedFilterChip(
-                      label: 'Favorites',
+                      label: AppLocalizations.of(context)!.favorites,
                       icon: Icons.favorite_rounded,
                       isSelected: _filter.favoritesOnly,
                       selectedColor: Colors.pink,
@@ -1410,7 +1412,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                 ),
                 const SizedBox(width: 10),
                 _buildEnhancedFilterChip(
-                  label: 'In Stock',
+                  label: AppLocalizations.of(context)!.inStock,
                   icon: Icons.check_circle_rounded,
                   isSelected: _filter.inStock == true,
                   selectedColor: Colors.green,
@@ -1432,7 +1434,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                 ),
                 const SizedBox(width: 10),
                 _buildEnhancedFilterChip(
-                  label: 'Out of Stock',
+                  label: AppLocalizations.of(context)!.outOfStock,
                   icon: Icons.cancel_rounded,
                   isSelected: _filter.inStock == false,
                   selectedColor: Colors.red,
@@ -1480,7 +1482,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
               ),
               const SizedBox(width: 6),
               Text(
-                'Sort Options',
+                AppLocalizations.of(context)!.sortOptions,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -1529,7 +1531,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          _sortAscending ? 'Asc' : 'Desc',
+                          _sortAscending
+                              ? AppLocalizations.of(context)!.sortAsc
+                              : AppLocalizations.of(context)!.sortDesc,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -1549,7 +1553,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
             child: Row(
               children: [
                 _buildEnhancedSortChip(
-                  'Name',
+                  AppLocalizations.of(context)!.nameLabel,
                   'name',
                   Icons.text_fields_rounded,
                   isSmallScreen,
@@ -1669,7 +1673,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Advanced Options',
+                        AppLocalizations.of(context)!.advancedOptions,
                         style: TextStyle(
                           fontSize: isSmallScreen ? 13 : 15,
                           fontWeight: FontWeight.w600,
@@ -1999,7 +2003,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Recent Searches',
+                              AppLocalizations.of(context)!.recentSearches,
                               style: Theme.of(
                                 context,
                               ).textTheme.labelMedium?.copyWith(
@@ -2017,8 +2021,10 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                                 ),
                                 minimumSize: const Size(0, 30),
                               ),
-                              child: const Text(
-                                'Clear',
+                              child: Text(
+                                AppLocalizations.of(
+                                  context,
+                                )!.clearSearchHistory,
                                 style: TextStyle(fontSize: 12),
                               ),
                             ),
@@ -2066,7 +2072,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Recommended',
+                              AppLocalizations.of(context)!.recommended,
                               style: Theme.of(
                                 context,
                               ).textTheme.labelMedium?.copyWith(
@@ -2135,11 +2141,13 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                     if (_recentSearches.isEmpty &&
                         _recommendedProducts.isEmpty &&
                         !_isLoadingRecommendations)
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.all(16),
                         child: Text(
-                          'Start typing to search for matcha products...',
-                          style: TextStyle(fontSize: 14),
+                          AppLocalizations.of(
+                            context,
+                          )!.startTypingToSearchProducts,
+                          style: const TextStyle(fontSize: 14),
                         ),
                       ),
                   ],
@@ -2239,9 +2247,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
             const MatchaIcon(size: 64),
             const SizedBox(height: 16),
             Text(l10n.noProducts, style: const TextStyle(fontSize: 18)),
-            const Text(
-              'Try adjusting your filters or check back later',
-              style: TextStyle(color: Colors.grey),
+            Text(
+              l10n.tryAdjustingFilters,
+              style: const TextStyle(color: Colors.grey),
             ),
           ],
         ),
@@ -2304,7 +2312,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 label: Text(
-                  'Add $nonFavoriteCount to Favorites',
+                  AppLocalizations.of(
+                    context,
+                  )!.addCountToFavorites(nonFavoriteCount),
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.primary,
                     fontSize: 13,
@@ -2339,7 +2349,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                 onPressed: _isLoading ? null : () => _bulkRemoveFromFavorites(),
                 icon: Icon(Icons.favorite, size: 18, color: Colors.red),
                 label: Text(
-                  'Remove $favoriteCount from Favorites',
+                  AppLocalizations.of(
+                    context,
+                  )!.removeCountFromFavorites(favoriteCount),
                   style: const TextStyle(color: Colors.red, fontSize: 13),
                 ),
                 style: ElevatedButton.styleFrom(
@@ -2463,10 +2475,15 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
         if (successCount > 0) {
-          String message = '✅ Added $successCount products to favorites!';
+          String message = AppLocalizations.of(
+            context,
+          )!.addedCountProductsToFavorites(successCount);
           if (successCount < productsToAdd.length) {
-            message +=
-                ' (${productsToAdd.length - successCount} reached subscription limit)';
+            message += AppLocalizations.of(
+              context,
+            )!.reachedSubscriptionLimitCount(
+              productsToAdd.length - successCount,
+            );
           }
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -2550,7 +2567,11 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                 ),
                 const SizedBox(width: 16),
                 Text(
-                  'Removing ${favoriteProducts.length} products from favorites...',
+                  AppLocalizations.of(
+                    context,
+                  )!.removingCountProductsFromFavorites(
+                    favoriteProducts.length,
+                  ),
                 ),
               ],
             ),
@@ -2581,7 +2602,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '✅ Removed ${favoriteProducts.length} products from favorites!',
+              AppLocalizations.of(
+                context,
+              )!.removedCountProductsFromFavorites(favoriteProducts.length),
             ),
             duration: const Duration(seconds: 2),
             backgroundColor: Colors.orange,

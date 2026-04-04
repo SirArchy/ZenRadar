@@ -93,6 +93,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
 
   /// Load data from cache first, then from server if needed
   Future<void> _loadFromCacheOrServer() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isLoadingSummary = true;
       _isLoadingAnalytics = true;
@@ -132,7 +133,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load analytics: $e';
+        _error = l10n.errorLoadingData;
         _isLoadingSummary = false;
         _isLoadingAnalytics = false;
       });
@@ -141,6 +142,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
 
   /// Load fast summary data for immediate display
   Future<void> _loadFastSummary() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isLoadingSummary = true;
       _error = null;
@@ -158,7 +160,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load summary: $e';
+        _error = l10n.errorLoadingData;
         _isLoadingSummary = false;
       });
     }
@@ -166,6 +168,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
 
   /// Load full analytics data
   Future<void> _loadFullAnalytics() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isLoadingAnalytics = true;
     });
@@ -196,7 +199,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load full analytics: $e';
+        _error = l10n.errorLoadingData;
         _isLoadingAnalytics = false;
       });
     }
@@ -207,6 +210,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
   }
 
   Future<void> _forceRefreshAnalytics() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isLoadingSummary = true;
       _isLoadingAnalytics = true;
@@ -254,7 +258,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to refresh analytics: $e';
+        _error = l10n.errorLoadingData;
         _isLoadingSummary = false;
         _isLoadingAnalytics = false;
       });
@@ -377,7 +381,9 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                           const Center(child: CircularProgressIndicator()),
                           const SizedBox(height: 16),
                           Text(
-                            'Loading detailed analytics...',
+                            AppLocalizations.of(
+                              context,
+                            )!.loadingDetailedAnalytics,
                             style: TextStyle(
                               color: Theme.of(
                                 context,
@@ -437,7 +443,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Overall Summary',
+                      AppLocalizations.of(context)!.overallSummary,
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                   ),
@@ -448,7 +454,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                 children: [
                   Expanded(
                     child: _buildSummaryItem(
-                      'Websites',
+                      AppLocalizations.of(context)!.websitesLabel,
                       '$activeWebsitesForUser/$totalWebsitesForUser',
                       Icons.language,
                       Colors.blue,
@@ -456,7 +462,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                   ),
                   Expanded(
                     child: _buildSummaryItem(
-                      'Products',
+                      AppLocalizations.of(context)!.totalProducts,
                       '${summaryData['totalProducts'] ?? 0}',
                       Icons.inventory_2,
                       Colors.green,
@@ -469,7 +475,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                 children: [
                   Expanded(
                     child: _buildSummaryItem(
-                      'In Stock',
+                      AppLocalizations.of(context)!.inStock,
                       '${(summaryData['overallStockPercentage'] ?? 0).toStringAsFixed(1)}%',
                       Icons.check_circle,
                       Colors.green,
@@ -477,7 +483,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                   ),
                   Expanded(
                     child: _buildSummaryItem(
-                      'Updates',
+                      AppLocalizations.of(context)!.updatesLabel,
                       '${summaryData['totalUpdates'] ?? 0}',
                       Icons.timeline,
                       Colors.orange,
@@ -493,7 +499,11 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                       summaryData['mostRecentUpdate'],
                     );
                     return Text(
-                      'Last update: ${mostRecentUpdate != null ? _formatDateTime(mostRecentUpdate) : 'Unknown'}',
+                      AppLocalizations.of(context)!.lastUpdateWithValue(
+                        mostRecentUpdate != null
+                            ? _formatDateTime(mostRecentUpdate)
+                            : AppLocalizations.of(context)!.unknown,
+                      ),
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(
@@ -507,7 +517,9 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
               if (summaryData['mostActiveWebsite'] != null) ...[
                 const SizedBox(height: 4),
                 Text(
-                  'Most active: ${summaryData['mostActiveWebsite']}',
+                  AppLocalizations.of(context)!.mostActiveWithValue(
+                    summaryData['mostActiveWebsite'].toString(),
+                  ),
                   style: TextStyle(
                     fontSize: 12,
                     color: Theme.of(
@@ -640,12 +652,17 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
           child: Row(
             children: [
               _buildStatusChip(
-                '${analytics.productsInStock}/${analytics.totalProducts} in stock',
+                AppLocalizations.of(context)!.inStockFraction(
+                  analytics.productsInStock,
+                  analytics.totalProducts,
+                ),
                 analytics.stockPercentage >= 50 ? Colors.green : Colors.red,
               ),
               const SizedBox(width: 8),
               _buildStatusChip(
-                '${analytics.stockUpdates.length} updates',
+                AppLocalizations.of(
+                  context,
+                )!.updatesCount(analytics.stockUpdates.length),
                 Colors.blue,
               ),
             ],
@@ -659,7 +676,9 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
               children: [
                 // Stock update chart
                 Text(
-                  'Stock Updates (${_getTimeRangeLabel(_selectedTimeRange)})',
+                  AppLocalizations.of(context)!.stockUpdatesWithRange(
+                    _getTimeRangeLabel(_selectedTimeRange),
+                  ),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
@@ -676,7 +695,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
                 if (analytics.recentUpdates.isNotEmpty) ...[
                   const SizedBox(height: 24),
                   Text(
-                    'Recent Updates (Last 7 days)',
+                    AppLocalizations.of(context)!.recentUpdatesLast7Days,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
@@ -687,7 +706,9 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
 
                 const SizedBox(height: 16),
                 Text(
-                  'Update frequency: ${analytics.updateFrequencyDescription}',
+                  AppLocalizations.of(context)!.updateFrequencyWithValue(
+                    analytics.updateFrequencyDescription,
+                  ),
                   style: TextStyle(
                     fontSize: 12,
                     color: Theme.of(
@@ -734,7 +755,7 @@ class _WebsiteOverviewScreenState extends State<WebsiteOverviewScreen> {
       return '${AppLocalizations.of(context)!.lastUpdate}: ${_formatDateTime(lastUpdate)}';
     }
 
-    return 'No recent updates';
+    return AppLocalizations.of(context)!.noRecentUpdates;
   }
 
   Widget _buildStatusChip(String label, Color color) {

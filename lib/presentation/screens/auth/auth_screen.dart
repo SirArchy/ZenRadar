@@ -317,8 +317,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                      : const Text(
-                        'Sign In',
+                      : Text(
+                        l10n.signIn,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -336,7 +336,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
-                  'or',
+                  l10n.or,
                   style: TextStyle(
                     color: colorScheme.onSurfaceVariant,
                     fontSize: 14,
@@ -515,8 +515,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                      : const Text(
-                        'Create Account',
+                      : Text(
+                        l10n.signUp,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -534,7 +534,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
-                  'or',
+                  l10n.or,
                   style: TextStyle(
                     color: colorScheme.onSurfaceVariant,
                     fontSize: 14,

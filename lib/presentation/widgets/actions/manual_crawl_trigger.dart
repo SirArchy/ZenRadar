@@ -85,6 +85,7 @@ class _ManualCrawlTriggerState extends State<ManualCrawlTrigger> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -96,8 +97,8 @@ class _ManualCrawlTriggerState extends State<ManualCrawlTrigger> {
               children: [
                 const Icon(Icons.cloud_sync, color: Colors.blue),
                 const SizedBox(width: 8),
-                const Text(
-                  'Manual Crawl',
+                Text(
+                  l10n.manualCrawl,
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
@@ -106,8 +107,8 @@ class _ManualCrawlTriggerState extends State<ManualCrawlTrigger> {
             const SizedBox(height: 16),
 
             // Site selection
-            const Text(
-              'Select sites to crawl:',
+            Text(
+              l10n.selectSitesToCrawl,
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
 

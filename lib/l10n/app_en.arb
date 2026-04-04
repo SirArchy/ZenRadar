@@ -2196,6 +2196,887 @@
     "description": "Loading label while starting free trial"
   },
 
+  "processing": "Processing...",
+  "@processing": {
+    "description": "Generic processing label"
+  },
+
+  "manualCrawl": "Manual Crawl",
+  "@manualCrawl": {
+    "description": "Title for manual crawl card"
+  },
+
+  "selectSitesToCrawl": "Select sites to crawl:",
+  "@selectSitesToCrawl": {
+    "description": "Label above manual crawl site selection chips"
+  },
+
+  "signInLaterInSettingsToSyncData": "You can sign in later in settings to sync your data",
+  "@signInLaterInSettingsToSyncData": {
+    "description": "Onboarding message shown when user skips auth"
+  },
+
+  "premiumFeaturesAvailableImmediatelyCancelAnytime": "Premium features available immediately. Cancel anytime.",
+  "@premiumFeaturesAvailableImmediatelyCancelAnytime": {
+    "description": "Description under premium upgrade button"
+  },
+
+  "premiumSubscriptionQuestion": "Premium Subscription Question",
+  "@premiumSubscriptionQuestion": {
+    "description": "Default subject line for support email from premium screen"
+  },
+
+  "premiumSubscriptionQuestionBody": "Hi,\n\nI have a question about the Premium subscription.\n\n",
+  "@premiumSubscriptionQuestionBody": {
+    "description": "Default body for support email from premium screen"
+  },
+
+  "couldNotOpenEmailAppContactSupport": "Could not open email app. Please contact support@zenradar.app",
+  "@couldNotOpenEmailAppContactSupport": {
+    "description": "Error shown when email app cannot be opened"
+  },
+
+  "premiumUpgradeSubtitle": "Get unlimited access to all matcha vendors, faster notifications, and comprehensive analytics.",
+  "@premiumUpgradeSubtitle": {
+    "description": "Subtitle text in premium upgrade header"
+  },
+
+  "limitReached": "Limit Reached",
+  "@limitReached": {
+    "description": "Title shown when free-tier limit is reached"
+  },
+
+  "yearlyPlanSavings": "or $29.99/year (save 65%)",
+  "@yearlyPlanSavings": {
+    "description": "Yearly plan pricing hint showing savings"
+  },
+
+  "favoriteProductsLabel": "Favorite Products",
+  "@favoriteProductsLabel": {
+    "description": "Feature comparison label for favorites"
+  },
+
+  "unlimitedLabel": "Unlimited",
+  "@unlimitedLabel": {
+    "description": "Short label for unlimited quota"
+  },
+
+  "everyHours": "Every {hours}h",
+  "@everyHours": {
+    "description": "Frequency label for checks every N hours",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+
+  "analyticsHistoryLabel": "Analytics History",
+  "@analyticsHistoryLabel": {
+    "description": "Feature comparison label for analytics history"
+  },
+
+  "basicLabel": "Basic",
+  "@basicLabel": {
+    "description": "Short label for basic tier capability"
+  },
+
+  "testimonialUserOneName": "Sarah M.",
+  "@testimonialUserOneName": {
+    "description": "Name shown in first premium testimonial"
+  },
+
+  "testimonialUserOneTitle": "Tea Enthusiast",
+  "@testimonialUserOneTitle": {
+    "description": "Role/title shown in first premium testimonial"
+  },
+
+  "testimonialUserOneQuote": "Premium notifications helped me snag limited edition matcha from Kyoto before it sold out!",
+  "@testimonialUserOneQuote": {
+    "description": "Quote shown in first premium testimonial"
+  },
+
+  "testimonialUserTwoName": "Ken T.",
+  "@testimonialUserTwoName": {
+    "description": "Name shown in second premium testimonial"
+  },
+
+  "testimonialUserTwoTitle": "Matcha Collector",
+  "@testimonialUserTwoTitle": {
+    "description": "Role/title shown in second premium testimonial"
+  },
+
+  "testimonialUserTwoQuote": "Monitoring all vendors simultaneously saved me hours of manual checking.",
+  "@testimonialUserTwoQuote": {
+    "description": "Quote shown in second premium testimonial"
+  },
+
+  "notificationsEnabledStatus": "Notifications Enabled",
+  "@notificationsEnabledStatus": {
+    "description": "Short status text shown after notification permission is granted"
+  },
+
+  "permissionDeniedStatus": "Permission Denied",
+  "@permissionDeniedStatus": {
+    "description": "Short status text shown after notification permission is denied"
+  },
+
+  "webNotificationsAutoEnabled": "Web notifications will be enabled automatically.",
+  "@webNotificationsAutoEnabled": {
+    "description": "Onboarding helper text explaining web notification behavior"
+  },
+
+  "notificationsEnabledBackInStockMessage": "Great! You'll receive notifications when your favorite matcha is back in stock.",
+  "@notificationsEnabledBackInStockMessage": {
+    "description": "Onboarding helper text shown after notifications are enabled"
+  },
+
+  "recommendEnablingNotifications": "We recommend enabling notifications for the best experience.",
+  "@recommendEnablingNotifications": {
+    "description": "Onboarding helper text encouraging notification permission"
+  },
+
+  "languageChangedSuccessfully": "Language changed successfully",
+  "@languageChangedSuccessfully": {
+    "description": "Snackbar shown after changing app language"
+  },
+
+  "settingsSavedSuccessfully": "Settings saved successfully",
+  "@settingsSavedSuccessfully": {
+    "description": "Snackbar shown after saving settings"
+  },
+
+  "settingsSaveFailedWithError": "Failed to save settings: {error}",
+  "@settingsSaveFailedWithError": {
+    "description": "Snackbar shown when saving settings fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "filterOptions": "Filter Options",
+  "@filterOptions": {
+    "description": "Filter options section title"
+  },
+
+  "allItems": "All Items",
+  "@allItems": {
+    "description": "All items filter label"
+  },
+
+  "sortOptions": "Sort Options",
+  "@sortOptions": {
+    "description": "Sort options section title"
+  },
+
+  "advancedOptions": "Advanced Options",
+  "@advancedOptions": {
+    "description": "Advanced options label"
+  },
+
+  "nameLabel": "Name",
+  "@nameLabel": {
+    "description": "Generic name label"
+  },
+
+  "recentSearches": "Recent Searches",
+  "@recentSearches": {
+    "description": "Recent searches label"
+  },
+
+  "recommended": "Recommended",
+  "@recommended": {
+    "description": "Recommended section label"
+  },
+
+  "startTypingToSearchProducts": "Start typing to search for matcha products...",
+  "@startTypingToSearchProducts": {
+    "description": "Empty state hint in search suggestions"
+  },
+
+  "tryAdjustingFilters": "Try adjusting your filters or check back later",
+  "@tryAdjustingFilters": {
+    "description": "No products helper text"
+  },
+
+  "addCountToFavorites": "Add {count} to Favorites",
+  "@addCountToFavorites": {
+    "description": "Bulk add favorites button label",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "removeCountFromFavorites": "Remove {count} from Favorites",
+  "@removeCountFromFavorites": {
+    "description": "Bulk remove favorites button label",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "addedCountProductsToFavorites": "Added {count} products to favorites!",
+  "@addedCountProductsToFavorites": {
+    "description": "Bulk add favorites success message",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "reachedSubscriptionLimitCount": "({count} reached subscription limit)",
+  "@reachedSubscriptionLimitCount": {
+    "description": "Bulk add partial success suffix",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "removingCountProductsFromFavorites": "Removing {count} products from favorites...",
+  "@removingCountProductsFromFavorites": {
+    "description": "Bulk remove progress message",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "removedCountProductsFromFavorites": "Removed {count} products from favorites!",
+  "@removedCountProductsFromFavorites": {
+    "description": "Bulk remove favorites success message",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "loadingDetailedAnalytics": "Loading detailed analytics...",
+  "@loadingDetailedAnalytics": {
+    "description": "Loading text while detailed analytics are fetched"
+  },
+
+  "overallSummary": "Overall Summary",
+  "@overallSummary": {
+    "description": "Overview summary card title"
+  },
+
+  "websitesLabel": "Websites",
+  "@websitesLabel": {
+    "description": "Websites label"
+  },
+
+  "updatesLabel": "Updates",
+  "@updatesLabel": {
+    "description": "Updates label"
+  },
+
+  "lastUpdateWithValue": "Last update: {value}",
+  "@lastUpdateWithValue": {
+    "description": "Last update with value",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+
+  "mostActiveWithValue": "Most active: {value}",
+  "@mostActiveWithValue": {
+    "description": "Most active website with value",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+
+  "inStockFraction": "{inStock}/{total} in stock",
+  "@inStockFraction": {
+    "description": "In-stock fraction chip text",
+    "placeholders": {
+      "inStock": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+
+  "updatesCount": "{count} updates",
+  "@updatesCount": {
+    "description": "Updates count chip text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "stockUpdatesWithRange": "Stock Updates ({range})",
+  "@stockUpdatesWithRange": {
+    "description": "Stock updates title with selected range",
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+
+  "recentUpdatesLast7Days": "Recent Updates (Last 7 days)",
+  "@recentUpdatesLast7Days": {
+    "description": "Recent updates section title"
+  },
+
+  "updateFrequencyWithValue": "Update frequency: {value}",
+  "@updateFrequencyWithValue": {
+    "description": "Update frequency with value",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+
+  "freeModeShowingLast24Scans": "Free Mode: Showing last 24 scans",
+  "@freeModeShowingLast24Scans": {
+    "description": "Free mode notice in activity screen"
+  },
+
+  "filterAndSortOptions": "Filter & Sort Options",
+  "@filterAndSortOptions": {
+    "description": "Filter and sort section title"
+  },
+
+  "filterByUpdates": "Filter by Updates",
+  "@filterByUpdates": {
+    "description": "Filter updates section title"
+  },
+
+  "allScans": "All Scans",
+  "@allScans": {
+    "description": "All scans filter label"
+  },
+
+  "withUpdatesOnly": "With Updates Only",
+  "@withUpdatesOnly": {
+    "description": "With updates only filter label"
+  },
+
+  "timeLabel": "Time",
+  "@timeLabel": {
+    "description": "Time label"
+  },
+
+  "sitesLabel": "Sites",
+  "@sitesLabel": {
+    "description": "Sites label"
+  },
+
+  "sortAsc": "Ascending",
+  "@sortAsc": {
+    "description": "Sort ascending label"
+  },
+
+  "sortDesc": "Descending",
+  "@sortDesc": {
+    "description": "Sort descending label"
+  },
+
+  "itemsScannedCount": "{count} items scanned",
+  "@itemsScannedCount": {
+    "description": "Items scanned count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "stockUpdatesFoundTapToView": "Stock updates found - Tap to view",
+  "@stockUpdatesFoundTapToView": {
+    "description": "Hint shown when updates are available"
+  },
+
+  "noStockUpdates": "No stock updates",
+  "@noStockUpdates": {
+    "description": "Label when no stock updates are present"
+  },
+
+  "scannedProductsAcrossSites": "Scanned {products} products across {sites} sites",
+  "@scannedProductsAcrossSites": {
+    "description": "Scan summary for completed scan",
+    "placeholders": {
+      "products": {
+        "type": "int"
+      },
+      "sites": {
+        "type": "int"
+      }
+    }
+  },
+
+  "scanUpdatesFound": " - {value} updates found",
+  "@scanUpdatesFound": {
+    "description": "Suffix showing scan update types",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+
+  "scanInProgressProductsFound": "Scan in progress - {count} products found so far",
+  "@scanInProgressProductsFound": {
+    "description": "Running scan details",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "scanFailedWithErrors": "Scan failed - {count} error(s)",
+  "@scanFailedWithErrors": {
+    "description": "Failed scan details with error count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "scanQueuedForProcessing": "Scan queued for processing",
+  "@scanQueuedForProcessing": {
+    "description": "Pending scan details"
+  },
+
+  "statusWithValue": "Status: {value}",
+  "@statusWithValue": {
+    "description": "Status with dynamic value",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+
+  "scanProductsCount": " - {count} products",
+  "@scanProductsCount": {
+    "description": "Product count suffix for scan details",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "favoritesOnly": "Favorites only",
+  "@favoritesOnly": {
+    "description": "Filter toggle label for showing favorite products only"
+  },
+
+  "showOnlyFavoriteProducts": "Show only products marked as favorites",
+  "@showOnlyFavoriteProducts": {
+    "description": "Subtitle for favorites-only filter toggle"
+  },
+
+  "showDiscontinuedProducts": "Show discontinued products",
+  "@showDiscontinuedProducts": {
+    "description": "Label for discontinued products toggle"
+  },
+
+  "includeNoLongerAvailableProducts": "Include products that are no longer available",
+  "@includeNoLongerAvailableProducts": {
+    "description": "Subtitle for discontinued products toggle"
+  },
+
+  "averageProductPriceIs": "The average product price is {price}",
+  "@averageProductPriceIs": {
+    "description": "Text showing average product price in filter modal",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+
+  "siteDescriptionTokichi": "Traditional Japanese matcha",
+  "@siteDescriptionTokichi": {
+    "description": "Description for Tokichi site in site selection dialog"
+  },
+
+  "siteDescriptionIppodo": "Premium tea house",
+  "@siteDescriptionIppodo": {
+    "description": "Description for Ippodo site in site selection dialog"
+  },
+
+  "siteDescriptionMarukyu": "Historic Kyoto tea company",
+  "@siteDescriptionMarukyu": {
+    "description": "Description for Marukyu site in site selection dialog"
+  },
+
+  "siteDescriptionPoppatea": "Authentic Japanese matcha sent from Sweden",
+  "@siteDescriptionPoppatea": {
+    "description": "Description for Poppatea site in site selection dialog"
+  },
+
+  "siteDescriptionHoriishichimeien": "Modern matcha experience",
+  "@siteDescriptionHoriishichimeien": {
+    "description": "Description for Horiishichimeien site in site selection dialog"
+  },
+
+  "siteDescriptionYoshien": "German matcha retailer",
+  "@siteDescriptionYoshien": {
+    "description": "Description for Yoshien site in site selection dialog"
+  },
+
+  "siteDescriptionMatchaKaru": "Organic matcha specialist",
+  "@siteDescriptionMatchaKaru": {
+    "description": "Description for Matcha Karu site in site selection dialog"
+  },
+
+  "siteDescriptionShoCha": "Artisan tea collection",
+  "@siteDescriptionShoCha": {
+    "description": "Description for Sho-Cha site in site selection dialog"
+  },
+
+  "siteDescriptionSazentea": "Japanese tea direct import",
+  "@siteDescriptionSazentea": {
+    "description": "Description for Sazentea site in site selection dialog"
+  },
+
+  "siteDescriptionEnjoyemeri": "Curated tea selection",
+  "@siteDescriptionEnjoyemeri": {
+    "description": "Description for Enjoyemeri site in site selection dialog"
+  },
+
+  "estimatedScanTimeShort": "30-60 seconds",
+  "@estimatedScanTimeShort": {
+    "description": "Estimated scan time for up to two sites"
+  },
+
+  "estimatedScanTimeMedium": "1-2 minutes",
+  "@estimatedScanTimeMedium": {
+    "description": "Estimated scan time for up to five sites"
+  },
+
+  "estimatedScanTimeLong": "2-3 minutes",
+  "@estimatedScanTimeLong": {
+    "description": "Estimated scan time for up to eight sites"
+  },
+
+  "estimatedScanTimeVeryLong": "3-5 minutes",
+  "@estimatedScanTimeVeryLong": {
+    "description": "Estimated scan time for more than eight sites"
+  },
+
+  "noStockUpdatesInRange": "No stock updates in {range}",
+  "@noStockUpdatesInRange": {
+    "description": "Empty state text when no stock updates exist for selected range",
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+
+  "stockUpdatesCountLabel": "{count} stock updates",
+  "@stockUpdatesCountLabel": {
+    "description": "Tooltip label showing number of stock updates",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "noUpdatePatternDataAvailable": "No update pattern data available",
+  "@noUpdatePatternDataAvailable": {
+    "description": "Empty state when update pattern data is unavailable"
+  },
+
+  "updatePattern24Hours": "Update Pattern (24 hours)",
+  "@updatePattern24Hours": {
+    "description": "Title for 24-hour update pattern chart"
+  },
+
+  "noStockHistoryAvailable": "No stock history available",
+  "@noStockHistoryAvailable": {
+    "description": "Empty state title for stock history chart"
+  },
+
+  "hourlyStockStatusWithDate": "Hourly Stock Status - {date}",
+  "@hourlyStockStatusWithDate": {
+    "description": "Header for hourly stock status grid with selected date",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+
+  "noData": "No Data",
+  "@noData": {
+    "description": "Label used where no data is available"
+  },
+
+  "stockTrackingStartsNextScan": "Stock tracking will begin with the next scan for this time range",
+  "@stockTrackingStartsNextScan": {
+    "description": "Helper text for stock chart empty state"
+  },
+
+  "singleDataPointFrom": "Single data point from {dateTime}",
+  "@singleDataPointFrom": {
+    "description": "Message shown when only one stock point exists",
+    "placeholders": {
+      "dateTime": {
+        "type": "String"
+      }
+    }
+  },
+
+  "moreDataAvailableAfterScans": "More data will be available as additional scans are performed",
+  "@moreDataAvailableAfterScans": {
+    "description": "Helper text for single-point stock state"
+  },
+
+  "insufficientDataForChart": "Insufficient Data for Chart",
+  "@insufficientDataForChart": {
+    "description": "Title shown when too few points exist for chart"
+  },
+
+  "onlyDataPointsAvailable": "Only {count} data points available for this time range",
+  "@onlyDataPointsAvailable": {
+    "description": "Message showing how many points are available",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "chartRequiresAtLeastTwoPoints": "Chart visualization requires at least 2 data points",
+  "@chartRequiresAtLeastTwoPoints": {
+    "description": "Helper text for insufficient data state"
+  },
+
+  "hoursTracked": "Hours Tracked",
+  "@hoursTracked": {
+    "description": "Summary metric label for tracked hours"
+  },
+
+  "noPriceChangesYetCurrentPrice": "No price changes yet. Current price: {price}",
+  "@noPriceChangesYetCurrentPrice": {
+    "description": "Informational text when only current price exists",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+
+  "averagePriceLabel": "Avg: {price}",
+  "@averagePriceLabel": {
+    "description": "Average price line label",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+
+  "currentPriceLabel": "Current Price: {price}",
+  "@currentPriceLabel": {
+    "description": "Tooltip label for current price",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+
+  "noPriceChangesYetShort": "(No price changes yet)",
+  "@noPriceChangesYetShort": {
+    "description": "Short tooltip hint when there are no price changes"
+  },
+
+  "authUnexpectedErrorTryAgain": "An unexpected error occurred. Please try again.",
+  "@authUnexpectedErrorTryAgain": {
+    "description": "Generic fallback auth error"
+  },
+
+  "authGoogleSignInCancelled": "Google Sign-in was cancelled",
+  "@authGoogleSignInCancelled": {
+    "description": "Shown when user cancels Google sign-in"
+  },
+
+  "authGoogleConfigErrorDetails": "Google Sign-in configuration error. Please check your Firebase setup. Error: {error}",
+  "@authGoogleConfigErrorDetails": {
+    "description": "Google sign-in configuration error with details",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "authGoogleSignInFailedCheckConnection": "Google Sign-in failed. Please check your internet connection and try again.",
+  "@authGoogleSignInFailedCheckConnection": {
+    "description": "Google sign-in failed due to connectivity or provider issue"
+  },
+
+  "authNetworkErrorGoogleSignIn": "Network error during Google Sign-in. Please check your connection.",
+  "@authNetworkErrorGoogleSignIn": {
+    "description": "Google sign-in network error"
+  },
+
+  "authGoogleSignInRequired": "Google Sign-in is required",
+  "@authGoogleSignInRequired": {
+    "description": "Google sign-in required message"
+  },
+
+  "authGoogleSignInErrorDetails": "Google Sign-in error: {error}",
+  "@authGoogleSignInErrorDetails": {
+    "description": "Generic Google sign-in error with details",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "authGoogleSignInNotConfigured": "Google Sign-in is not properly configured. Please check the setup guide.",
+  "@authGoogleSignInNotConfigured": {
+    "description": "Google sign-in missing configuration"
+  },
+
+  "authGoogleSignInFailedTryAgain": "Google Sign-in failed. Please try again.",
+  "@authGoogleSignInFailedTryAgain": {
+    "description": "Google sign-in fallback error"
+  },
+
+  "authPasswordResetEmailSent": "Password reset email sent. Please check your inbox.",
+  "@authPasswordResetEmailSent": {
+    "description": "Password reset success message"
+  },
+
+  "authNoUserSignedIn": "No user is currently signed in",
+  "@authNoUserSignedIn": {
+    "description": "Shown when user-dependent action is attempted without signed in user"
+  },
+
+  "authEmailAlreadyVerified": "Email is already verified",
+  "@authEmailAlreadyVerified": {
+    "description": "Shown when verification action is attempted on already verified email"
+  },
+
+  "authVerificationEmailSent": "Verification email sent. Please check your inbox.",
+  "@authVerificationEmailSent": {
+    "description": "Verification resend success message"
+  },
+
+  "authAccountDeletedSuccess": "Account deleted successfully",
+  "@authAccountDeletedSuccess": {
+    "description": "Account deletion success message"
+  },
+
+  "authPasswordTooLong": "Password must be less than 128 characters",
+  "@authPasswordTooLong": {
+    "description": "Password length upper bound validation"
+  },
+
+  "authPasswordMustContainLetterAndNumber": "Password must contain at least one letter and one number",
+  "@authPasswordMustContainLetterAndNumber": {
+    "description": "Password complexity validation"
+  },
+
+  "authEmailAlreadyInUse": "An account with this email already exists. Please sign in instead.",
+  "@authEmailAlreadyInUse": {
+    "description": "Email already in use error"
+  },
+
+  "authEmailPasswordNotEnabled": "Email/password accounts are not enabled. Please contact support.",
+  "@authEmailPasswordNotEnabled": {
+    "description": "Auth provider disabled error"
+  },
+
+  "authChooseStrongerPassword": "Please choose a stronger password.",
+  "@authChooseStrongerPassword": {
+    "description": "Weak password error"
+  },
+
+  "authAccountDisabled": "This account has been disabled. Please contact support.",
+  "@authAccountDisabled": {
+    "description": "Disabled user account error"
+  },
+
+  "authUserNotFound": "No account found with this email. Please sign up first.",
+  "@authUserNotFound": {
+    "description": "User not found error"
+  },
+
+  "authWrongPassword": "Incorrect password. Please try again.",
+  "@authWrongPassword": {
+    "description": "Wrong password error"
+  },
+
+  "authInvalidCredentials": "Invalid email or password. Please check your credentials.",
+  "@authInvalidCredentials": {
+    "description": "Invalid credentials error"
+  },
+
+  "authTooManyRequests": "Too many failed attempts. Please try again later.",
+  "@authTooManyRequests": {
+    "description": "Too many auth requests error"
+  },
+
+  "authNetworkError": "Network error. Please check your internet connection.",
+  "@authNetworkError": {
+    "description": "Auth network error"
+  },
+
+  "authRequiresRecentLogin": "This operation requires recent authentication. Please sign in again.",
+  "@authRequiresRecentLogin": {
+    "description": "Recent login required error"
+  },
+
+  "authInvalidVerificationCode": "Invalid verification code. Please try again.",
+  "@authInvalidVerificationCode": {
+    "description": "Invalid verification code error"
+  },
+
+  "authInvalidVerificationId": "Invalid verification ID. Please try again.",
+  "@authInvalidVerificationId": {
+    "description": "Invalid verification id error"
+  },
+
+  "authCredentialAlreadyInUse": "This Google account is already linked to another user.",
+  "@authCredentialAlreadyInUse": {
+    "description": "Credential already linked error"
+  },
+
+  "authAccountExistsWithDifferentCredential": "An account already exists with the same email address but different sign-in credentials.",
+  "@authAccountExistsWithDifferentCredential": {
+    "description": "Account exists with different credential error"
+  },
+
+  "authGenericError": "An authentication error occurred. Please try again.",
+  "@authGenericError": {
+    "description": "Fallback Firebase auth error"
+  },
+
   "days": "days",
   "@days": {
     "description": "Days label"

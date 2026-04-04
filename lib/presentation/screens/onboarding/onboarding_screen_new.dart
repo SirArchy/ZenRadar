@@ -239,9 +239,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               label: Text(
                 _notificationPermissionAsked
                     ? (_notificationPermissionGranted
-                        ? 'Notifications Enabled'
-                        : 'Permission Denied')
-                    : 'Enable Notifications',
+                        ? l10n.notificationsEnabledStatus
+                        : l10n.permissionDeniedStatus)
+                    : l10n.enableNotifications,
               ),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
@@ -260,12 +260,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ],
           Text(
             kIsWeb
-                ? 'Web notifications will be enabled automatically.'
+                ? l10n.webNotificationsAutoEnabled
                 : _notificationPermissionAsked
                 ? (_notificationPermissionGranted
-                    ? 'Great! You\'ll receive notifications when your favorite matcha is back in stock.'
-                    : 'You can enable notifications later in Settings if you change your mind.')
-                : 'We recommend enabling notifications for the best experience.',
+                    ? l10n.notificationsEnabledBackInStockMessage
+                    : l10n.notificationPermissionDeniedEnableLater)
+                : l10n.recommendEnablingNotifications,
             style: Theme.of(context).textTheme.bodyMedium,
             textAlign: TextAlign.center,
           ),
@@ -478,10 +478,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           }
         } else if (authResult == false && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'You can sign in later in settings to sync your data',
-              ),
+            SnackBar(
+              content: Text(l10n.signInLaterInSettingsToSyncData),
               backgroundColor: Colors.orange,
             ),
           );

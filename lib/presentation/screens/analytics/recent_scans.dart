@@ -436,7 +436,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
-                'Free Mode: Showing last 24 scans',
+                AppLocalizations.of(context)!.freeModeShowingLast24Scans,
                 style: TextStyle(
                   fontSize: 12,
                   color: Theme.of(context).colorScheme.onPrimaryContainer,
@@ -509,7 +509,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Filter & Sort Options',
+                      AppLocalizations.of(context)!.filterAndSortOptions,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -559,7 +559,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
               ),
               const SizedBox(width: 6),
               Text(
-                'Filter by Updates',
+                AppLocalizations.of(context)!.filterByUpdates,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -574,7 +574,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
             child: Row(
               children: [
                 _buildEnhancedFilterChip(
-                  label: 'All Scans',
+                  label: AppLocalizations.of(context)!.allScans,
                   icon: Icons.scanner_rounded,
                   isSelected: !_showOnlyWithUpdates,
                   selectedColor: Colors.blue,
@@ -587,7 +587,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                 ),
                 const SizedBox(width: 10),
                 _buildEnhancedFilterChip(
-                  label: 'With Updates Only',
+                  label: AppLocalizations.of(context)!.withUpdatesOnly,
                   icon: Icons.notifications_active_rounded,
                   isSelected: _showOnlyWithUpdates,
                   selectedColor: Colors.orange,
@@ -621,7 +621,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
               ),
               const SizedBox(width: 6),
               Text(
-                'Sort Options',
+                AppLocalizations.of(context)!.sortOptions,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -636,21 +636,21 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
             child: Row(
               children: [
                 _buildEnhancedSortChip(
-                  'Time',
+                  AppLocalizations.of(context)!.timeLabel,
                   'timestamp',
                   Icons.access_time_rounded,
                   isSmallScreen,
                 ),
                 const SizedBox(width: 10),
                 _buildEnhancedSortChip(
-                  'Updates',
+                  AppLocalizations.of(context)!.updatesLabel,
                   'updates',
                   Icons.update_rounded,
                   isSmallScreen,
                 ),
                 const SizedBox(width: 10),
                 _buildEnhancedSortChip(
-                  'Sites',
+                  AppLocalizations.of(context)!.sitesLabel,
                   'site',
                   Icons.language_rounded,
                   isSmallScreen,
@@ -970,7 +970,9 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  _sortAscending ? 'Ascending' : 'Descending',
+                  _sortAscending
+                      ? AppLocalizations.of(context)!.sortAsc
+                      : AppLocalizations.of(context)!.sortDesc,
                   style: TextStyle(
                     fontSize: isSmallScreen ? 12 : 13,
                     fontWeight: FontWeight.w600,
@@ -1068,6 +1070,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
   }
 
   Widget _buildActivityCard(ScanActivity activity) {
+    final l10n = AppLocalizations.of(context)!;
     final dateFormat = DateFormat('MMM d, HH:mm');
     final isToday = DateTime.now().difference(activity.timestamp).inDays == 0;
     final timeFormat = isToday ? DateFormat('HH:mm') : dateFormat;
@@ -1127,7 +1130,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${activity.itemsScanned} items scanned',
+                          l10n.itemsScannedCount(activity.itemsScanned),
                           style: TextStyle(
                             color: Colors.grey.shade600,
                             fontSize: 14,
@@ -1160,7 +1163,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'Stock updates found - Tap to view',
+                            l10n.stockUpdatesFoundTapToView,
                             style: TextStyle(
                               color: Colors.green.shade600,
                               fontSize: 14,
@@ -1180,7 +1183,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'No stock updates',
+                            l10n.noStockUpdates,
                             style: TextStyle(
                               color: Colors.grey.shade600,
                               fontSize: 14,
@@ -1456,6 +1459,7 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
   ScanActivity _convertCrawlRequestToScanActivity(
     Map<String, dynamic> crawlRequest,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final status = crawlRequest['status'] ?? 'unknown';
     final createdAt = crawlRequest['createdAt'];
     final completedAt = crawlRequest['completedAt'];
@@ -1519,8 +1523,10 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
     String details;
     switch (actualStatus) {
       case 'completed':
-        details =
-            'Scanned $totalProducts products across $sitesProcessed sites';
+        details = l10n.scannedProductsAcrossSites(
+          totalProducts,
+          sitesProcessed,
+        );
         if (hasStockUpdates) {
           List<String> updateTypes = [];
           if (stockUpdates > 0) {
@@ -1529,27 +1535,24 @@ class _BackgroundActivityScreenState extends State<BackgroundActivityScreen> {
           if (priceUpdates > 0) {
             updateTypes.add('$priceUpdates price');
           }
-          details += ' - ${updateTypes.join(', ')} updates found';
+          details += l10n.scanUpdatesFound(updateTypes.join(', '));
         }
         break;
       case 'running':
-        details = 'Scan in progress - $totalProducts products found so far';
+        details = l10n.scanInProgressProductsFound(totalProducts);
         break;
       case 'failed':
         final results = crawlRequest['results'] as Map<String, dynamic>? ?? {};
         final errors = results['errors'] as List? ?? [];
-        details = 'Scan failed';
-        if (errors.isNotEmpty) {
-          details += ' - ${errors.length} error(s)';
-        }
+        details = l10n.scanFailedWithErrors(errors.length);
         break;
       case 'pending':
-        details = 'Scan queued for processing';
+        details = l10n.scanQueuedForProcessing;
         break;
       default:
-        details = 'Status: $status';
+        details = l10n.statusWithValue(status);
         if (totalProducts > 0) {
-          details += ' - $totalProducts products';
+          details += l10n.scanProductsCount(totalProducts);
         }
         break;
     }

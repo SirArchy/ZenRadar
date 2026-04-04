@@ -29,33 +29,51 @@ class _AppInitializerState extends State<AppInitializer> {
   }
 
   Future<void> _checkInitialSetup() async {
-    try {
-      final l10n = AppLocalizations.of(context)!;
+    if (mounted) {
       setState(() {
-        _loadingText = l10n.checkingSetup;
+        _loadingText = 'Checking setup...';
       });
+    }
 
-      final settingsService = SettingsService.instance;
+    bool hasCompletedOnboarding = true;
+    try {
+      hasCompletedOnboarding =
+          await SettingsService.instance.hasCompletedOnboarding();
+    } catch (e) {
+      // Avoid forcing onboarding on transient startup failures.
+      hasCompletedOnboarding = true;
+    }
 
-      // Check if this is a first-time user - use faster check if possible
-      final hasCompletedOnboarding =
-          await settingsService.hasCompletedOnboarding();
-
-      if (!hasCompletedOnboarding) {
-        setState(() {
-          _needsOnboarding = true;
-          _isLoading = false;
-        });
+    if (!hasCompletedOnboarding) {
+      if (!mounted) {
         return;
       }
-
       setState(() {
-        _loadingText = l10n.verifyingAuthentication;
+        _needsOnboarding = true;
+        _isLoading = false;
       });
+      return;
+    }
 
-      // Check authentication status
+    if (mounted) {
+      setState(() {
+        _loadingText = 'Verifying authentication...';
+      });
+    }
+
+    try {
       final authService = AuthService.instance;
-      if (!authService.isSignedIn) {
+      final restoredUser =
+          authService.currentUser ??
+          await authService.authStateChanges.first.timeout(
+            const Duration(seconds: 5),
+            onTimeout: () => authService.currentUser,
+          );
+
+      if (restoredUser == null) {
+        if (!mounted) {
+          return;
+        }
         setState(() {
           _needsAuth = true;
           _isLoading = false;
@@ -63,27 +81,32 @@ class _AppInitializerState extends State<AppInitializer> {
         return;
       }
 
-      setState(() {
-        _loadingText = l10n.almostReady;
-      });
-
-      // Sync trial status from Firestore if user is authenticated
-      try {
-        await SubscriptionService.instance
-            .isPremiumUser(); // This triggers sync
-      } catch (e) {
-        // Continue with app initialization even if sync fails
+      if (mounted) {
+        setState(() {
+          _loadingText = 'Almost ready...';
+        });
       }
 
-      // Add small delay to prevent flash
+      try {
+        await SubscriptionService.instance.isPremiumUser();
+      } catch (e) {
+        // Continue with app initialization even if sync fails.
+      }
+
       await Future.delayed(const Duration(milliseconds: 200));
 
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) {
+        return;
+      }
       setState(() {
-        _needsOnboarding = true;
+        _needsAuth = true;
         _isLoading = false;
       });
     }

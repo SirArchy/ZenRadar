@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:zenradar/models/website_stock_analytics.dart';
 import 'package:zenradar/models/stock_history.dart';
 
@@ -16,6 +17,7 @@ class WebsiteStockChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final filteredUpdates = analytics.getFilteredUpdates(timeRange);
 
     if (filteredUpdates.isEmpty) {
@@ -32,7 +34,7 @@ class WebsiteStockChart extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'No stock updates in ${_getTimeRangeLabel()}',
+                l10n.noStockUpdatesInRange(_getTimeRangeLabel(l10n)),
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurface.withAlpha(175),
                 ),
@@ -96,7 +98,7 @@ class WebsiteStockChart extends StatelessWidget {
                   return SideTitleWidget(
                     axisSide: AxisSide.left,
                     child: Text(
-                      '$intValue update${intValue > 1 ? 's' : ''}',
+                      l10n.updatesCount(intValue),
                       style: const TextStyle(fontSize: 10),
                     ),
                   );
@@ -174,7 +176,7 @@ class WebsiteStockChart extends StatelessWidget {
                   final updateCount = barSpot.y.toInt();
 
                   return LineTooltipItem(
-                    '${_formatTimeForTooltip(date)}\n$updateCount stock update${updateCount > 1 ? 's' : ''}',
+                    '${_formatTimeForTooltip(date)}\n${l10n.stockUpdatesCountLabel(updateCount)}',
                     TextStyle(
                       color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.bold,
@@ -316,19 +318,19 @@ class WebsiteStockChart extends StatelessWidget {
     }
   }
 
-  String _getTimeRangeLabel() {
+  String _getTimeRangeLabel(AppLocalizations l10n) {
     switch (timeRange) {
       case 'day':
       case 'today':
-        return 'the last 24 hours';
+        return l10n.last24Hours;
       case 'week':
-        return 'the last week';
+        return l10n.last7Days;
       case 'month':
-        return 'the last month';
+        return l10n.last30Days;
       case 'all':
-        return 'all time';
+        return l10n.allTimeRange;
       default:
-        return 'this time period';
+        return l10n.timeRange;
     }
   }
 }
@@ -341,11 +343,12 @@ class WebsiteUpdatePatternWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (analytics.hourlyUpdatePattern.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(16),
         child: Text(
-          'No update pattern data available',
+          l10n.noUpdatePatternDataAvailable,
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface.withAlpha(175),
           ),
@@ -357,7 +360,7 @@ class WebsiteUpdatePatternWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Update Pattern (24 hours)',
+          l10n.updatePattern24Hours,
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 12),
@@ -411,7 +414,7 @@ class WebsiteUpdatePatternWidget extends StatelessWidget {
 
               return Tooltip(
                 message:
-                    '${hour.toString().padLeft(2, '0')}:00 - $updateCount update${updateCount != 1 ? 's' : ''}',
+                    '${hour.toString().padLeft(2, '0')}:00 - ${l10n.updatesCount(updateCount)}',
                 child: Container(
                   decoration: BoxDecoration(
                     color: cellColor,
@@ -446,7 +449,9 @@ class WebsiteUpdatePatternWidget extends StatelessWidget {
         const SizedBox(height: 8),
         if (analytics.mostActiveHour != null)
           Text(
-            'Most active: ${analytics.mostActiveHour!.toString().padLeft(2, '0')}:00',
+            l10n.mostActiveWithValue(
+              '${analytics.mostActiveHour!.toString().padLeft(2, '0')}:00',
+            ),
             style: TextStyle(
               fontSize: 12,
               color: Theme.of(context).colorScheme.onSurface.withAlpha(175),

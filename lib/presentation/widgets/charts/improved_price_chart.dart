@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:zenradar/models/price_history.dart';
 import 'package:zenradar/models/matcha_product.dart';
 
@@ -101,6 +102,7 @@ class ImprovedPriceChart extends StatelessWidget {
   }
 
   Widget _buildEmptyStateWithCurrentPrice(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // If we have a product with current price, show it as a flat line
     if (product != null && product!.priceValue != null) {
       return _buildCurrentPriceChart(context);
@@ -119,14 +121,14 @@ class ImprovedPriceChart extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'No Price Data Available',
+            l10n.noPriceHistoryAvailable,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Price tracking will begin with the next scan for this time range',
+            l10n.priceTrackingStartsNextScan,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurface.withAlpha(100),
@@ -138,6 +140,7 @@ class ImprovedPriceChart extends StatelessWidget {
   }
 
   Widget _buildCurrentPriceChart(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final currentPrice = product!.priceValue!;
     final now = DateTime.now();
 
@@ -206,7 +209,9 @@ class ImprovedPriceChart extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'No price changes yet. Current price: ${currentPrice.toStringAsFixed(2)}$currencySymbol',
+                    l10n.noPriceChangesYetCurrentPrice(
+                      '${currentPrice.toStringAsFixed(2)}$currencySymbol',
+                    ),
                     style: TextStyle(
                       fontSize: 12,
                       color: Theme.of(context).colorScheme.primary,
@@ -267,6 +272,7 @@ class ImprovedPriceChart extends StatelessWidget {
     double currentPrice,
     DateTime startTime,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     // Get the month name from the start time
     final monthName = DateFormat('MMMM yyyy').format(startTime);
 
@@ -294,7 +300,9 @@ class ImprovedPriceChart extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'No price changes yet. Current price: ${currentPrice.toStringAsFixed(2)}$currencySymbol',
+                  l10n.noPriceChangesYetCurrentPrice(
+                    '${currentPrice.toStringAsFixed(2)}$currencySymbol',
+                  ),
                   style: TextStyle(
                     fontSize: 12,
                     color: Theme.of(context).colorScheme.primary,
@@ -668,7 +676,9 @@ class ImprovedPriceChart extends StatelessWidget {
           label: HorizontalLineLabel(
             show: false,
             labelResolver:
-                (line) => 'Avg: ${avgPrice.toStringAsFixed(2)}$currencySymbol',
+                (line) => AppLocalizations.of(context)!.averagePriceLabel(
+                  '${avgPrice.toStringAsFixed(2)}$currencySymbol',
+                ),
             style: TextStyle(
               color: Theme.of(context).colorScheme.secondary,
               fontSize: 11,
@@ -899,6 +909,7 @@ class ImprovedPriceChart extends StatelessWidget {
     BuildContext context,
     double currentPrice,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return LineTouchData(
       touchTooltipData: LineTouchTooltipData(
         getTooltipColor:
@@ -912,7 +923,7 @@ class ImprovedPriceChart extends StatelessWidget {
           return touchedSpots.map((spot) {
             final date = DateTime.fromMillisecondsSinceEpoch(spot.x.toInt());
             return LineTooltipItem(
-              '${DateFormat('MMM dd, yyyy').format(date)}\nCurrent Price: ${currentPrice.toStringAsFixed(2)}$currencySymbol\n(No price changes yet)',
+              '${DateFormat('MMM dd, yyyy').format(date)}\n${l10n.currentPriceLabel(currentPrice.toStringAsFixed(2) + currencySymbol)}\n${l10n.noPriceChangesYetShort}',
               TextStyle(
                 color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 12,

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -9,7 +8,6 @@ import 'package:zenradar/data/services/data/database_service.dart';
 import 'package:zenradar/data/services/settings/settings_service.dart';
 import 'package:zenradar/data/services/settings/theme_service.dart';
 import 'package:zenradar/data/services/notifications/favorite_notification_service.dart';
-import 'package:zenradar/data/services/notifications/notification_service.dart';
 import 'package:zenradar/data/services/subscription/subscription_service.dart';
 import 'package:zenradar/data/services/settings/localization_service.dart';
 import 'package:zenradar/presentation/widgets/common/matcha_icon.dart';
@@ -147,7 +145,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${l10n.language} ${l10n.success.toLowerCase()}'),
+            content: Text(l10n.languageChangedSuccessfully),
             action: SnackBarAction(
               label: l10n.close,
               onPressed: () {
@@ -174,7 +172,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${l10n.settings} ${l10n.success.toLowerCase()}'),
+            content: Text(l10n.settingsSavedSuccessfully),
             backgroundColor: Colors.green,
           ),
         );
@@ -184,7 +182,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${l10n.failed}: $e'),
+            content: Text(l10n.settingsSaveFailedWithError(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -232,12 +230,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     // Display Settings
                     _buildDisplaySettings(),
                     const SizedBox(height: 16),
-
-                    // Debug Section (only in debug mode)
-                    if (kDebugMode) ...[
-                      _buildDebugSection(),
-                      const SizedBox(height: 16),
-                    ],
 
                     // Contact Section
                     _buildContactSection(),
@@ -1288,89 +1280,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return FavoriteNotificationService.instance.isMonitoring;
   }
 
-  Widget _buildDebugSection() {
-    final l10n = AppLocalizations.of(context)!;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.bug_report,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  l10n.debugTools,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Test notification button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _testNotification,
-                icon: const Icon(Icons.notifications_active),
-                label: Text(l10n.testNotification),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      Theme.of(context).colorScheme.primaryContainer,
-                  foregroundColor:
-                      Theme.of(context).colorScheme.onPrimaryContainer,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 8),
-            Text(
-              l10n.sendTestNotificationDescription,
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _testNotification() async {
-    final l10n = AppLocalizations.of(context)!;
-    try {
-      await NotificationService.instance.showNotification(
-        id: 999,
-        title: l10n.zenRadarTestNotificationTitle,
-        body: l10n.zenRadarTestNotificationBody,
-        payload: 'test_notification',
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.testNotificationSent),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.failedToSendTestNotification('$e')),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
   void _showContactDialog() {
     final l10n = AppLocalizations.of(context)!;
     final nameController = TextEditingController();
@@ -1671,6 +1580,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             isPremium ? Icons.check_circle : Icons.info,
@@ -1681,13 +1591,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     : (isDark ? Colors.orange.shade300 : Colors.orange),
           ),
           const SizedBox(width: 8),
-          Text(feature, style: const TextStyle(fontWeight: FontWeight.w500)),
-          const Spacer(),
-          Text(
-            value,
-            style: TextStyle(
-              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-              fontSize: 13,
+          Expanded(
+            flex: 3,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Text(
+                feature,
+                style: const TextStyle(fontWeight: FontWeight.w500),
+                softWrap: true,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            flex: 2,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              softWrap: true,
+              style: TextStyle(
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                fontSize: 13,
+              ),
             ),
           ),
         ],
@@ -1835,23 +1760,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// Build upgrade feature row
   Widget _buildUpgradeFeature(String feature, String comparison) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(Icons.check_circle, color: Colors.green, size: 16),
           const SizedBox(width: 8),
           Expanded(
+            flex: 3,
             child: Text(
               feature,
               style: const TextStyle(fontWeight: FontWeight.w500),
+              softWrap: true,
             ),
           ),
-          Text(
-            comparison,
-            style: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
+          const SizedBox(width: 10),
+          Expanded(
+            flex: 2,
+            child: Text(
+              comparison,
+              textAlign: TextAlign.right,
+              softWrap: true,
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],

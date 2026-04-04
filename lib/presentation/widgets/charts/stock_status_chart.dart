@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:zenradar/models/stock_history.dart';
 
 class StockStatusChart extends StatelessWidget {
@@ -17,6 +18,7 @@ class StockStatusChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (stockPoints.isEmpty) {
       return SizedBox(
         height: 200,
@@ -31,7 +33,7 @@ class StockStatusChart extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'No stock history available',
+                l10n.noStockHistoryAvailable,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurface.withAlpha(175),
                 ),
@@ -90,18 +92,18 @@ class StockStatusChart extends StatelessWidget {
                 reservedSize: 60,
                 getTitlesWidget: (value, meta) {
                   if (value == 0) {
-                    return const SideTitleWidget(
+                    return SideTitleWidget(
                       axisSide: AxisSide.left,
                       child: Text(
-                        'Out of Stock',
+                        l10n.outOfStock,
                         style: TextStyle(fontSize: 10, color: Colors.red),
                       ),
                     );
                   } else if (value == 1) {
-                    return const SideTitleWidget(
+                    return SideTitleWidget(
                       axisSide: AxisSide.left,
                       child: Text(
-                        'In Stock',
+                        l10n.inStock,
                         style: TextStyle(fontSize: 10, color: Colors.green),
                       ),
                     );
@@ -179,7 +181,7 @@ class StockStatusChart extends StatelessWidget {
                     barSpot.x.toInt(),
                   );
                   final isInStock = barSpot.y > 0.5;
-                  final status = isInStock ? 'In Stock' : 'Out of Stock';
+                  final status = isInStock ? l10n.inStock : l10n.outOfStock;
                   final statusColor = isInStock ? Colors.green : Colors.red;
 
                   return LineTooltipItem(
@@ -299,6 +301,7 @@ class StockStatusGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // Create a 24-hour grid
     final hourlyStatus = <int, bool>{};
 
@@ -311,7 +314,9 @@ class StockStatusGrid extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Hourly Stock Status - ${DateFormat('MMM dd, yyyy').format(selectedDay)}',
+          l10n.hourlyStockStatusWithDate(
+            DateFormat('MMM dd, yyyy').format(selectedDay),
+          ),
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 12),
@@ -347,8 +352,8 @@ class StockStatusGrid extends StatelessWidget {
             return Tooltip(
               message:
                   hasData
-                      ? '${hour.toString().padLeft(2, '0')}:00 - ${isInStock ? 'In Stock' : 'Out of Stock'}'
-                      : '${hour.toString().padLeft(2, '0')}:00 - No Data',
+                      ? '${hour.toString().padLeft(2, '0')}:00 - ${isInStock ? l10n.inStock : l10n.outOfStock}'
+                      : '${hour.toString().padLeft(2, '0')}:00 - ${l10n.noData}',
               child: Container(
                 decoration: BoxDecoration(
                   color: cellColor,
@@ -378,14 +383,19 @@ class StockStatusGrid extends StatelessWidget {
               context,
               Colors.green,
               Icons.check_circle,
-              'In Stock',
+              l10n.inStock,
             ),
-            _buildLegendItem(context, Colors.red, Icons.cancel, 'Out of Stock'),
+            _buildLegendItem(
+              context,
+              Colors.red,
+              Icons.cancel,
+              l10n.outOfStock,
+            ),
             _buildLegendItem(
               context,
               Colors.grey,
               Icons.help_outline,
-              'No Data',
+              l10n.noData,
             ),
           ],
         ),

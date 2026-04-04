@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:zenradar/data/services/services.dart';
 import 'package:zenradar/presentation/screens/screens.dart';
 
@@ -35,7 +36,8 @@ class ZenRadarApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ZenRadar',
+      onGenerateTitle:
+          (context) => AppLocalizations.of(context)?.appName ?? 'ZenRadar',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF4CAF50), // Green theme for matcha

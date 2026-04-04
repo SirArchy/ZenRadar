@@ -472,6 +472,7 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
@@ -497,8 +498,8 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
             child: Row(
               children: [
                 const Spacer(),
-                const Text(
-                  'Filters',
+                Text(
+                  l10n.filters,
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
@@ -628,11 +629,12 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
   }
 
   Widget _buildPriceRangeSection() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Price Range',
+          l10n.priceRange,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -641,7 +643,7 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
         ),
         const SizedBox(height: 8),
         Text(
-          'The average product price is ${_formatPrice(_averagePrice)}',
+          l10n.averageProductPriceIs(_formatPrice(_averagePrice)),
           style: TextStyle(
             fontSize: 14,
             color: Theme.of(context).colorScheme.onSurface.withAlpha(175),
@@ -745,7 +747,7 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
           children: [
             Expanded(
               child: _buildPriceInput(
-                'Min Price',
+                '${l10n.minimum} ${l10n.price}',
                 _priceRangeValues.start,
                 true,
               ),
@@ -753,7 +755,7 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
             const SizedBox(width: 16),
             Expanded(
               child: _buildPriceInput(
-                'Max Price',
+                '${l10n.maximum} ${l10n.price}',
                 _priceRangeValues.end,
                 false,
               ),
@@ -1129,6 +1131,7 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
   }
 
   Widget _buildSwitchSection() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -1142,7 +1145,7 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Show discontinued products',
+                  l10n.showDiscontinuedProducts,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -1151,7 +1154,7 @@ class _MobileFilterModalState extends State<MobileFilterModal> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Include products that are no longer available',
+                  l10n.includeNoLongerAvailableProducts,
                   style: TextStyle(
                     fontSize: 14,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,

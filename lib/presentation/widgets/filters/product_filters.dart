@@ -113,6 +113,7 @@ class _ProductFiltersState extends State<ProductFilters> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final screenSize = MediaQuery.of(context).size;
     final isSmallScreen = screenSize.width < 600;
 
@@ -164,7 +165,7 @@ class _ProductFiltersState extends State<ProductFilters> {
                 const Icon(Icons.filter_list),
                 const SizedBox(width: 8),
                 Text(
-                  'Filters',
+                  l10n.filters,
                   style: TextStyle(
                     fontSize: isSmallScreen ? 16 : 18,
                     fontWeight: FontWeight.bold,
@@ -175,7 +176,7 @@ class _ProductFiltersState extends State<ProductFilters> {
                 TextButton(
                   onPressed: _clearFilters,
                   child: Text(
-                    'Clear All',
+                    l10n.clearAllFilters,
                     style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
                   ),
                 ),
@@ -183,7 +184,7 @@ class _ProductFiltersState extends State<ProductFilters> {
                   IconButton(
                     onPressed: widget.onClose,
                     icon: const Icon(Icons.close),
-                    tooltip: 'Close filters',
+                    tooltip: l10n.close,
                   ),
               ],
             ),
@@ -216,6 +217,7 @@ class _ProductFiltersState extends State<ProductFilters> {
   }
 
   Widget _buildSiteFilter(bool isSmallScreen) {
+    final l10n = AppLocalizations.of(context)!;
     final selectedSites = _currentFilter.sites ?? <String>[];
     final availableSitesWithoutAll =
         widget.availableSites.where((site) => site != 'All').toList();
@@ -226,7 +228,7 @@ class _ProductFiltersState extends State<ProductFilters> {
         Row(
           children: [
             Text(
-              'Sites',
+              l10n.sites,
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: isSmallScreen ? 14 : 16,
@@ -239,7 +241,7 @@ class _ProductFiltersState extends State<ProductFilters> {
                   _updateFilter(_currentFilter.copyWith(sites: <String>[]));
                 },
                 child: Text(
-                  'Clear',
+                  l10n.clearAll,
                   style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
                 ),
               ),
@@ -276,11 +278,11 @@ class _ProductFiltersState extends State<ProductFilters> {
                       Expanded(
                         child: Text(
                           selectedSites.isEmpty
-                              ? 'All sites'
+                              ? '${l10n.all} ${l10n.sites}'
                               : selectedSites.length ==
                                   availableSitesWithoutAll.length
-                              ? 'All sites (${selectedSites.length})'
-                              : '${selectedSites.length} of ${availableSitesWithoutAll.length} sites',
+                              ? '${l10n.all} ${l10n.sites} (${selectedSites.length})'
+                              : '${selectedSites.length} ${l10n.ofSelected(availableSitesWithoutAll.length)}',
                           style: TextStyle(
                             fontSize: isSmallScreen ? 14 : 16,
                             fontWeight:
@@ -310,8 +312,8 @@ class _ProductFiltersState extends State<ProductFilters> {
                 CheckboxListTile(
                   title: Text(
                     selectedSites.length == availableSitesWithoutAll.length
-                        ? 'Deselect All'
-                        : 'Select All',
+                        ? l10n.clearAll
+                        : l10n.selectAll,
                     style: TextStyle(
                       fontSize: isSmallScreen ? 14 : 16,
                       fontWeight: FontWeight.w500,
@@ -425,7 +427,7 @@ class _ProductFiltersState extends State<ProductFilters> {
                         ? [
                           Chip(
                             label: Text(
-                              '+${selectedSites.length - 3} more',
+                              '+${selectedSites.length - 3}',
                               style: TextStyle(
                                 fontSize: isSmallScreen ? 11 : 12,
                               ),
@@ -444,6 +446,7 @@ class _ProductFiltersState extends State<ProductFilters> {
   }
 
   Widget _buildCategoryFilter(bool isSmallScreen) {
+    final l10n = AppLocalizations.of(context)!;
     final selectedCategories = _currentFilter.categories ?? <String>[];
 
     return Column(
@@ -452,7 +455,7 @@ class _ProductFiltersState extends State<ProductFilters> {
         Row(
           children: [
             Text(
-              'Categories',
+              l10n.categories,
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: isSmallScreen ? 14 : 16,
@@ -467,7 +470,7 @@ class _ProductFiltersState extends State<ProductFilters> {
                   );
                 },
                 child: Text(
-                  'Clear',
+                  l10n.clearAll,
                   style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
                 ),
               ),
@@ -504,11 +507,11 @@ class _ProductFiltersState extends State<ProductFilters> {
                       Expanded(
                         child: Text(
                           selectedCategories.isEmpty
-                              ? 'All categories'
+                              ? '${l10n.all} ${l10n.categories}'
                               : selectedCategories.length ==
                                   widget.availableCategories.length
-                              ? 'All categories (${selectedCategories.length})'
-                              : '${selectedCategories.length} of ${widget.availableCategories.length} categories',
+                              ? '${l10n.all} ${l10n.categories} (${selectedCategories.length})'
+                              : '${selectedCategories.length} ${l10n.ofSelected(widget.availableCategories.length)}',
                           style: TextStyle(
                             fontSize: isSmallScreen ? 14 : 16,
                             fontWeight:
@@ -539,8 +542,8 @@ class _ProductFiltersState extends State<ProductFilters> {
                   title: Text(
                     selectedCategories.length ==
                             widget.availableCategories.length
-                        ? 'Deselect All'
-                        : 'Select All',
+                        ? l10n.clearAll
+                        : l10n.selectAll,
                     style: TextStyle(
                       fontSize: isSmallScreen ? 14 : 16,
                       fontWeight: FontWeight.w500,
@@ -663,7 +666,7 @@ class _ProductFiltersState extends State<ProductFilters> {
                         ? [
                           Chip(
                             label: Text(
-                              '+${selectedCategories.length - 3} more',
+                              '+${selectedCategories.length - 3}',
                               style: TextStyle(
                                 fontSize: isSmallScreen ? 11 : 12,
                               ),
@@ -682,6 +685,7 @@ class _ProductFiltersState extends State<ProductFilters> {
   }
 
   Widget _buildPriceRangeFilter(bool isSmallScreen) {
+    final l10n = AppLocalizations.of(context)!;
     final minPrice = widget.priceRange['min']!;
     final maxPrice = widget.priceRange['max']!;
 
@@ -691,7 +695,7 @@ class _ProductFiltersState extends State<ProductFilters> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Price Range',
+          l10n.priceRange,
           style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: isSmallScreen ? 14 : 16,
@@ -807,7 +811,7 @@ class _ProductFiltersState extends State<ProductFilters> {
               ? _priceRangeValues.start.toStringAsFixed(2)
               : _priceRangeValues.end.toStringAsFixed(2),
     );
-
+    final l10n = AppLocalizations.of(context)!;
     final result = await showDialog<double>(
       context: context,
       builder:
@@ -842,7 +846,7 @@ class _ProductFiltersState extends State<ProductFilters> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Range: ${_formatPrice(widget.priceRange['min']!)} - ${_formatPrice(widget.priceRange['max']!)}',
+                  '${l10n.priceRange}: ${_formatPrice(widget.priceRange['min']!)} - ${_formatPrice(widget.priceRange['max']!)}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -896,13 +900,14 @@ class _ProductFiltersState extends State<ProductFilters> {
   }
 
   Widget _buildFavoritesToggle(bool isSmallScreen) {
+    final l10n = AppLocalizations.of(context)!;
     return CheckboxListTile(
       title: Text(
-        'Favorites only',
+        l10n.favoritesOnly,
         style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
       ),
       subtitle: Text(
-        'Show only products marked as favorites',
+        l10n.showOnlyFavoriteProducts,
         style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
       ),
       value: _currentFilter.favoritesOnly,

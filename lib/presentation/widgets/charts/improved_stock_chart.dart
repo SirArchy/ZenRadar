@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:zenradar/models/stock_history.dart';
 
 class ImprovedStockChart extends StatelessWidget {
@@ -160,6 +161,7 @@ class ImprovedStockChart extends StatelessWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       height: 280,
       padding: const EdgeInsets.all(24),
@@ -173,14 +175,14 @@ class ImprovedStockChart extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'No Stock History Available',
+            l10n.noStockHistoryAvailable,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Stock tracking will begin with the next scan for this time range',
+            l10n.stockTrackingStartsNextScan,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurface.withAlpha(100),
@@ -192,10 +194,11 @@ class ImprovedStockChart extends StatelessWidget {
   }
 
   Widget _buildSinglePointState(BuildContext context, StockStatusPoint point) {
+    final l10n = AppLocalizations.of(context)!;
     final isInStock = point.isInStock;
     final statusColor = isInStock ? Colors.green : Colors.red;
     final statusIcon = isInStock ? Icons.check_circle : Icons.cancel;
-    final statusText = isInStock ? 'In Stock' : 'Out of Stock';
+    final statusText = isInStock ? l10n.inStock : l10n.outOfStock;
 
     return Container(
       height: 280,
@@ -214,7 +217,9 @@ class ImprovedStockChart extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Single data point from ${DateFormat('MMM dd, HH:mm').format(point.timestamp)}',
+            l10n.singleDataPointFrom(
+              DateFormat('MMM dd, HH:mm').format(point.timestamp),
+            ),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
@@ -222,7 +227,7 @@ class ImprovedStockChart extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'More data will be available as additional scans are performed',
+            l10n.moreDataAvailableAfterScans,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurface.withAlpha(100),
@@ -237,6 +242,7 @@ class ImprovedStockChart extends StatelessWidget {
     BuildContext context,
     List<StockStatusPoint> points,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       height: 280,
       padding: const EdgeInsets.all(24),
@@ -250,14 +256,14 @@ class ImprovedStockChart extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Insufficient Data for Chart',
+            l10n.insufficientDataForChart,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Only ${points.length} data point${points.length == 1 ? '' : 's'} available for this time range',
+            l10n.onlyDataPointsAvailable(points.length),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
@@ -265,7 +271,7 @@ class ImprovedStockChart extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Chart visualization requires at least 2 data points',
+            l10n.chartRequiresAtLeastTwoPoints,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurface.withAlpha(100),
@@ -422,6 +428,7 @@ class ImprovedStockChart extends StatelessWidget {
   }
 
   Widget _buildStockTitle(BuildContext context, double value, TitleMeta meta) {
+    final l10n = AppLocalizations.of(context)!;
     if (meta.axisSide != AxisSide.left) return const SizedBox.shrink();
 
     String text;
@@ -430,11 +437,11 @@ class ImprovedStockChart extends StatelessWidget {
 
     // Only show labels at exactly Y=0 and Y=1
     if (value == 0.0) {
-      text = 'Out of Stock';
+      text = l10n.outOfStock;
       color = Colors.red;
       icon = Icons.cancel;
     } else if (value == 1.0) {
-      text = 'In Stock';
+      text = l10n.inStock;
       color = Colors.green;
       icon = Icons.check_circle;
     } else {
@@ -566,7 +573,8 @@ class ImprovedStockChart extends StatelessWidget {
                     spot.x.toInt(),
                   );
                   final isInStock = spot.y > 0.5;
-                  final status = isInStock ? 'In Stock' : 'Out of Stock';
+                  final l10n = AppLocalizations.of(context)!;
+                  final status = isInStock ? l10n.inStock : l10n.outOfStock;
                   final statusColor = isInStock ? Colors.green : Colors.red;
 
                   return LineTooltipItem(
@@ -593,7 +601,7 @@ class ImprovedStockChart extends StatelessWidget {
           dashArray: [6, 3],
           label: HorizontalLineLabel(
             show: false,
-            labelResolver: (line) => 'In Stock',
+            labelResolver: (line) => AppLocalizations.of(context)!.inStock,
             style: TextStyle(
               color: Colors.green,
               fontSize: 10,
@@ -611,7 +619,7 @@ class ImprovedStockChart extends StatelessWidget {
           dashArray: [6, 3],
           label: HorizontalLineLabel(
             show: false,
-            labelResolver: (line) => 'Out of Stock',
+            labelResolver: (line) => AppLocalizations.of(context)!.outOfStock,
             style: TextStyle(
               color: Colors.red,
               fontSize: 10,
@@ -710,6 +718,7 @@ class ImprovedStockGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // Create a 24-hour grid with better organization
     final hourlyStatus = <int, bool>{};
     final hourlyTimestamps = <int, DateTime>{};
@@ -743,7 +752,9 @@ class ImprovedStockGrid extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'Hourly Stock Status - ${DateFormat('EEEE, MMM dd, yyyy').format(selectedDay)}',
+                l10n.hourlyStockStatusWithDate(
+                  DateFormat('EEEE, MMM dd, yyyy').format(selectedDay),
+                ),
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -816,10 +827,11 @@ class ImprovedStockGrid extends StatelessWidget {
     }
 
     final hourText = hour.toString().padLeft(2, '0');
+    final l10n = AppLocalizations.of(context)!;
     final tooltipText =
         hasData
-            ? '$hourText:00 - ${isInStock ? 'In Stock' : 'Out of Stock'}'
-            : '$hourText:00 - No Data';
+            ? '$hourText:00 - ${isInStock ? l10n.inStock : l10n.outOfStock}'
+            : '$hourText:00 - ${l10n.noData}';
 
     return Tooltip(
       message: tooltipText,
@@ -877,10 +889,20 @@ class ImprovedStockGrid extends StatelessWidget {
             context,
             Colors.green,
             Icons.check_circle,
-            'In Stock',
+            AppLocalizations.of(context)!.inStock,
           ),
-          _buildLegendItem(context, Colors.red, Icons.cancel, 'Out of Stock'),
-          _buildLegendItem(context, Colors.grey, Icons.help_outline, 'No Data'),
+          _buildLegendItem(
+            context,
+            Colors.red,
+            Icons.cancel,
+            AppLocalizations.of(context)!.outOfStock,
+          ),
+          _buildLegendItem(
+            context,
+            Colors.grey,
+            Icons.help_outline,
+            AppLocalizations.of(context)!.noData,
+          ),
         ],
       ),
     );
@@ -919,6 +941,7 @@ class ImprovedStockGrid extends StatelessWidget {
   }
 
   Widget _buildSummaryStats(BuildContext context, Map<int, bool> hourlyStatus) {
+    final l10n = AppLocalizations.of(context)!;
     final totalHours = hourlyStatus.length;
     final inStockHours = hourlyStatus.values.where((inStock) => inStock).length;
     final availability =
@@ -943,19 +966,19 @@ class ImprovedStockGrid extends StatelessWidget {
         children: [
           _buildStatItem(
             context,
-            'Hours Tracked',
+            l10n.hoursTracked,
             totalHours.toString(),
             Icons.access_time,
           ),
           _buildStatItem(
             context,
-            'In Stock',
+            l10n.inStock,
             inStockHours.toString(),
             Icons.check_circle,
           ),
           _buildStatItem(
             context,
-            'Availability',
+            l10n.availability,
             '${availability.toStringAsFixed(0)}%',
             Icons.analytics,
           ),

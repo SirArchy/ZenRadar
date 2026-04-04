@@ -262,6 +262,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Future<void> _toggleFavorite() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final result = await BackendService.instance.updateFavorite(
         productId: widget.product.id,
@@ -270,7 +271,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
       if (!result.success) {
         // Handle other errors
-        _showErrorSnackBar(result.error ?? 'Failed to update favorite');
+        _showErrorSnackBar(result.error ?? l10n.failedToUpdateFavorite);
         return;
       }
 
@@ -283,8 +284,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           SnackBar(
             content: Text(
               _isFavorite
-                  ? '📱 Added to favorites - you\'ll get notifications when it\'s back in stock!'
-                  : 'Removed from favorites',
+                  ? l10n.addedToFavoritesNotificationEnabled
+                  : l10n.removedFromFavorites,
             ),
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,

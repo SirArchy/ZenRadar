@@ -95,7 +95,7 @@ class _SiteSelectionDialogState extends State<SiteSelectionDialog> {
 
                     return CheckboxListTile(
                       title: Text(site),
-                      subtitle: _getSiteDescription(site),
+                      subtitle: _getSiteDescription(site, l10n),
                       value: isSelected,
                       onChanged: (value) {
                         setState(() {
@@ -129,7 +129,7 @@ class _SiteSelectionDialogState extends State<SiteSelectionDialog> {
                     Icon(Icons.timer, size: 16, color: Colors.blue.shade600),
                     const SizedBox(width: 8),
                     Text(
-                      '${l10n.estimatedTime} ${_getEstimatedTime()}',
+                      '${l10n.estimatedTime} ${_getEstimatedTime(l10n)}',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.blue.shade600,
@@ -166,21 +166,21 @@ class _SiteSelectionDialogState extends State<SiteSelectionDialog> {
     );
   }
 
-  Widget? _getSiteDescription(String site) {
-    final descriptions = {
-      'tokichi': 'Traditional Japanese matcha',
-      'ippodo': 'Premium tea house',
-      'marukyu': 'Historic Kyoto tea company',
-      'poppatea': 'Authentic Japanese matcha sent from Sweden',
-      'horiishichimeien': 'Modern matcha experience',
-      'yoshien': 'German matcha retailer',
-      'matcha-karu': 'Organic matcha specialist',
-      'sho-cha': 'Artisan tea collection',
-      'sazentea': 'Japanese tea direct import',
-      'enjoyemeri': 'Curated tea selection',
+  Widget? _getSiteDescription(String site, AppLocalizations l10n) {
+    final description = switch (site) {
+      'tokichi' => l10n.siteDescriptionTokichi,
+      'ippodo' => l10n.siteDescriptionIppodo,
+      'marukyu' => l10n.siteDescriptionMarukyu,
+      'poppatea' => l10n.siteDescriptionPoppatea,
+      'horiishichimeien' => l10n.siteDescriptionHoriishichimeien,
+      'yoshien' => l10n.siteDescriptionYoshien,
+      'matcha-karu' => l10n.siteDescriptionMatchaKaru,
+      'sho-cha' => l10n.siteDescriptionShoCha,
+      'sazentea' => l10n.siteDescriptionSazentea,
+      'enjoyemeri' => l10n.siteDescriptionEnjoyemeri,
+      _ => null,
     };
 
-    final description = descriptions[site];
     if (description != null) {
       return Text(
         description,
@@ -190,16 +190,16 @@ class _SiteSelectionDialogState extends State<SiteSelectionDialog> {
     return null;
   }
 
-  String _getEstimatedTime() {
+  String _getEstimatedTime(AppLocalizations l10n) {
     final siteCount = _selectedSites.length;
     if (siteCount <= 2) {
-      return '30-60 seconds';
+      return l10n.estimatedScanTimeShort;
     } else if (siteCount <= 5) {
-      return '1-2 minutes';
+      return l10n.estimatedScanTimeMedium;
     } else if (siteCount <= 8) {
-      return '2-3 minutes';
+      return l10n.estimatedScanTimeLong;
     } else {
-      return '3-5 minutes';
+      return l10n.estimatedScanTimeVeryLong;
     }
   }
 }

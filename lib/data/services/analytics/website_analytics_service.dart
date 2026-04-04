@@ -393,7 +393,7 @@ class WebsiteAnalyticsService {
       case 'yoshien':
         return 'Yoshi En';
       case 'matcha-karu':
-        return 'Matcha KÄru';
+        return 'Matcha Karu';
       case 'sho-cha':
         return 'Sho-Cha';
       case 'sazentea':

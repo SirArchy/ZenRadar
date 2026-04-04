@@ -122,6 +122,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
 
   Widget _buildHeader() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       width: double.infinity,
@@ -156,7 +157,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Unlock Premium Features',
+                  l10n.unlockPremiumFeatures,
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -169,7 +170,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            'Get unlimited access to all matcha vendors, faster notifications, and comprehensive analytics.',
+            l10n.premiumUpgradeSubtitle,
             style: TextStyle(
               fontSize: 16,
               color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
@@ -184,6 +185,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
   Widget _buildLimitReachedCard() {
     final result = widget.validationResult!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       width: double.infinity,
@@ -211,7 +213,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Limit Reached',
+                  l10n.limitReached,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color:
@@ -260,6 +262,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
   }
 
   Widget _buildPricingCard({required bool isFreeTier}) {
+    final l10n = AppLocalizations.of(context)!;
     final isCurrentTier =
         isFreeTier
             ? _currentTier == SubscriptionTier.free
@@ -297,7 +300,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
               ),
               const SizedBox(width: 8),
               Text(
-                isFreeTier ? 'Free' : 'Premium',
+                isFreeTier ? l10n.free : l10n.premium,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -321,14 +324,14 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
                   ),
                 ),
                 Text(
-                  '/month',
+                  l10n.perMonth,
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                 ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
-              'or \$29.99/year (save 65%)',
+              l10n.yearlyPlanSavings,
               style: TextStyle(
                 color: Colors.green.shade700,
                 fontSize: 12,
@@ -345,7 +348,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
               ),
             ),
             Text(
-              'Forever free',
+              l10n.foreverFree,
               style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
             ),
           ],
@@ -359,7 +362,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                'Current Plan',
+                l10n.currentPlan,
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
@@ -376,6 +379,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
   Widget _buildFeatureComparison() {
     if (_tierComparison == null) return const SizedBox();
 
+    final l10n = AppLocalizations.of(context)!;
     final comparison = _tierComparison!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
@@ -397,27 +401,27 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
           child: Column(
             children: [
               _buildFeatureRow(
-                'Favorite Products',
-                '${comparison.free.maxFavorites} max',
-                'Unlimited',
+                l10n.favoriteProductsLabel,
+                '${comparison.free.maxFavorites} ${l10n.maximum}',
+                l10n.unlimitedLabel,
                 Icons.favorite,
               ),
               _buildFeatureRow(
-                'Check Frequency',
-                'Every ${comparison.free.checkFrequencyHours}h',
-                'Every ${comparison.premium.checkFrequencyHours}h',
+                l10n.scanFrequency,
+                l10n.everyHours(comparison.free.checkFrequencyHours),
+                l10n.everyHours(comparison.premium.checkFrequencyHours),
                 Icons.schedule,
               ),
               _buildFeatureRow(
-                'Analytics History',
-                '${comparison.free.historyDays} days',
-                'Unlimited',
+                l10n.analyticsHistoryLabel,
+                '${comparison.free.historyDays} ${l10n.days}',
+                l10n.unlimitedLabel,
                 Icons.analytics,
               ),
               _buildFeatureRow(
-                'Priority Notifications',
-                'Basic',
-                'Premium',
+                l10n.priorityNotifications,
+                l10n.basicLabel,
+                l10n.premium,
                 Icons.notifications_active,
                 isLastRow: true,
               ),
@@ -449,29 +453,38 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
                 ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: Colors.grey.shade600, size: 20),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(icon, color: Colors.grey.shade600, size: 20),
+          ),
           const SizedBox(width: 12),
           Expanded(
             flex: 2,
             child: Text(
               feature,
               style: const TextStyle(fontWeight: FontWeight.w500),
+              softWrap: true,
             ),
           ),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               freeValue,
               textAlign: TextAlign.center,
+              softWrap: true,
               style: TextStyle(
                 color: isDark ? Colors.grey.shade200 : Colors.grey.shade600,
               ),
             ),
           ),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               premiumValue,
               textAlign: TextAlign.center,
+              softWrap: true,
               style: TextStyle(
                 color: Colors.amber.shade700,
                 fontWeight: FontWeight.w600,
@@ -484,6 +497,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
   }
 
   Widget _buildTestimonials() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -493,16 +507,16 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
         ),
         const SizedBox(height: 16),
         _buildTestimonialCard(
-          'Sarah M.',
-          'Tea Enthusiast',
-          'Premium notifications helped me snag limited edition matcha from Kyoto before it sold out!',
+          l10n.testimonialUserOneName,
+          l10n.testimonialUserOneTitle,
+          l10n.testimonialUserOneQuote,
           Icons.star,
         ),
         const SizedBox(height: 12),
         _buildTestimonialCard(
-          'Ken T.',
-          'Matcha Collector',
-          'Monitoring all vendors simultaneously saved me hours of manual checking.',
+          l10n.testimonialUserTwoName,
+          l10n.testimonialUserTwoTitle,
+          l10n.testimonialUserTwoQuote,
           Icons.star,
         ),
       ],
@@ -784,7 +798,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
                         )
                         : const Icon(Icons.upgrade, size: 24),
                 label: Text(
-                  _isLoading ? 'Processing...' : 'Upgrade to Premium',
+                  _isLoading ? l10n.processing : l10n.upgradeToPremium,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -802,7 +816,7 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
             ),
             const SizedBox(height: 12),
             Text(
-              'Premium features available immediately. Cancel anytime.',
+              l10n.premiumFeaturesAvailableImmediatelyCancelAnytime,
               style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
               textAlign: TextAlign.center,
             ),
@@ -929,9 +943,10 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
   }
 
   Future<void> _contactSupport() async {
+    final l10n = AppLocalizations.of(context)!;
     const email = 'support@zenradar.app';
-    const subject = 'Premium Subscription Question';
-    const body = 'Hi,\n\nI have a question about the Premium subscription.\n\n';
+    final subject = l10n.premiumSubscriptionQuestion;
+    final body = l10n.premiumSubscriptionQuestionBody;
 
     final uri = Uri(
       scheme: 'mailto',
@@ -945,10 +960,8 @@ class _SubscriptionUpgradeScreenState extends State<SubscriptionUpgradeScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Could not open email app. Please contact support@zenradar.app',
-            ),
+          SnackBar(
+            content: Text(l10n.couldNotOpenEmailAppContactSupport),
             backgroundColor: Colors.orange,
           ),
         );

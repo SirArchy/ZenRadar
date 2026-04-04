@@ -1,1792 +1,2530 @@
-{
-  "@@locale": "pt",
-  "appName": "ZenRadar",
-  "appTagline": "Monitor de Stock de Matcha",
-  "home": "Início",
-  "favorites": "Favoritos",
-  "analytics": "Análises",
-  "settings": "Configurações",
-  "search": "Pesquisar",
-  "searchProducts": "Pesquisar produtos...",
-  "filters": "Filtros",
-  "sort": "Ordenar",
-  "all": "Todos",
-  "inStock": "Em Estoque",
-  "outOfStock": "Fora de Estoque",
-  "category": "Categoria",
-  "price": "Preço",
-  "priceRange": "Faixa de Preço",
-  "website": "Website",
-  "grade": "Grau",
-  "sortBy": "Ordenar por",
-  "relevance": "Relevância",
-  "priceLowToHigh": "Preço: Menor para Maior",
-  "priceHighToLow": "Preço: Maior para Menor",
-  "newest": "Mais Recente",
-  "popularity": "Popularidade",
-  "apply": "Aplicar",
-  "reset": "Redefinir",
-  "cancel": "Cancelar",
-  "ok": "OK",
-  "save": "Salvar",
-  "delete": "Excluir",
-  "edit": "Editar",
-  "close": "Fechar",
-  "loading": "Carregando...",
-  "noProducts": "Nenhum produto encontrado",
-  "noFavorites": "Ainda não há favoritos",
-  "addToFavorites": "Adicionar aos Favoritos",
-  "removeFromFavorites": "Remover dos Favoritos",
-  "productDetails": "Detalhes do Produto",
-  "description": "Descrição",
-  "ingredients": "Ingredientes",
-  "stockStatus": "Status de Estoque",
-  "priceHistory": "Histórico de Preços",
-  "stockHistory": "Histórico de Estoque",
-  "viewOnWebsite": "Ver no Website",
-  "share": "Compartilhar",
-  "notifications": "Notificações",
-  "notificationSettings": "Configurações de Notificação",
-  "enableNotifications": "Ativar Notificações",
-  "notifyWhenInStock": "Notificar quando disponível",
-  "notifyPriceDrops": "Notificar quedas de preço",
-  "theme": "Tema",
-  "lightMode": "Modo Claro",
-  "darkMode": "Modo Escuro",
-  "systemDefault": "Padrão do Sistema",
-  "language": "Idioma",
-  "account": "Conta",
-  "signIn": "Entrar",
-  "signOut": "Sair",
-  "signInWithGoogle": "Entrar com Google",
-  "email": "E-mail",
-  "password": "Senha",
-  "forgotPassword": "Esqueceu a Senha?",
-  "createAccount": "Criar Conta",
-  "subscription": "Assinatura",
-  "freePlan": "Plano Gratuito",
-  "premiumPlan": "Plano Premium",
-  "upgradeToPremium": "Atualizar para Premium",
-  "manageSub": "Gerenciar Assinatura",
-  "about": "Sobre",
-  "version": "Versão",
-  "privacyPolicy": "Política de Privacidade",
-  "termsOfService": "Termos de Serviço",
-  "contactSupport": "Contatar Suporte",
-  "rateApp": "Avaliar App",
-  "day": "Dia",
-  "week": "Semana",
-  "month": "Mês",
-  "year": "Ano",
-  "refresh": "Atualizar",
-  "error": "Erro",
-  "errorLoadingData": "Erro ao carregar dados",
-  "retry": "Tentar Novamente",
-  "noInternetConnection": "Sem conexão com a Internet",
-  "checkYourConnection": "Por favor, verifique sua conexão com a Internet e tente novamente",
-  "websiteOverview": "Visão Geral do Website",
-  "totalProducts": "Total de Produtos",
-  "productsInStock": "Produtos em Estoque",
-  "stockPercentage": "Percentual de Estoque",
-  "recentScans": "Verificações Recentes",
-  "scanActivity": "Atividade de Verificação",
-  "backgroundActivity": "Atividade em Segundo Plano",
-  "lastScan": "Última Verificação",
-  "nextScan": "Próxima Verificação",
-  "scanFrequency": "Frequência de Verificação",
-  "activeHours": "Horas Ativas",
-  "startTime": "Hora de Início",
-  "endTime": "Hora de Término",
-  "premiumFeature": "Recurso Premium",
-  "premiumRequired": "Assinatura Premium necessária",
-  "upgradeToUnlock": "Atualizar para desbloquear este recurso",
-  "freeTrialAvailable": "Teste gratuito disponível",
-  "startFreeTrial": "Iniciar Teste Gratuito",
-  "currencySettings": "Configurações de Moeda",
-  "preferredCurrency": "Moeda Preferida",
-  "autoDetectCurrency": "Detectar moeda automaticamente",
-  "general": "Geral",
-  "appearance": "Aparência",
-  "dataAndPrivacy": "Dados e Privacidade",
-  "clearCache": "Limpar Cache",
-  "clearSearchHistory": "Limpar Histórico de Pesquisa",
-  "deleteAccount": "Excluir Conta",
-  "areYouSure": "Tem certeza?",
-  "thisActionCannotBeUndone": "Esta ação não pode ser desfeita",
-  "confirm": "Confirmar",
-  "cacheCleared": "Cache limpo com sucesso",
-  "searchHistoryCleared": "Histórico de pesquisa limpo",
-  "success": "Sucesso",
-  "failed": "Falhou",
-  "@appName": {
-    "description": "The name of the application"
-  },
-  "@appTagline": {
-    "description": "The tagline of the application"
-  },
-  "@home": {
-    "description": "Home tab label"
-  },
-  "@favorites": {
-    "description": "Favorites tab label"
-  },
-  "@analytics": {
-    "description": "Analytics tab label"
-  },
-  "@settings": {
-    "description": "Settings tab label"
-  },
-  "@search": {
-    "description": "Search label"
-  },
-  "@searchProducts": {
-    "description": "Search hint text"
-  },
-  "@filters": {
-    "description": "Filters button label"
-  },
-  "@sort": {
-    "description": "Sort button label"
-  },
-  "@all": {
-    "description": "All filter option"
-  },
-  "@inStock": {
-    "description": "In stock filter option"
-  },
-  "@outOfStock": {
-    "description": "Out of stock filter option"
-  },
-  "@category": {
-    "description": "Category label"
-  },
-  "@price": {
-    "description": "Price label"
-  },
-  "@website": {
-    "description": "Website label"
-  },
-  "@grade": {
-    "description": "Grade label"
-  },
-  "@sortBy": {
-    "description": "Sort by label"
-  },
-  "@relevance": {
-    "description": "Sort by relevance"
-  },
-  "@priceLowToHigh": {
-    "description": "Sort by price ascending"
-  },
-  "@priceHighToLow": {
-    "description": "Sort by price descending"
-  },
-  "@newest": {
-    "description": "Sort by newest"
-  },
-  "@popularity": {
-    "description": "Sort by popularity"
-  },
-  "@apply": {
-    "description": "Apply button label"
-  },
-  "@reset": {
-    "description": "Reset button label"
-  },
-  "@cancel": {
-    "description": "Cancel button label"
-  },
-  "@ok": {
-    "description": "OK button label"
-  },
-  "@save": {
-    "description": "Save button label"
-  },
-  "@delete": {
-    "description": "Delete button label"
-  },
-  "@edit": {
-    "description": "Edit button label"
-  },
-  "@close": {
-    "description": "Close button label"
-  },
-  "@loading": {
-    "description": "Loading message"
-  },
-  "@noProducts": {
-    "description": "No products message"
-  },
-  "@noFavorites": {
-    "description": "No favorites message"
-  },
-  "@addToFavorites": {
-    "description": "Add to favorites action"
-  },
-  "@removeFromFavorites": {
-    "description": "Remove from favorites action"
-  },
-  "@description": {
-    "description": "Description label"
-  },
-  "@ingredients": {
-    "description": "Ingredients label"
-  },
-  "@stockStatus": {
-    "description": "Stock status label"
-  },
-  "@priceHistory": {
-    "description": "Price history label"
-  },
-  "@stockHistory": {
-    "description": "Stock history label"
-  },
-  "@viewOnWebsite": {
-    "description": "View on website button"
-  },
-  "@share": {
-    "description": "Share button"
-  },
-  "@notifications": {
-    "description": "Notifications label"
-  },
-  "@notificationSettings": {
-    "description": "Notification settings title"
-  },
-  "@enableNotifications": {
-    "description": "Enable notifications option"
-  },
-  "@notifyWhenInStock": {
-    "description": "Notify when in stock option"
-  },
-  "@notifyPriceDrops": {
-    "description": "Notify on price drops option"
-  },
-  "@theme": {
-    "description": "Theme label"
-  },
-  "@lightMode": {
-    "description": "Light mode option"
-  },
-  "@darkMode": {
-    "description": "Dark mode option"
-  },
-  "@systemDefault": {
-    "description": "System default theme option"
-  },
-  "@language": {
-    "description": "Language label"
-  },
-  "@account": {
-    "description": "Account label"
-  },
-  "@signOut": {
-    "description": "Sign out button"
-  },
-  "@createAccount": {
-    "description": "Create account button"
-  },
-  "@subscription": {
-    "description": "Subscription label"
-  },
-  "@freePlan": {
-    "description": "Free plan label"
-  },
-  "@premiumPlan": {
-    "description": "Premium plan label"
-  },
-  "@manageSub": {
-    "description": "Manage subscription button"
-  },
-  "@about": {
-    "description": "About label"
-  },
-  "@version": {
-    "description": "Version label"
-  },
-  "@privacyPolicy": {
-    "description": "Privacy policy label"
-  },
-  "@termsOfService": {
-    "description": "Terms of service label"
-  },
-  "@rateApp": {
-    "description": "Rate app label"
-  },
-  "@day": {
-    "description": "Day time range"
-  },
-  "@week": {
-    "description": "Week time range"
-  },
-  "@month": {
-    "description": "Month time range"
-  },
-  "@year": {
-    "description": "Year time range"
-  },
-  "@refresh": {
-    "description": "Refresh button"
-  },
-  "@error": {
-    "description": "Error label"
-  },
-  "@errorLoadingData": {
-    "description": "Error loading data message"
-  },
-  "@noInternetConnection": {
-    "description": "No internet connection message"
-  },
-  "@checkYourConnection": {
-    "description": "Check connection message"
-  },
-  "@websiteOverview": {
-    "description": "Website overview title"
-  },
-  "@totalProducts": {
-    "description": "Total products label"
-  },
-  "@productsInStock": {
-    "description": "Products in stock label"
-  },
-  "@stockPercentage": {
-    "description": "Stock percentage label"
-  },
-  "@recentScans": {
-    "description": "Recent scans title"
-  },
-  "@scanActivity": {
-    "description": "Scan activity title"
-  },
-  "@backgroundActivity": {
-    "description": "Background activity title"
-  },
-  "@lastScan": {
-    "description": "Last scan label"
-  },
-  "@nextScan": {
-    "description": "Next scan label"
-  },
-  "@scanFrequency": {
-    "description": "Scan frequency label"
-  },
-  "@activeHours": {
-    "description": "Active hours label"
-  },
-  "@startTime": {
-    "description": "Start time label"
-  },
-  "@endTime": {
-    "description": "End time label"
-  },
-  "@premiumFeature": {
-    "description": "Premium feature label"
-  },
-  "@premiumRequired": {
-    "description": "Premium required message"
-  },
-  "@upgradeToUnlock": {
-    "description": "Upgrade to unlock message"
-  },
-  "@freeTrialAvailable": {
-    "description": "Free trial available message"
-  },
-  "@currencySettings": {
-    "description": "Currency settings title"
-  },
-  "@preferredCurrency": {
-    "description": "Preferred currency label"
-  },
-  "@autoDetectCurrency": {
-    "description": "Auto-detect currency option"
-  },
-  "@general": {
-    "description": "General settings section"
-  },
-  "@appearance": {
-    "description": "Appearance settings section"
-  },
-  "@dataAndPrivacy": {
-    "description": "Data and privacy section"
-  },
-  "@clearCache": {
-    "description": "Clear cache option"
-  },
-  "@clearSearchHistory": {
-    "description": "Clear search history option"
-  },
-  "@deleteAccount": {
-    "description": "Delete account option"
-  },
-  "@areYouSure": {
-    "description": "Confirmation dialog title"
-  },
-  "@thisActionCannotBeUndone": {
-    "description": "Cannot be undone warning"
-  },
-  "@confirm": {
-    "description": "Confirm button"
-  },
-  "@cacheCleared": {
-    "description": "Cache cleared message"
-  },
-  "@searchHistoryCleared": {
-    "description": "Search history cleared message"
-  },
-  "@success": {
-    "description": "Success message"
-  },
-  "@failed": {
-    "description": "Failed message"
-  },
-  "welcomeToZenRadar": "Welcome to ZenRadar",
-  "@welcomeToZenRadar": {
-    "description": "Onboarding welcome title"
-  },
-  "premiumMatchaMonitoring": "Your premium matcha stock monitoring companion",
-  "@premiumMatchaMonitoring": {
-    "description": "Onboarding tagline"
-  },
-  "cloudMonitoring": "Cloud Monitoring",
-  "@cloudMonitoring": {
-    "description": "Cloud monitoring feature"
-  },
-  "reliable247Tracking": "Reliable 24/7 stock tracking",
-  "@reliable247Tracking": {
-    "description": "24/7 tracking description"
-  },
-  "instantAlerts": "Instant Alerts",
-  "@instantAlerts": {
-    "description": "Instant alerts feature"
-  },
-  "notifyBackInStock": "Get notified when items are back in stock",
-  "@notifyBackInStock": {
-    "description": "Back in stock notification description"
-  },
-  "zeroBatteryUsage": "Zero Battery Usage",
-  "@zeroBatteryUsage": {
-    "description": "Zero battery feature"
-  },
-  "cloudProcessingNoDrain": "Cloud processing means no device drain",
-  "@cloudProcessingNoDrain": {
-    "description": "Cloud processing description"
-  },
-  "cloudPoweredMonitoring": "Cloud-Powered Monitoring",
-  "@cloudPoweredMonitoring": {
-    "description": "Cloud powered monitoring title"
-  },
-  "cloudServicesDescription": "ZenRadar uses advanced cloud services to monitor matcha stock across multiple websites.",
-  "@cloudServicesDescription": {
-    "description": "Cloud services description"
-  },
-  "whyCloudMonitoring": "Why Cloud Monitoring?",
-  "@whyCloudMonitoring": {
-    "description": "Why cloud monitoring question"
-  },
-  "alwaysOnline": "Always online, even when your device sleeps",
-  "@alwaysOnline": {
-    "description": "Always online benefit"
-  },
-  "noBatteryDrain": "No battery drain on your device",
-  "@noBatteryDrain": {
-    "description": "No battery drain benefit"
-  },
-  "fasterUpdates": "Faster updates and better reliability",
-  "@fasterUpdates": {
-    "description": "Faster updates benefit"
-  },
-  "sharedImprovements": "Shared improvements benefit everyone",
-  "@sharedImprovements": {
-    "description": "Shared improvements benefit"
-  },
-  "stayInformed": "Stay Informed",
-  "@stayInformed": {
-    "description": "Stay informed title"
-  },
-  "instantStockNotifications": "Get instant notifications when your favorite matcha products come back in stock.",
-  "@instantStockNotifications": {
-    "description": "Instant stock notifications description"
-  },
-  "skip": "Skip",
-  "@skip": {
-    "description": "Skip button"
-  },
-  "next": "Next",
-  "@next": {
-    "description": "Next button"
-  },
-  "getStarted": "Get Started",
-  "@getStarted": {
-    "description": "Get started button"
-  },
-  "choosePlan": "Choose Your ZenRadar Experience",
-  "@choosePlan": {
-    "description": "Choose plan title"
-  },
-  "startFreeOrPremium": "Start with a free account or unlock unlimited potential with Premium",
-  "@startFreeOrPremium": {
-    "description": "Start free or premium description"
-  },
-  "free": "Free",
-  "@free": {
-    "description": "Free label"
-  },
-  "premium": "Premium",
-  "@premium": {
-    "description": "Premium label"
-  },
-  "perMonth": "/month",
-  "@perMonth": {
-    "description": "Per month label"
-  },
-  "sevenDayFreeTrial": "7-day free trial",
-  "@sevenDayFreeTrial": {
-    "description": "7-day free trial"
-  },
-  "foreverFree": "Forever free",
-  "@foreverFree": {
-    "description": "Forever free label"
-  },
-  "upToFavorites": "Up to 42 favorite products",
-  "@upToFavorites": {
-    "description": "Up to favorites limit"
-  },
-  "allVendorSites": "All vendor sites",
-  "@allVendorSites": {
-    "description": "All vendor sites"
-  },
-  "checkEverySixHours": "Check every 6 hours",
-  "@checkEverySixHours": {
-    "description": "Check every 6 hours"
-  },
-  "basicNotifications": "Basic notifications",
-  "@basicNotifications": {
-    "description": "Basic notifications"
-  },
-  "unlimitedFavorites": "Unlimited favorites",
-  "@unlimitedFavorites": {
-    "description": "Unlimited favorites"
-  },
-  "checkEveryHour": "Check every hour",
-  "@checkEveryHour": {
-    "description": "Check every hour"
-  },
-  "priorityNotifications": "Priority notifications",
-  "@priorityNotifications": {
-    "description": "Priority notifications"
-  },
-  "whyChoosePremium": "Why Choose Premium?",
-  "@whyChoosePremium": {
-    "description": "Why choose premium title"
-  },
-  "fasterUpdatesDesc": "Get notified within the hour of stock changes",
-  "@fasterUpdatesDesc": {
-    "description": "Faster updates description"
-  },
-  "unlimitedFavoritesDesc": "Track as many products as you want",
-  "@unlimitedFavoritesDesc": {
-    "description": "Unlimited favorites description"
-  },
-  "fullHistoryAccess": "Full History Access",
-  "@fullHistoryAccess": {
-    "description": "Full history access"
-  },
-  "fullHistoryAccessDesc": "Access complete price and stock history for all products",
-  "@fullHistoryAccessDesc": {
-    "description": "Full history access description"
-  },
-  "@startFreeTrial": {
-    "description": "Start free trial button"
-  },
-  "continueWithFree": "Continue with Free Account",
-  "@continueWithFree": {
-    "description": "Continue with free account button"
-  },
-  "trialDisclaimer": "Free trial includes all Premium features. Cancel anytime.",
-  "@trialDisclaimer": {
-    "description": "Trial disclaimer"
-  },
-  "@productDetails": {
-    "description": "Product details title"
-  },
-  "currentPrice": "Current Price",
-  "@currentPrice": {
-    "description": "Current price label"
-  },
-  "lowestPrice": "Lowest Price",
-  "@lowestPrice": {
-    "description": "Lowest price label"
-  },
-  "highestPrice": "Highest Price",
-  "@highestPrice": {
-    "description": "Highest price label"
-  },
-  "averagePrice": "Average Price",
-  "@averagePrice": {
-    "description": "Average price label"
-  },
-  "today": "Today",
-  "@today": {
-    "description": "Today label"
-  },
-  "thisWeek": "This Week",
-  "@thisWeek": {
-    "description": "This week label"
-  },
-  "thisMonth": "This Month",
-  "@thisMonth": {
-    "description": "This month label"
-  },
-  "allTime": "All Time",
-  "@allTime": {
-    "description": "All time label"
-  },
-  "activity": "Activity",
-  "@activity": {
-    "description": "Activity label"
-  },
-  "totalScans": "Total Scans",
-  "@totalScans": {
-    "description": "Total scans label"
-  },
-  "weeklyScans": "Weekly Scans",
-  "@weeklyScans": {
-    "description": "Weekly scans label"
-  },
-  "withUpdates": "With Updates",
-  "@withUpdates": {
-    "description": "With updates label"
-  },
-  "clearOld": "Clear Old",
-  "@clearOld": {
-    "description": "Clear old button"
-  },
-  "startingZenRadar": "Starting ZenRadar...",
-  "@startingZenRadar": {
-    "description": "App initialization loading text"
-  },
-  "checkingSetup": "Checking setup...",
-  "@checkingSetup": {
-    "description": "Checking setup loading text"
-  },
-  "verifyingAuthentication": "Verifying authentication...",
-  "@verifyingAuthentication": {
-    "description": "Verifying auth loading text"
-  },
-  "almostReady": "Almost ready...",
-  "@almostReady": {
-    "description": "Almost ready loading text"
-  },
-  "pleaseWait": "Please wait...",
-  "@pleaseWait": {
-    "description": "Please wait text"
-  },
-  "productUpdates": "Product Updates",
-  "@productUpdates": {
-    "description": "Product updates screen title"
-  },
-  "noProductUpdates": "No product updates",
-  "@noProductUpdates": {
-    "description": "No updates message"
-  },
-  "showsStockPriceChanges": "This shows products with stock or price changes.",
-  "@showsStockPriceChanges": {
-    "description": "Updates explanation"
-  },
-  "newStockArrivals": "New Stock Arrivals",
-  "@newStockArrivals": {
-    "description": "New stock section title"
-  },
-  "priceChanges": "Price Changes",
-  "@priceChanges": {
-    "description": "Price changes section title"
-  },
-  "was": "Was",
-  "@was": {
-    "description": "Previous price prefix"
-  },
-  "couldNotOpenProductPage": "Could not open product page",
-  "@couldNotOpenProductPage": {
-    "description": "Error opening product"
-  },
-  "@signIn": {
-    "description": "Sign in button"
-  },
-  "signUp": "Sign Up",
-  "@signUp": {
-    "description": "Sign up button"
-  },
-  "@email": {
-    "description": "Email label"
-  },
-  "@password": {
-    "description": "Password label"
-  },
-  "confirmPassword": "Confirm Password",
-  "@confirmPassword": {
-    "description": "Confirm password label"
-  },
-  "displayName": "Display Name",
-  "@displayName": {
-    "description": "Display name label"
-  },
-  "@forgotPassword": {
-    "description": "Forgot password link"
-  },
-  "resetPassword": "Reset Password",
-  "@resetPassword": {
-    "description": "Reset password title"
-  },
-  "@signInWithGoogle": {
-    "description": "Google sign in button"
-  },
-  "or": "or",
-  "@or": {
-    "description": "Divider text"
-  },
-  "signInToAccount": "Sign in or create an account to access all features",
-  "@signInToAccount": {
-    "description": "Auth screen subtitle"
-  },
-  "passwordRequirements": "At least 6 characters with letters and numbers",
-  "@passwordRequirements": {
-    "description": "Password helper text"
-  },
-  "enterEmail": "Please enter your email",
-  "@enterEmail": {
-    "description": "Email validation"
-  },
-  "enterValidEmail": "Please enter a valid email",
-  "@enterValidEmail": {
-    "description": "Email format validation"
-  },
-  "enterPassword": "Please enter your password",
-  "@enterPassword": {
-    "description": "Password validation"
-  },
-  "passwordTooShort": "Password must be at least 6 characters",
-  "@passwordTooShort": {
-    "description": "Password length validation"
-  },
-  "passwordsDoNotMatch": "Passwords do not match",
-  "@passwordsDoNotMatch": {
-    "description": "Password match validation"
-  },
-  "verifyEmail": "Verify Your Email",
-  "@verifyEmail": {
-    "description": "Email verification title"
-  },
-  "verificationEmailSent": "We've sent a verification email to your address. Please check your inbox and click the verification link.",
-  "@verificationEmailSent": {
-    "description": "Verification email message"
-  },
-  "resendVerification": "Resend Verification Email",
-  "@resendVerification": {
-    "description": "Resend verification button"
-  },
-  "verificationEmailResent": "Verification email sent! Please check your inbox.",
-  "@verificationEmailResent": {
-    "description": "Verification resent message"
-  },
-  "verifyAndContinue": "I've Verified, Continue",
-  "@verifyAndContinue": {
-    "description": "Continue after verification button"
-  },
-  "@upgradeToPremium": {
-    "description": "Upgrade screen title"
-  },
-  "unlockPremiumFeatures": "Unlock Premium Features",
-  "@unlockPremiumFeatures": {
-    "description": "Premium features header"
-  },
-  "comparePlans": "Compare Plans",
-  "@comparePlans": {
-    "description": "Compare plans section"
-  },
-  "whatUsersSay": "What Our Users Say",
-  "@whatUsersSay": {
-    "description": "Testimonials title"
-  },
-  "frequentlyAskedQuestions": "Frequently Asked Questions",
-  "@frequentlyAskedQuestions": {
-    "description": "FAQ title"
-  },
-  "@contactSupport": {
-    "description": "Contact support button"
-  },
-  "questions": "Questions?",
-  "@questions": {
-    "description": "Questions prompt"
-  },
-  "happyToHelp": "We're happy to help! Contact our support team anytime.",
-  "@happyToHelp": {
-    "description": "Support message"
-  },
-  "send": "Send",
-  "@send": {
-    "description": "Send button"
-  },
-  "choosePlanTitle": "Choose Your Plan",
-  "@choosePlanTitle": {
-    "description": "Choose plan title"
-  },
-  "currentPlan": "Current Plan",
-  "@currentPlan": {
-    "description": "Current plan label"
-  },
-  "featureComparison": "Feature Comparison",
-  "@featureComparison": {
-    "description": "Feature comparison title"
-  },
-  "whatPremiumUsersSay": "What Premium Users Say",
-  "@whatPremiumUsersSay": {
-    "description": "Testimonials section title"
-  },
-  "canICancelAnytime": "Can I cancel anytime?",
-  "@canICancelAnytime": {
-    "description": "FAQ question"
-  },
-  "cancelAnytimeAnswer": "Yes! You can cancel your subscription at any time. You'll continue to have premium access until the end of your billing period.",
-  "@cancelAnytimeAnswer": {
-    "description": "FAQ answer"
-  },
-  "isThereFreeTrial": "Is there a free trial?",
-  "@isThereFreeTrial": {
-    "description": "FAQ question"
-  },
-  "freeTrialAnswer": "Yes! New users get a 7-day free trial of all premium features.",
-  "@freeTrialAnswer": {
-    "description": "FAQ answer"
-  },
-  "whatPaymentMethods": "What payment methods do you accept?",
-  "@whatPaymentMethods": {
-    "description": "FAQ question"
-  },
-  "paymentMethodsAnswer": "We accept all major credit cards, PayPal, and mobile payments through app stores.",
-  "@paymentMethodsAnswer": {
-    "description": "FAQ answer"
-  },
-  "needHelp": "Need Help?",
-  "@needHelp": {
-    "description": "Support section title"
-  },
-  "contactSupportTeam": "Contact our support team for any questions",
-  "@contactSupportTeam": {
-    "description": "Support message"
-  },
-  "refreshAnalytics": "Refresh analytics",
-  "@refreshAnalytics": {
-    "description": "Refresh button tooltip"
-  },
-  "selectTimeRange": "Select Time Range",
-  "@selectTimeRange": {
-    "description": "Time range dialog title"
-  },
-  "timeRange": "Time Range:",
-  "@timeRange": {
-    "description": "Time range label"
-  },
-  "@retry": {
-    "description": "Retry button"
-  },
-  "last24Hours": "Last 24 hours",
-  "@last24Hours": {
-    "description": "Day time range"
-  },
-  "last7Days": "Last 7 days",
-  "@last7Days": {
-    "description": "Week time range"
-  },
-  "last30Days": "Last 30 days",
-  "@last30Days": {
-    "description": "Month time range"
-  },
-  "allTimeRange": "All time",
-  "@allTimeRange": {
-    "description": "All time range"
-  },
-  "noProductsTracked": "No products tracked",
-  "@noProductsTracked": {
-    "description": "No products message"
-  },
-  "lastUpdate": "Last update",
-  "@lastUpdate": {
-    "description": "Last update prefix"
-  },
-  "noRecentUpdates": "No recent updates",
-  "@noRecentUpdates": {
-    "description": "No updates message"
-  },
-  "justNow": "Just now",
-  "@justNow": {
-    "description": "Time ago label"
-  },
-  "daysAgo": "d ago",
-  "@daysAgo": {
-    "description": "Days ago suffix"
-  },
-  "hoursAgo": "h ago",
-  "@hoursAgo": {
-    "description": "Hours ago suffix"
-  },
-  "minutesAgo": "m ago",
-  "@minutesAgo": {
-    "description": "Minutes ago suffix"
-  },
-  "swipeToNavigate": "Swipe to Navigate the App",
-  "@swipeToNavigate": {
-    "description": "Swipe tutorial title"
-  },
-  "swipeDescription": "Swipe left or right to navigate between screens",
-  "@swipeDescription": {
-    "description": "Swipe tutorial description"
-  },
-  "gotIt": "Got it!",
-  "@gotIt": {
-    "description": "Tutorial dismiss button"
-  },
-  "tapAnywhereToDismiss": "Tap anywhere to dismiss",
-  "@tapAnywhereToDismiss": {
-    "description": "Dismiss hint"
-  },
-  "selectSitesToScan": "Select Sites to Scan",
-  "@selectSitesToScan": {
-    "description": "Site selection dialog title"
-  },
-  "chooseWhichMatcha": "Choose which matcha websites to include in this scan:",
-  "@chooseWhichMatcha": {
-    "description": "Site selection description"
-  },
-  "selectAllSites": "Select All Sites",
-  "@selectAllSites": {
-    "description": "Select all sites checkbox"
-  },
-  "ofSelected": "of {count} selected",
-  "@ofSelected": {
-    "description": "Selected count",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "estimatedTime": "Estimated time:",
-  "@estimatedTime": {
-    "description": "Scan time estimate label"
-  },
-  "starting": "Starting...",
-  "@starting": {
-    "description": "Starting scan status"
-  },
-  "startScan": "Start Scan",
-  "@startScan": {
-    "description": "Start scan button"
-  },
-  "clearAll": "Clear All",
-  "@clearAll": {
-    "description": "Clear all button"
-  },
-  "showProducts": "Show {count} products",
-  "@showProducts": {
-    "description": "Show filtered products",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "sites": "Sites",
-  "@sites": {
-    "description": "Sites filter section"
-  },
-  "categories": "Categories",
-  "@categories": {
-    "description": "Categories filter section"
-  },
-  "selectAll": "Select All",
-  "@selectAll": {
-    "description": "Select all button"
-  },
-  "@priceRange": {
-    "description": "Price range filter"
-  },
-  "minimum": "Minimum",
-  "@minimum": {
-    "description": "Minimum price label"
-  },
-  "maximum": "Maximum",
-  "@maximum": {
-    "description": "Maximum price label"
-  },
-  "signInToSyncSettingsAcrossDevices": "Sign in to sync your settings across devices",
-  "@signInToSyncSettingsAcrossDevices": {
-    "description": "Prompt shown on settings screen when user is not signed in"
-  },
-  "masterSwitchForAllNotifications": "Master switch for all notifications",
-  "@masterSwitchForAllNotifications": {
-    "description": "Subtitle for the master notifications toggle"
-  },
-  "favoriteProductAlerts": "Favorite Product Alerts",
-  "@favoriteProductAlerts": {
-    "description": "Title for favorite product notifications setting"
-  },
-  "getNotifiedAboutFavoriteChanges": "Get notified about changes to your favorite products",
-  "@getNotifiedAboutFavoriteChanges": {
-    "description": "Subtitle for favorite product alerts"
-  },
-  "notifyWhenFavoritePricesChange": "Notify when prices change for favorite products",
-  "@notifyWhenFavoritePricesChange": {
-    "description": "Subtitle for favorite price change notifications"
-  },
-  "cloudNotificationsDeliveredInstantly": "Cloud notifications are delivered instantly when stock changes are detected by our servers.",
-  "@cloudNotificationsDeliveredInstantly": {
-    "description": "Explanation text for cloud notifications"
-  },
-  "monitoringFavoriteProducts": "Monitoring {count} favorite products",
-  "@monitoringFavoriteProducts": {
-    "description": "Current monitored favorites count",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "favoriteMonitoringInactive": "Favorite monitoring inactive",
-  "@favoriteMonitoringInactive": {
-    "description": "Shown when favorite monitoring is disabled"
-  },
-  "monitoredSites": "Monitored Sites",
-  "@monitoredSites": {
-    "description": "Settings section title for monitored sites"
-  },
-  "serverMonitoredWebsites": "Server-Monitored Websites",
-  "@serverMonitoredWebsites": {
-    "description": "Title for server monitored websites info box"
-  },
-  "allSupportedSitesMonitoredByServer": "All supported matcha websites are automatically monitored by our servers. Data is synchronized to your device regularly.",
-  "@allSupportedSitesMonitoredByServer": {
-    "description": "Description for server-side monitoring"
-  },
-  "productsCount": "{count} products",
-  "@productsCount": {
-    "description": "Product count label for a monitored site",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "suggestNewWebsite": "Suggest New Website",
-  "@suggestNewWebsite": {
-    "description": "Button and dialog title for suggesting a new site"
-  },
-  "requestMonitoringForAdditionalSites": "Request monitoring for additional matcha sites",
-  "@requestMonitoringForAdditionalSites": {
-    "description": "Subtitle for suggest new website setting"
-  },
-  "aboutZenRadar": "About ZenRadar",
-  "@aboutZenRadar": {
-    "description": "About card title"
-  },
-  "aboutZenRadarDescription": "ZenRadar helps you monitor matcha availability across multiple Japanese tea retailers. Never miss your favorite matcha again!",
-  "@aboutZenRadarDescription": {
-    "description": "About app description text"
-  },
-  "versionNumber": "Version: {version}",
-  "@versionNumber": {
-    "description": "App version label with value",
-    "placeholders": {
-      "version": {
-        "type": "String"
-      }
-    }
-  },
-  "showPricesInOriginalSiteCurrency": "Show prices in original site currency",
-  "@showPricesInOriginalSiteCurrency": {
-    "description": "Preferred currency subtitle for original currency"
-  },
-  "showPricesInCurrency": "Show prices in {currency}",
-  "@showPricesInCurrency": {
-    "description": "Preferred currency subtitle for selected currency",
-    "placeholders": {
-      "currency": {
-        "type": "String"
-      }
-    }
-  },
-  "contactMe": "Contact Me",
-  "@contactMe": {
-    "description": "Contact section title"
-  },
-  "contact": "Contact",
-  "@contact": {
-    "description": "Contact action label"
-  },
-  "github": "GitHub",
-  "@github": {
-    "description": "GitHub label"
-  },
-  "linkedIn": "LinkedIn",
-  "@linkedIn": {
-    "description": "LinkedIn label"
-  },
-  "payPal": "PayPal",
-  "@payPal": {
-    "description": "PayPal label"
-  },
-  "feedbackAndSuggestions": "Feedback & Suggestions",
-  "@feedbackAndSuggestions": {
-    "description": "Feedback section title"
-  },
-  "submitFeedback": "Submit Feedback",
-  "@submitFeedback": {
-    "description": "Feedback list tile title"
-  },
-  "shareIdeasOnFeedbackBoard": "Share your ideas and suggestions on our feedback board",
-  "@shareIdeasOnFeedbackBoard": {
-    "description": "Feedback list tile subtitle"
-  },
-  "feedbackImprovesZenRadar": "Your feedback helps improve ZenRadar! Vote on existing ideas or submit new ones.",
-  "@feedbackImprovesZenRadar": {
-    "description": "Feedback encouragement text"
-  },
-  "helpExpandZenRadar": "Help us expand ZenRadar by suggesting a new matcha website to monitor!",
-  "@helpExpandZenRadar": {
-    "description": "Suggest website dialog intro"
-  },
-  "websiteName": "Website Name",
-  "@websiteName": {
-    "description": "Website name field label"
-  },
-  "websiteNameHint": "e.g. \"Uji Tea Company\"",
-  "@websiteNameHint": {
-    "description": "Website name field hint"
-  },
-  "pleaseEnterWebsiteName": "Please enter the website name",
-  "@pleaseEnterWebsiteName": {
-    "description": "Website name validation error"
-  },
-  "websiteUrl": "Website URL",
-  "@websiteUrl": {
-    "description": "Website URL field label"
-  },
-  "websiteUrlHint": "https://example.com",
-  "@websiteUrlHint": {
-    "description": "Website URL field hint"
-  },
-  "pleaseEnterWebsiteUrl": "Please enter the website URL",
-  "@pleaseEnterWebsiteUrl": {
-    "description": "Website URL validation error"
-  },
-  "pleaseEnterValidUrl": "Please enter a valid URL",
-  "@pleaseEnterValidUrl": {
-    "description": "Website URL invalid format error"
-  },
-  "additionalInformationOptional": "Additional Information (Optional)",
-  "@additionalInformationOptional": {
-    "description": "Additional info field label"
-  },
-  "additionalInformationHint": "Special features, product types, etc.",
-  "@additionalInformationHint": {
-    "description": "Additional info field hint"
-  },
-  "sendSuggestion": "Send Suggestion",
-  "@sendSuggestion": {
-    "description": "Send suggestion button label"
-  },
-  "thankYouSuggestionEmailOpened": "Thank you for your suggestion! Email app opened.",
-  "@thankYouSuggestionEmailOpened": {
-    "description": "Success snackbar when suggestion email opens"
-  },
-  "couldNotOpenEmailAppWithError": "Could not open email app: {error}",
-  "@couldNotOpenEmailAppWithError": {
-    "description": "Error snackbar when email app cannot be opened",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "chooseTheme": "Choose Theme",
-  "@chooseTheme": {
-    "description": "Theme picker dialog title"
-  },
-  "chooseCurrency": "Choose Currency",
-  "@chooseCurrency": {
-    "description": "Currency picker dialog title"
-  },
-  "originalNativeSiteCurrency": "Original (native site currency)",
-  "@originalNativeSiteCurrency": {
-    "description": "Label for native site currency in currency picker"
-  },
-  "debugTools": "Debug Tools",
-  "@debugTools": {
-    "description": "Debug section title"
-  },
-  "testNotification": "Test Notification",
-  "@testNotification": {
-    "description": "Test notification button label"
-  },
-  "sendTestNotificationDescription": "Send a test notification to verify that notifications are working correctly.",
-  "@sendTestNotificationDescription": {
-    "description": "Description under test notification button"
-  },
-  "zenRadarTestNotificationTitle": "ZenRadar Test Notification",
-  "@zenRadarTestNotificationTitle": {
-    "description": "Title for local test notification"
-  },
-  "zenRadarTestNotificationBody": "This is a test notification to verify that notifications are working correctly.",
-  "@zenRadarTestNotificationBody": {
-    "description": "Body for local test notification"
-  },
-  "testNotificationSent": "Test notification sent!",
-  "@testNotificationSent": {
-    "description": "Success snackbar when test notification is sent"
-  },
-  "failedToSendTestNotification": "Failed to send test notification: {error}",
-  "@failedToSendTestNotification": {
-    "description": "Error snackbar when test notification fails",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "contactUs": "Contact Us",
-  "@contactUs": {
-    "description": "Contact dialog title"
-  },
-  "yourName": "Your Name",
-  "@yourName": {
-    "description": "Name field label"
-  },
-  "pleaseEnterYourName": "Please enter your name",
-  "@pleaseEnterYourName": {
-    "description": "Name validation error"
-  },
-  "yourEmail": "Your Email",
-  "@yourEmail": {
-    "description": "Email field label"
-  },
-  "pleaseEnterYourEmail": "Please enter your email",
-  "@pleaseEnterYourEmail": {
-    "description": "Email required validation"
-  },
-  "pleaseEnterValidEmail": "Please enter a valid email",
-  "@pleaseEnterValidEmail": {
-    "description": "Email format validation"
-  },
-  "yourMessage": "Your Message",
-  "@yourMessage": {
-    "description": "Message field label"
-  },
-  "pleaseEnterYourMessage": "Please enter your message",
-  "@pleaseEnterYourMessage": {
-    "description": "Message required validation"
-  },
-  "emailAppOpenedSuccessfully": "Email app opened successfully!",
-  "@emailAppOpenedSuccessfully": {
-    "description": "Success message after opening email app"
-  },
-  "sendEmail": "Send Email",
-  "@sendEmail": {
-    "description": "Send email button label"
-  },
-  "emailAddressCopiedToClipboard": "Email address copied to clipboard!",
-  "@emailAddressCopiedToClipboard": {
-    "description": "Snackbar text after copying contact email"
-  },
-  "unlockFullPotentialPremium": "Unlock the full potential of ZenRadar with Premium:",
-  "@unlockFullPotentialPremium": {
-    "description": "Upgrade dialog intro text"
-  },
-  "unlimitedFavoriteProducts": "Unlimited favorite products",
-  "@unlimitedFavoriteProducts": {
-    "description": "Premium feature item"
-  },
-  "hourlyCheckFrequency": "Hourly check frequency",
-  "@hourlyCheckFrequency": {
-    "description": "Premium feature item"
-  },
-  "fullPriceAndStockHistory": "Full price & stock history",
-  "@fullPriceAndStockHistory": {
-    "description": "Premium feature item"
-  },
-  "comingSoon": "Coming soon",
-  "@comingSoon": {
-    "description": "Coming soon label"
-  },
-  "paymentIntegrationComingSoon": "Payment integration coming soon! Follow development for updates.",
-  "@paymentIntegrationComingSoon": {
-    "description": "Upgrade dialog payment status note"
-  },
-  "maybeLater": "Maybe Later",
-  "@maybeLater": {
-    "description": "Dismiss action for upgrade prompt"
-  },
-  "getPremium": "Get Premium",
-  "@getPremium": {
-    "description": "Primary action to open premium upgrade"
-  },
-  "clearOldActivitiesConfirm": "This will remove scan activities older than 30 days. Continue?",
-  "@clearOldActivitiesConfirm": {
-    "description": "Confirmation text for clearing old scan activities"
-  },
-  "clearAllActivitiesConfirm": "This will permanently delete ALL scan activities. This action cannot be undone. Continue?",
-  "@clearAllActivitiesConfirm": {
-    "description": "Confirmation text for deleting all scan activities"
-  },
-  "deleteAll": "Delete All",
-  "@deleteAll": {
-    "description": "Delete all button label"
-  },
-  "oldActivitiesClearedSuccessfully": "Old activities cleared successfully",
-  "@oldActivitiesClearedSuccessfully": {
-    "description": "Success message after clearing old activities"
-  },
-  "allActivitiesClearedSuccessfully": "All activities cleared successfully",
-  "@allActivitiesClearedSuccessfully": {
-    "description": "Success message after clearing all activities"
-  },
-  "errorClearingActivitiesWithError": "Error clearing activities: {error}",
-  "@errorClearingActivitiesWithError": {
-    "description": "Error message when clearing activities fails",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "refreshActivities": "Refresh activities",
-  "@refreshActivities": {
-    "description": "Tooltip for refreshing activities"
-  },
-  "noServerScansFound": "No server scans found",
-  "@noServerScansFound": {
-    "description": "Empty state title for recent scans"
-  },
-  "serverScanActivitiesAppearHere": "Server scan activities will appear here",
-  "@serverScanActivitiesAppearHere": {
-    "description": "Empty state subtitle for recent scans"
-  },
-  "clearAllFilters": "Clear All Filters",
-  "@clearAllFilters": {
-    "description": "Button label to clear all active filters"
-  },
-  "confirmRemoveProductsFromFavorites": "Are you sure you want to remove {count} products from your favorites?",
-  "@confirmRemoveProductsFromFavorites": {
-    "description": "Confirmation prompt for bulk removing favorites",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "remove": "Remove",
-  "@remove": {
-    "description": "Remove action label"
-  },
-  "getUnlimitedHistoryAccess": "Get unlimited access to price and stock history:",
-  "@getUnlimitedHistoryAccess": {
-    "description": "Intro line in premium upgrade dialog"
-  },
-  "bulletFullPriceAndStockHistory": "• Full price & stock history",
-  "@bulletFullPriceAndStockHistory": {
-    "description": "Premium feature bullet"
-  },
-  "bulletUnlimitedFavoriteProducts": "• Unlimited favorite products",
-  "@bulletUnlimitedFavoriteProducts": {
-    "description": "Premium feature bullet"
-  },
-  "bulletMonitorAllVendorSites": "• Monitor all vendor sites",
-  "@bulletMonitorAllVendorSites": {
-    "description": "Premium feature bullet"
-  },
-  "bulletHourlyCheckFrequency": "• Hourly check frequency",
-  "@bulletHourlyCheckFrequency": {
-    "description": "Premium feature bullet"
-  },
-  "upgradeNow": "Upgrade Now",
-  "@upgradeNow": {
-    "description": "Upgrade button label"
-  },
-  "backToSignIn": "Back to Sign In",
-  "@backToSignIn": {
-    "description": "Back action on email verification screen"
-  },
-  "pleaseVerifyEmailBeforeContinuing": "Please verify your email before continuing",
-  "@pleaseVerifyEmailBeforeContinuing": {
-    "description": "Error shown when email is not yet verified"
-  },
-  "enterEmailForResetLink": "Enter your email address to receive a password reset link.",
-  "@enterEmailForResetLink": {
-    "description": "Instruction text in reset password dialog"
-  },
-  "passwordResetEmailSentTo": "Password reset email sent to {email}",
-  "@passwordResetEmailSentTo": {
-    "description": "Success message after sending reset email",
-    "placeholders": {
-      "email": {
-        "type": "String"
-      }
-    }
-  },
-  "errorSendingResetEmail": "Error sending reset email",
-  "@errorSendingResetEmail": {
-    "description": "Fallback error when reset email fails"
-  },
-  "sendResetEmail": "Send Reset Email",
-  "@sendResetEmail": {
-    "description": "Action button in reset password dialog"
-  },
-  "errorLoadingAnalyticsWithError": "Error loading analytics: {error}",
-  "@errorLoadingAnalyticsWithError": {
-    "description": "Error snackbar on product detail analytics load",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "failedToUpdateFavorite": "Failed to update favorite",
-  "@failedToUpdateFavorite": {
-    "description": "Error when favorite update request fails"
-  },
-  "addedToFavoritesNotificationEnabled": "📱 Added to favorites - you'll get notifications when it's back in stock!",
-  "@addedToFavoritesNotificationEnabled": {
-    "description": "Snackbar when product is added to favorites"
-  },
-  "removedFromFavorites": "Removed from favorites",
-  "@removedFromFavorites": {
-    "description": "Snackbar when product is removed from favorites"
-  },
-  "errorUpdatingFavoriteWithError": "Error updating favorite: {error}",
-  "@errorUpdatingFavoriteWithError": {
-    "description": "Error snackbar for favorite update",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "selectCurrency": "Select Currency",
-  "@selectCurrency": {
-    "description": "Currency selection menu title and tooltip"
-  },
-  "priceAnalytics": "Price Analytics",
-  "@priceAnalytics": {
-    "description": "Price analytics section title"
-  },
-  "noPriceHistoryAvailable": "No Price History Available",
-  "@noPriceHistoryAvailable": {
-    "description": "Empty state title for missing price history"
-  },
-  "priceTrackingStartsNextScan": "Price tracking will begin with the next scan",
-  "@priceTrackingStartsNextScan": {
-    "description": "Empty state subtitle for missing price history"
-  },
-  "current": "Current",
-  "@current": {
-    "description": "Current value label"
-  },
-  "lowest": "Lowest",
-  "@lowest": {
-    "description": "Lowest value label"
-  },
-  "highest": "Highest",
-  "@highest": {
-    "description": "Highest value label"
-  },
-  "average": "Average",
-  "@average": {
-    "description": "Average value label"
-  },
-  "loadingPriceHistory": "Loading price history...",
-  "@loadingPriceHistory": {
-    "description": "Loading label for price chart"
-  },
-  "unknown": "Unknown",
-  "@unknown": {
-    "description": "Fallback value when data is unknown"
-  },
-  "site": "Site",
-  "@site": {
-    "description": "Product site label"
-  },
-  "weight": "Weight",
-  "@weight": {
-    "description": "Product weight label"
-  },
-  "originalCurrency": "Original Currency",
-  "@originalCurrency": {
-    "description": "Label for original product currency"
-  },
-  "firstSeen": "First Seen",
-  "@firstSeen": {
-    "description": "First seen timestamp label"
-  },
-  "lastChecked": "Last Checked",
-  "@lastChecked": {
-    "description": "Last checked timestamp label"
-  },
-  "priceDataPoints": "Price Data Points",
-  "@priceDataPoints": {
-    "description": "Label for total price data points"
-  },
-  "availability": "Availability",
-  "@availability": {
-    "description": "Stock availability label"
-  },
-  "volatility": "Volatility",
-  "@volatility": {
-    "description": "Stock volatility label"
-  },
-  "high": "High",
-  "@high": {
-    "description": "High status label"
-  },
-  "stable": "Stable",
-  "@stable": {
-    "description": "Stable status label"
-  },
-  "trend": "Trend",
-  "@trend": {
-    "description": "Trend label"
-  },
-  "selectDate": "Select Date",
-  "@selectDate": {
-    "description": "Select date label"
-  },
-  "fullAccess": "Full Access",
-  "@fullAccess": {
-    "description": "Full access badge label"
-  },
-  "premiumAccess": "Premium Access",
-  "@premiumAccess": {
-    "description": "Premium access banner title"
-  },
-  "viewingFullHistoryUnlimitedAccess": "Viewing full price & stock history with unlimited access",
-  "@viewingFullHistoryUnlimitedAccess": {
-    "description": "Premium banner description"
-  },
-  "limitedHistoryAccess": "Limited History Access",
-  "@limitedHistoryAccess": {
-    "description": "Limited access banner title"
-  },
-  "freeTierHistoryLimitBanner": "Free tier shows last {days} days. Upgrade for full history access.",
-  "@freeTierHistoryLimitBanner": {
-    "description": "Limited access banner description",
-    "placeholders": {
-      "days": {
-        "type": "int"
-      }
-    }
-  },
-  "fullPremiumNoCardRequired": "Get full premium access instantly. No credit card required.",
-  "@fullPremiumNoCardRequired": {
-    "description": "Trial section helper text"
-  },
-  "upgradeDirectlyWithPayment": "Or upgrade directly with payment",
-  "@upgradeDirectlyWithPayment": {
-    "description": "Secondary upgrade CTA"
-  },
-  "freeTrialActive": "Free Trial Active",
-  "@freeTrialActive": {
-    "description": "Active trial status title"
-  },
-  "daysRemaining": "{days} days remaining",
-  "@daysRemaining": {
-    "description": "Remaining trial days",
-    "placeholders": {
-      "days": {
-        "type": "int"
-      }
-    }
-  },
-  "upgradeNowKeepPremium": "Upgrade Now & Keep Premium",
-  "@upgradeNowKeepPremium": {
-    "description": "CTA when trial is active"
-  },
-  "failedToLoadActivitiesWithError": "Failed to load activities: {error}",
-  "@failedToLoadActivitiesWithError": {
-    "description": "Error snackbar when activities fail to load",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "failedToRefreshActivitiesWithError": "Failed to refresh server activities: {error}",
-  "@failedToRefreshActivitiesWithError": {
-    "description": "Error snackbar when force refresh fails",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "noStockUpdateDetailsForScan": "No stock update details available for this scan",
-  "@noStockUpdateDetailsForScan": {
-    "description": "Shown when no crawl request id is available"
-  },
-  "noDetailedProductUpdatesForScan": "No detailed product updates found for this scan",
-  "@noDetailedProductUpdatesForScan": {
-    "description": "Shown when stock and price updates are empty"
-  },
-  "errorLoadingStockUpdatesWithError": "Error loading stock updates: {error}",
-  "@errorLoadingStockUpdatesWithError": {
-    "description": "Error snackbar when stock updates query fails",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "crawlTriggeredSuccessfully": "Crawl triggered successfully! ID: {requestId}",
-  "@crawlTriggeredSuccessfully": {
-    "description": "Success message after triggering a manual crawl",
-    "placeholders": {
-      "requestId": {
-        "type": "String"
-      }
-    }
-  },
-  "failedToTriggerCrawlWithError": "Failed to trigger crawl: {error}",
-  "@failedToTriggerCrawlWithError": {
-    "description": "Error message for failed manual crawl trigger",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "checkingServerStatus": "Checking server status...",
-  "@checkingServerStatus": {
-    "description": "Fallback status text while server health is unknown"
-  },
-  "failedToLoadDailyStockData": "Failed to load daily stock data",
-  "@failedToLoadDailyStockData": {
-    "description": "Error shown when daily stock history query fails"
-  },
-  "addingProductsToFavorites": "Adding {count} products to favorites...",
-  "@addingProductsToFavorites": {
-    "description": "Progress message while bulk-adding favorites",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "errorAddingProductsToFavoritesWithError": "Error adding products to favorites: {error}",
-  "@errorAddingProductsToFavoritesWithError": {
-    "description": "Error snackbar when bulk add favorites fails",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "errorRemovingProductsFromFavoritesWithError": "Error removing products from favorites: {error}",
-  "@errorRemovingProductsFromFavoritesWithError": {
-    "description": "Error snackbar when bulk remove favorites fails",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "notificationsEnabledSuccessfully": "Notifications enabled successfully!",
-  "@notificationsEnabledSuccessfully": {
-    "description": "Success message after notification permission granted"
-  },
-  "notificationPermissionDeniedEnableLater": "Notification permission denied. You can enable it later in Settings.",
-  "@notificationPermissionDeniedEnableLater": {
-    "description": "Message when notification permission is denied"
-  },
-  "errorRequestingNotificationPermissionWithError": "Error requesting notification permission: {error}",
-  "@errorRequestingNotificationPermissionWithError": {
-    "description": "Error snackbar when requesting notifications fails",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "setupErrorWithError": "Setup error: {error}",
-  "@setupErrorWithError": {
-    "description": "Onboarding setup error",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "redirectingToSecureCheckout": "Redirecting to secure checkout... 🚀",
-  "@redirectingToSecureCheckout": {
-    "description": "Snackbar shown before opening checkout"
-  },
-  "errorWithDetails": "Error: {error}",
-  "@errorWithDetails": {
-    "description": "Generic error snackbar with details",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "freeTrialStartedEnjoyPremium": "🎉 7-day free trial started! Enjoy premium features!",
-  "@freeTrialStartedEnjoyPremium": {
-    "description": "Success message after starting free trial"
-  },
-  "errorStartingTrialWithError": "Error starting trial: {error}",
-  "@errorStartingTrialWithError": {
-    "description": "Error message for trial start failure",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "enterPriceForBound": "Enter {bound} Price",
-  "@enterPriceForBound": {
-    "description": "Dialog title for manual minimum/maximum price input",
-    "placeholders": {
-      "bound": {
-        "type": "String"
-      }
-    }
-  },
-  "unableToStartTrialMaybeUsed": "Unable to start trial. You may have already used it.",
-  "@unableToStartTrialMaybeUsed": {
-    "description": "Message shown when trial cannot be started"
-  },
-  "priceInCurrency": "Price in {currency}",
-  "@priceInCurrency": {
-    "description": "Input label for manual price entry in a selected currency",
-    "placeholders": {
-      "currency": {
-        "type": "String"
-      }
-    }
-  },
-  "displayNameOptional": "Display Name (Optional)",
-  "@displayNameOptional": {
-    "description": "Display name field label in sign-up form"
-  },
-  "upgrade": "Upgrade",
-  "@upgrade": {
-    "description": "Generic short upgrade action label"
-  },
-  "youAlreadyHavePremiumAccess": "You already have Premium access!",
-  "@youAlreadyHavePremiumAccess": {
-    "description": "Message shown when user already has premium tier"
-  },
-  "startingTrial": "Starting Trial...",
-  "@startingTrial": {
-    "description": "Loading label while starting free trial"
-  },
-  "days": "days",
-  "@days": {
-    "description": "Days label"
-  }
+﻿{
+    "@@locale":  "pt",
+    "appName":  "ZenRadar",
+    "appTagline":  "Monitor de Stock de Matcha",
+    "home":  "InÃ­cio",
+    "favorites":  "Favoritos",
+    "analytics":  "AnÃ¡lises",
+    "settings":  "ConfiguraÃ§Ãµes",
+    "search":  "Pesquisar",
+    "searchProducts":  "Pesquisar produtos...",
+    "filters":  "Filtros",
+    "sort":  "Ordenar",
+    "all":  "Todos",
+    "inStock":  "Em Estoque",
+    "outOfStock":  "Fora de Estoque",
+    "category":  "Categoria",
+    "price":  "PreÃ§o",
+    "priceRange":  "Faixa de PreÃ§o",
+    "website":  "Website",
+    "grade":  "Grau",
+    "sortBy":  "Ordenar por",
+    "relevance":  "RelevÃ¢ncia",
+    "priceLowToHigh":  "PreÃ§o: Menor para Maior",
+    "priceHighToLow":  "PreÃ§o: Maior para Menor",
+    "newest":  "Mais Recente",
+    "popularity":  "Popularidade",
+    "apply":  "Aplicar",
+    "reset":  "Redefinir",
+    "cancel":  "Cancelar",
+    "ok":  "OK",
+    "save":  "Salvar",
+    "delete":  "Excluir",
+    "edit":  "Editar",
+    "close":  "Fechar",
+    "loading":  "Carregando...",
+    "noProducts":  "Nenhum produto encontrado",
+    "noFavorites":  "Ainda nÃ£o hÃ¡ favoritos",
+    "addToFavorites":  "Adicionar aos Favoritos",
+    "removeFromFavorites":  "Remover dos Favoritos",
+    "productDetails":  "Detalhes do Produto",
+    "description":  "DescriÃ§Ã£o",
+    "ingredients":  "Ingredientes",
+    "stockStatus":  "Status de Estoque",
+    "priceHistory":  "HistÃ³rico de PreÃ§os",
+    "stockHistory":  "HistÃ³rico de Estoque",
+    "viewOnWebsite":  "Ver no Website",
+    "share":  "Compartilhar",
+    "notifications":  "NotificaÃ§Ãµes",
+    "notificationSettings":  "ConfiguraÃ§Ãµes de NotificaÃ§Ã£o",
+    "enableNotifications":  "Ativar NotificaÃ§Ãµes",
+    "notifyWhenInStock":  "Notificar quando disponÃ­vel",
+    "notifyPriceDrops":  "Notificar quedas de preÃ§o",
+    "theme":  "Tema",
+    "lightMode":  "Modo Claro",
+    "darkMode":  "Modo Escuro",
+    "systemDefault":  "PadrÃ£o do Sistema",
+    "language":  "Idioma",
+    "account":  "Conta",
+    "signIn":  "Entrar",
+    "signOut":  "Sair",
+    "signInWithGoogle":  "Entrar com Google",
+    "email":  "E-mail",
+    "password":  "Senha",
+    "forgotPassword":  "Esqueceu a Senha?",
+    "createAccount":  "Criar Conta",
+    "subscription":  "Assinatura",
+    "freePlan":  "Plano Gratuito",
+    "premiumPlan":  "Plano Premium",
+    "upgradeToPremium":  "Atualizar para Premium",
+    "manageSub":  "Gerenciar Assinatura",
+    "about":  "Sobre",
+    "version":  "VersÃ£o",
+    "privacyPolicy":  "PolÃ­tica de Privacidade",
+    "termsOfService":  "Termos de ServiÃ§o",
+    "contactSupport":  "Contatar Suporte",
+    "rateApp":  "Avaliar App",
+    "day":  "Dia",
+    "week":  "Semana",
+    "month":  "MÃªs",
+    "year":  "Ano",
+    "refresh":  "Atualizar",
+    "error":  "Erro",
+    "errorLoadingData":  "Erro ao carregar dados",
+    "retry":  "Tentar Novamente",
+    "noInternetConnection":  "Sem conexÃ£o com a Internet",
+    "checkYourConnection":  "Por favor, verifique sua conexÃ£o com a Internet e tente novamente",
+    "websiteOverview":  "VisÃ£o Geral do Website",
+    "totalProducts":  "Total de Produtos",
+    "productsInStock":  "Produtos em Estoque",
+    "stockPercentage":  "Percentual de Estoque",
+    "recentScans":  "VerificaÃ§Ãµes Recentes",
+    "scanActivity":  "Atividade de VerificaÃ§Ã£o",
+    "backgroundActivity":  "Atividade em Segundo Plano",
+    "lastScan":  "Ãšltima VerificaÃ§Ã£o",
+    "nextScan":  "PrÃ³xima VerificaÃ§Ã£o",
+    "scanFrequency":  "FrequÃªncia de VerificaÃ§Ã£o",
+    "activeHours":  "Horas Ativas",
+    "startTime":  "Hora de InÃ­cio",
+    "endTime":  "Hora de TÃ©rmino",
+    "premiumFeature":  "Recurso Premium",
+    "premiumRequired":  "Assinatura Premium necessÃ¡ria",
+    "upgradeToUnlock":  "Atualizar para desbloquear este recurso",
+    "freeTrialAvailable":  "Teste gratuito disponÃ­vel",
+    "startFreeTrial":  "Iniciar Teste Gratuito",
+    "currencySettings":  "ConfiguraÃ§Ãµes de Moeda",
+    "preferredCurrency":  "Moeda Preferida",
+    "autoDetectCurrency":  "Detectar moeda automaticamente",
+    "general":  "Geral",
+    "appearance":  "AparÃªncia",
+    "dataAndPrivacy":  "Dados e Privacidade",
+    "clearCache":  "Limpar Cache",
+    "clearSearchHistory":  "Limpar HistÃ³rico de Pesquisa",
+    "deleteAccount":  "Excluir Conta",
+    "areYouSure":  "Tem certeza?",
+    "thisActionCannotBeUndone":  "Esta aÃ§Ã£o nÃ£o pode ser desfeita",
+    "confirm":  "Confirmar",
+    "cacheCleared":  "Cache limpo com sucesso",
+    "searchHistoryCleared":  "HistÃ³rico de pesquisa limpo",
+    "success":  "Sucesso",
+    "failed":  "Falhou",
+    "@appName":  {
+                     "description":  "The name of the application"
+                 },
+    "@appTagline":  {
+                        "description":  "The tagline of the application"
+                    },
+    "@home":  {
+                  "description":  "Home tab label"
+              },
+    "@favorites":  {
+                       "description":  "Favorites tab label"
+                   },
+    "@analytics":  {
+                       "description":  "Analytics tab label"
+                   },
+    "@settings":  {
+                      "description":  "Settings tab label"
+                  },
+    "@search":  {
+                    "description":  "Search label"
+                },
+    "@searchProducts":  {
+                            "description":  "Search hint text"
+                        },
+    "@filters":  {
+                     "description":  "Filters button label"
+                 },
+    "@sort":  {
+                  "description":  "Sort button label"
+              },
+    "@all":  {
+                 "description":  "All filter option"
+             },
+    "@inStock":  {
+                     "description":  "In stock filter option"
+                 },
+    "@outOfStock":  {
+                        "description":  "Out of stock filter option"
+                    },
+    "@category":  {
+                      "description":  "Category label"
+                  },
+    "@price":  {
+                   "description":  "Price label"
+               },
+    "@website":  {
+                     "description":  "Website label"
+                 },
+    "@grade":  {
+                   "description":  "Grade label"
+               },
+    "@sortBy":  {
+                    "description":  "Sort by label"
+                },
+    "@relevance":  {
+                       "description":  "Sort by relevance"
+                   },
+    "@priceLowToHigh":  {
+                            "description":  "Sort by price ascending"
+                        },
+    "@priceHighToLow":  {
+                            "description":  "Sort by price descending"
+                        },
+    "@newest":  {
+                    "description":  "Sort by newest"
+                },
+    "@popularity":  {
+                        "description":  "Sort by popularity"
+                    },
+    "@apply":  {
+                   "description":  "Apply button label"
+               },
+    "@reset":  {
+                   "description":  "Reset button label"
+               },
+    "@cancel":  {
+                    "description":  "Cancel button label"
+                },
+    "@ok":  {
+                "description":  "OK button label"
+            },
+    "@save":  {
+                  "description":  "Save button label"
+              },
+    "@delete":  {
+                    "description":  "Delete button label"
+                },
+    "@edit":  {
+                  "description":  "Edit button label"
+              },
+    "@close":  {
+                   "description":  "Close button label"
+               },
+    "@loading":  {
+                     "description":  "Loading message"
+                 },
+    "@noProducts":  {
+                        "description":  "No products message"
+                    },
+    "@noFavorites":  {
+                         "description":  "No favorites message"
+                     },
+    "@addToFavorites":  {
+                            "description":  "Add to favorites action"
+                        },
+    "@removeFromFavorites":  {
+                                 "description":  "Remove from favorites action"
+                             },
+    "@description":  {
+                         "description":  "Description label"
+                     },
+    "@ingredients":  {
+                         "description":  "Ingredients label"
+                     },
+    "@stockStatus":  {
+                         "description":  "Stock status label"
+                     },
+    "@priceHistory":  {
+                          "description":  "Price history label"
+                      },
+    "@stockHistory":  {
+                          "description":  "Stock history label"
+                      },
+    "@viewOnWebsite":  {
+                           "description":  "View on website button"
+                       },
+    "@share":  {
+                   "description":  "Share button"
+               },
+    "@notifications":  {
+                           "description":  "Notifications label"
+                       },
+    "@notificationSettings":  {
+                                  "description":  "Notification settings title"
+                              },
+    "@enableNotifications":  {
+                                 "description":  "Enable notifications option"
+                             },
+    "@notifyWhenInStock":  {
+                               "description":  "Notify when in stock option"
+                           },
+    "@notifyPriceDrops":  {
+                              "description":  "Notify on price drops option"
+                          },
+    "@theme":  {
+                   "description":  "Theme label"
+               },
+    "@lightMode":  {
+                       "description":  "Light mode option"
+                   },
+    "@darkMode":  {
+                      "description":  "Dark mode option"
+                  },
+    "@systemDefault":  {
+                           "description":  "System default theme option"
+                       },
+    "@language":  {
+                      "description":  "Language label"
+                  },
+    "@account":  {
+                     "description":  "Account label"
+                 },
+    "@signOut":  {
+                     "description":  "Sign out button"
+                 },
+    "@createAccount":  {
+                           "description":  "Create account button"
+                       },
+    "@subscription":  {
+                          "description":  "Subscription label"
+                      },
+    "@freePlan":  {
+                      "description":  "Free plan label"
+                  },
+    "@premiumPlan":  {
+                         "description":  "Premium plan label"
+                     },
+    "@manageSub":  {
+                       "description":  "Manage subscription button"
+                   },
+    "@about":  {
+                   "description":  "About label"
+               },
+    "@version":  {
+                     "description":  "Version label"
+                 },
+    "@privacyPolicy":  {
+                           "description":  "Privacy policy label"
+                       },
+    "@termsOfService":  {
+                            "description":  "Terms of service label"
+                        },
+    "@rateApp":  {
+                     "description":  "Rate app label"
+                 },
+    "@day":  {
+                 "description":  "Day time range"
+             },
+    "@week":  {
+                  "description":  "Week time range"
+              },
+    "@month":  {
+                   "description":  "Month time range"
+               },
+    "@year":  {
+                  "description":  "Year time range"
+              },
+    "@refresh":  {
+                     "description":  "Refresh button"
+                 },
+    "@error":  {
+                   "description":  "Error label"
+               },
+    "@errorLoadingData":  {
+                              "description":  "Error loading data message"
+                          },
+    "@noInternetConnection":  {
+                                  "description":  "No internet connection message"
+                              },
+    "@checkYourConnection":  {
+                                 "description":  "Check connection message"
+                             },
+    "@websiteOverview":  {
+                             "description":  "Website overview title"
+                         },
+    "@totalProducts":  {
+                           "description":  "Total products label"
+                       },
+    "@productsInStock":  {
+                             "description":  "Products in stock label"
+                         },
+    "@stockPercentage":  {
+                             "description":  "Stock percentage label"
+                         },
+    "@recentScans":  {
+                         "description":  "Recent scans title"
+                     },
+    "@scanActivity":  {
+                          "description":  "Scan activity title"
+                      },
+    "@backgroundActivity":  {
+                                "description":  "Background activity title"
+                            },
+    "@lastScan":  {
+                      "description":  "Last scan label"
+                  },
+    "@nextScan":  {
+                      "description":  "Next scan label"
+                  },
+    "@scanFrequency":  {
+                           "description":  "Scan frequency label"
+                       },
+    "@activeHours":  {
+                         "description":  "Active hours label"
+                     },
+    "@startTime":  {
+                       "description":  "Start time label"
+                   },
+    "@endTime":  {
+                     "description":  "End time label"
+                 },
+    "@premiumFeature":  {
+                            "description":  "Premium feature label"
+                        },
+    "@premiumRequired":  {
+                             "description":  "Premium required message"
+                         },
+    "@upgradeToUnlock":  {
+                             "description":  "Upgrade to unlock message"
+                         },
+    "@freeTrialAvailable":  {
+                                "description":  "Free trial available message"
+                            },
+    "@currencySettings":  {
+                              "description":  "Currency settings title"
+                          },
+    "@preferredCurrency":  {
+                               "description":  "Preferred currency label"
+                           },
+    "@autoDetectCurrency":  {
+                                "description":  "Auto-detect currency option"
+                            },
+    "@general":  {
+                     "description":  "General settings section"
+                 },
+    "@appearance":  {
+                        "description":  "Appearance settings section"
+                    },
+    "@dataAndPrivacy":  {
+                            "description":  "Data and privacy section"
+                        },
+    "@clearCache":  {
+                        "description":  "Clear cache option"
+                    },
+    "@clearSearchHistory":  {
+                                "description":  "Clear search history option"
+                            },
+    "@deleteAccount":  {
+                           "description":  "Delete account option"
+                       },
+    "@areYouSure":  {
+                        "description":  "Confirmation dialog title"
+                    },
+    "@thisActionCannotBeUndone":  {
+                                      "description":  "Cannot be undone warning"
+                                  },
+    "@confirm":  {
+                     "description":  "Confirm button"
+                 },
+    "@cacheCleared":  {
+                          "description":  "Cache cleared message"
+                      },
+    "@searchHistoryCleared":  {
+                                  "description":  "Search history cleared message"
+                              },
+    "@success":  {
+                     "description":  "Success message"
+                 },
+    "@failed":  {
+                    "description":  "Failed message"
+                },
+    "welcomeToZenRadar":  "Bem-vindo ao ZenRadar",
+    "@welcomeToZenRadar":  {
+                               "description":  "Onboarding welcome title"
+                           },
+    "premiumMatchaMonitoring":  "Seu companheiro premium para monitorar estoque de matcha",
+    "@premiumMatchaMonitoring":  {
+                                     "description":  "Onboarding tagline"
+                                 },
+    "cloudMonitoring":  "Monitoramento na nuvem",
+    "@cloudMonitoring":  {
+                             "description":  "Cloud monitoring feature"
+                         },
+    "reliable247Tracking":  "Acompanhamento confiÃ¡vel de estoque 24 horas por dia, 7 dias por semana",
+    "@reliable247Tracking":  {
+                                 "description":  "24/7 tracking description"
+                             },
+    "instantAlerts":  "Alertas instantÃ¢neos",
+    "@instantAlerts":  {
+                           "description":  "Instant alerts feature"
+                       },
+    "notifyBackInStock":  "Receba uma notificaÃ§Ã£o quando os itens voltarem ao estoque",
+    "@notifyBackInStock":  {
+                               "description":  "Back in stock notification description"
+                           },
+    "zeroBatteryUsage":  "Uso zero de bateria",
+    "@zeroBatteryUsage":  {
+                              "description":  "Zero battery feature"
+                          },
+    "cloudProcessingNoDrain":  "O processamento na nuvem evita consumo da bateria do dispositivo",
+    "@cloudProcessingNoDrain":  {
+                                    "description":  "Cloud processing description"
+                                },
+    "cloudPoweredMonitoring":  "Monitoramento com tecnologia de nuvem",
+    "@cloudPoweredMonitoring":  {
+                                    "description":  "Cloud powered monitoring title"
+                                },
+    "cloudServicesDescription":  "O ZenRadar usa serviÃ§os avanÃ§ados na nuvem para monitorar estoque de matcha em vÃ¡rios sites.",
+    "@cloudServicesDescription":  {
+                                      "description":  "Cloud services description"
+                                  },
+    "whyCloudMonitoring":  "Por que monitoramento na nuvem?",
+    "@whyCloudMonitoring":  {
+                                "description":  "Why cloud monitoring question"
+                            },
+    "alwaysOnline":  "Sempre online, mesmo quando seu dispositivo estÃ¡ em repouso",
+    "@alwaysOnline":  {
+                          "description":  "Always online benefit"
+                      },
+    "noBatteryDrain":  "Sem consumo de bateria no seu dispositivo",
+    "@noBatteryDrain":  {
+                            "description":  "No battery drain benefit"
+                        },
+    "fasterUpdates":  "AtualizaÃ§Ãµes mais rÃ¡pidas e melhor confiabilidade",
+    "@fasterUpdates":  {
+                           "description":  "Faster updates benefit"
+                       },
+    "sharedImprovements":  "As melhorias compartilhadas beneficiam a todos",
+    "@sharedImprovements":  {
+                                "description":  "Shared improvements benefit"
+                            },
+    "stayInformed":  "Fique informado",
+    "@stayInformed":  {
+                          "description":  "Stay informed title"
+                      },
+    "instantStockNotifications":  "Receba notificaÃ§Ãµes instantÃ¢neas quando seus produtos favoritos de matcha voltarem ao estoque.",
+    "@instantStockNotifications":  {
+                                       "description":  "Instant stock notifications description"
+                                   },
+    "skip":  "Skip",
+    "@skip":  {
+                  "description":  "Skip button"
+              },
+    "next":  "Next",
+    "@next":  {
+                  "description":  "Next button"
+              },
+    "getStarted":  "Get Started",
+    "@getStarted":  {
+                        "description":  "Get started button"
+                    },
+    "choosePlan":  "Choose Your ZenRadar Experience",
+    "@choosePlan":  {
+                        "description":  "Choose plan title"
+                    },
+    "startFreeOrPremium":  "Start with a free account or unlock unlimited potential with Premium",
+    "@startFreeOrPremium":  {
+                                "description":  "Start free or premium description"
+                            },
+    "free":  "Free",
+    "@free":  {
+                  "description":  "Free label"
+              },
+    "premium":  "Premium",
+    "@premium":  {
+                     "description":  "Premium label"
+                 },
+    "perMonth":  "/month",
+    "@perMonth":  {
+                      "description":  "Per month label"
+                  },
+    "sevenDayFreeTrial":  "7-day free trial",
+    "@sevenDayFreeTrial":  {
+                               "description":  "7-day free trial"
+                           },
+    "foreverFree":  "Forever free",
+    "@foreverFree":  {
+                         "description":  "Forever free label"
+                     },
+    "upToFavorites":  "Up to 42 favorite products",
+    "@upToFavorites":  {
+                           "description":  "Up to favorites limit"
+                       },
+    "allVendorSites":  "All vendor sites",
+    "@allVendorSites":  {
+                            "description":  "All vendor sites"
+                        },
+    "checkEverySixHours":  "Check every 6 hours",
+    "@checkEverySixHours":  {
+                                "description":  "Check every 6 hours"
+                            },
+    "basicNotifications":  "Basic notifications",
+    "@basicNotifications":  {
+                                "description":  "Basic notifications"
+                            },
+    "unlimitedFavorites":  "Unlimited favorites",
+    "@unlimitedFavorites":  {
+                                "description":  "Unlimited favorites"
+                            },
+    "checkEveryHour":  "Check every hour",
+    "@checkEveryHour":  {
+                            "description":  "Check every hour"
+                        },
+    "priorityNotifications":  "Priority notifications",
+    "@priorityNotifications":  {
+                                   "description":  "Priority notifications"
+                               },
+    "whyChoosePremium":  "Why Choose Premium?",
+    "@whyChoosePremium":  {
+                              "description":  "Why choose premium title"
+                          },
+    "fasterUpdatesDesc":  "Get notified within the hour of stock changes",
+    "@fasterUpdatesDesc":  {
+                               "description":  "Faster updates description"
+                           },
+    "unlimitedFavoritesDesc":  "Track as many products as you want",
+    "@unlimitedFavoritesDesc":  {
+                                    "description":  "Unlimited favorites description"
+                                },
+    "fullHistoryAccess":  "Full History Access",
+    "@fullHistoryAccess":  {
+                               "description":  "Full history access"
+                           },
+    "fullHistoryAccessDesc":  "Access complete price and stock history for all products",
+    "@fullHistoryAccessDesc":  {
+                                   "description":  "Full history access description"
+                               },
+    "@startFreeTrial":  {
+                            "description":  "Start free trial button"
+                        },
+    "continueWithFree":  "Continue with Free Account",
+    "@continueWithFree":  {
+                              "description":  "Continue with free account button"
+                          },
+    "trialDisclaimer":  "Free trial includes all Premium features. Cancel anytime.",
+    "@trialDisclaimer":  {
+                             "description":  "Trial disclaimer"
+                         },
+    "@productDetails":  {
+                            "description":  "Product details title"
+                        },
+    "currentPrice":  "Current Price",
+    "@currentPrice":  {
+                          "description":  "Current price label"
+                      },
+    "lowestPrice":  "Lowest Price",
+    "@lowestPrice":  {
+                         "description":  "Lowest price label"
+                     },
+    "highestPrice":  "Highest Price",
+    "@highestPrice":  {
+                          "description":  "Highest price label"
+                      },
+    "averagePrice":  "Average Price",
+    "@averagePrice":  {
+                          "description":  "Average price label"
+                      },
+    "today":  "Today",
+    "@today":  {
+                   "description":  "Today label"
+               },
+    "thisWeek":  "This Week",
+    "@thisWeek":  {
+                      "description":  "This week label"
+                  },
+    "thisMonth":  "This Month",
+    "@thisMonth":  {
+                       "description":  "This month label"
+                   },
+    "allTime":  "All Time",
+    "@allTime":  {
+                     "description":  "All time label"
+                 },
+    "activity":  "Activity",
+    "@activity":  {
+                      "description":  "Activity label"
+                  },
+    "totalScans":  "Total Scans",
+    "@totalScans":  {
+                        "description":  "Total scans label"
+                    },
+    "weeklyScans":  "Weekly Scans",
+    "@weeklyScans":  {
+                         "description":  "Weekly scans label"
+                     },
+    "withUpdates":  "With Updates",
+    "@withUpdates":  {
+                         "description":  "With updates label"
+                     },
+    "clearOld":  "Clear Old",
+    "@clearOld":  {
+                      "description":  "Clear old button"
+                  },
+    "startingZenRadar":  "Starting ZenRadar...",
+    "@startingZenRadar":  {
+                              "description":  "App initialization loading text"
+                          },
+    "checkingSetup":  "Checking setup...",
+    "@checkingSetup":  {
+                           "description":  "Checking setup loading text"
+                       },
+    "verifyingAuthentication":  "Verifying authentication...",
+    "@verifyingAuthentication":  {
+                                     "description":  "Verifying auth loading text"
+                                 },
+    "almostReady":  "Almost ready...",
+    "@almostReady":  {
+                         "description":  "Almost ready loading text"
+                     },
+    "pleaseWait":  "Please wait...",
+    "@pleaseWait":  {
+                        "description":  "Please wait text"
+                    },
+    "productUpdates":  "Product Updates",
+    "@productUpdates":  {
+                            "description":  "Product updates screen title"
+                        },
+    "noProductUpdates":  "No product updates",
+    "@noProductUpdates":  {
+                              "description":  "No updates message"
+                          },
+    "showsStockPriceChanges":  "This shows products with stock or price changes.",
+    "@showsStockPriceChanges":  {
+                                    "description":  "Updates explanation"
+                                },
+    "newStockArrivals":  "New Stock Arrivals",
+    "@newStockArrivals":  {
+                              "description":  "New stock section title"
+                          },
+    "priceChanges":  "Price Changes",
+    "@priceChanges":  {
+                          "description":  "Price changes section title"
+                      },
+    "was":  "Was",
+    "@was":  {
+                 "description":  "Previous price prefix"
+             },
+    "couldNotOpenProductPage":  "Could not open product page",
+    "@couldNotOpenProductPage":  {
+                                     "description":  "Error opening product"
+                                 },
+    "@signIn":  {
+                    "description":  "Sign in button"
+                },
+    "signUp":  "Cadastrar",
+    "@signUp":  {
+                    "description":  "Sign up button"
+                },
+    "@email":  {
+                   "description":  "Email label"
+               },
+    "@password":  {
+                      "description":  "Password label"
+                  },
+    "confirmPassword":  "Confirm Password",
+    "@confirmPassword":  {
+                             "description":  "Confirm password label"
+                         },
+    "displayName":  "Display Name",
+    "@displayName":  {
+                         "description":  "Display name label"
+                     },
+    "@forgotPassword":  {
+                            "description":  "Forgot password link"
+                        },
+    "resetPassword":  "Redefinir senha",
+    "@resetPassword":  {
+                           "description":  "Reset password title"
+                       },
+    "@signInWithGoogle":  {
+                              "description":  "Google sign in button"
+                          },
+    "or":  "ou",
+    "@or":  {
+                "description":  "Divider text"
+            },
+    "signInToAccount":  "Entre ou crie uma conta para acessar todos os recursos",
+    "@signInToAccount":  {
+                             "description":  "Auth screen subtitle"
+                         },
+    "passwordRequirements":  "Pelo menos 6 caracteres com letras e nÃºmeros",
+    "@passwordRequirements":  {
+                                  "description":  "Password helper text"
+                              },
+    "enterEmail":  "Por favor, insira seu e-mail",
+    "@enterEmail":  {
+                        "description":  "Email validation"
+                    },
+    "enterValidEmail":  "Por favor, insira um e-mail vÃ¡lido",
+    "@enterValidEmail":  {
+                             "description":  "Email format validation"
+                         },
+    "enterPassword":  "Por favor, insira sua senha",
+    "@enterPassword":  {
+                           "description":  "Password validation"
+                       },
+    "passwordTooShort":  "A senha deve ter pelo menos 6 caracteres",
+    "@passwordTooShort":  {
+                              "description":  "Password length validation"
+                          },
+    "passwordsDoNotMatch":  "As senhas nÃ£o coincidem",
+    "@passwordsDoNotMatch":  {
+                                 "description":  "Password match validation"
+                             },
+    "verifyEmail":  "Verifique seu e-mail",
+    "@verifyEmail":  {
+                         "description":  "Email verification title"
+                     },
+    "verificationEmailSent":  "Enviamos um e-mail de verificaÃ§Ã£o para o seu endereÃ§o. Verifique sua caixa de entrada e clique no link de verificaÃ§Ã£o.",
+    "@verificationEmailSent":  {
+                                   "description":  "Verification email message"
+                               },
+    "resendVerification":  "Reenviar e-mail de verificaÃ§Ã£o",
+    "@resendVerification":  {
+                                "description":  "Resend verification button"
+                            },
+    "verificationEmailResent":  "E-mail de verificaÃ§Ã£o enviado! Verifique sua caixa de entrada.",
+    "@verificationEmailResent":  {
+                                     "description":  "Verification resent message"
+                                 },
+    "verifyAndContinue":  "JÃ¡ verifiquei, continuar",
+    "@verifyAndContinue":  {
+                               "description":  "Continue after verification button"
+                           },
+    "@upgradeToPremium":  {
+                              "description":  "Upgrade screen title"
+                          },
+    "unlockPremiumFeatures":  "Desbloquear recursos premium",
+    "@unlockPremiumFeatures":  {
+                                   "description":  "Premium features header"
+                               },
+    "comparePlans":  "Comparar planos",
+    "@comparePlans":  {
+                          "description":  "Compare plans section"
+                      },
+    "whatUsersSay":  "O que nossos usuÃ¡rios dizem",
+    "@whatUsersSay":  {
+                          "description":  "Testimonials title"
+                      },
+    "frequentlyAskedQuestions":  "Perguntas frequentes",
+    "@frequentlyAskedQuestions":  {
+                                      "description":  "FAQ title"
+                                  },
+    "@contactSupport":  {
+                            "description":  "Contact support button"
+                        },
+    "questions":  "Questions?",
+    "@questions":  {
+                       "description":  "Questions prompt"
+                   },
+    "happyToHelp":  "Teremos prazer em ajudar! Entre em contato com nossa equipe de suporte a qualquer momento.",
+    "@happyToHelp":  {
+                         "description":  "Support message"
+                     },
+    "send":  "Enviar",
+    "@send":  {
+                  "description":  "Send button"
+              },
+    "choosePlanTitle":  "Escolha seu plano",
+    "@choosePlanTitle":  {
+                             "description":  "Choose plan title"
+                         },
+    "currentPlan":  "Plano atual",
+    "@currentPlan":  {
+                         "description":  "Current plan label"
+                     },
+    "featureComparison":  "ComparaÃ§Ã£o de recursos",
+    "@featureComparison":  {
+                               "description":  "Feature comparison title"
+                           },
+    "whatPremiumUsersSay":  "O que dizem os usuÃ¡rios Premium",
+    "@whatPremiumUsersSay":  {
+                                 "description":  "Testimonials section title"
+                             },
+    "canICancelAnytime":  "Posso cancelar a qualquer momento?",
+    "@canICancelAnytime":  {
+                               "description":  "FAQ question"
+                           },
+    "cancelAnytimeAnswer":  "Sim! VocÃª pode cancelar sua assinatura a qualquer momento. VocÃª continuarÃ¡ com acesso premium atÃ© o final do seu ciclo de cobranÃ§a.",
+    "@cancelAnytimeAnswer":  {
+                                 "description":  "FAQ answer"
+                             },
+    "isThereFreeTrial":  "HÃ¡ teste gratuito?",
+    "@isThereFreeTrial":  {
+                              "description":  "FAQ question"
+                          },
+    "freeTrialAnswer":  "Sim! Novos usuÃ¡rios recebem um teste gratuito de 7 dias de todos os recursos premium.",
+    "@freeTrialAnswer":  {
+                             "description":  "FAQ answer"
+                         },
+    "whatPaymentMethods":  "Quais mÃ©todos de pagamento vocÃªs aceitam?",
+    "@whatPaymentMethods":  {
+                                "description":  "FAQ question"
+                            },
+    "paymentMethodsAnswer":  "Aceitamos os principais cartÃµes de crÃ©dito, PayPal e pagamentos mÃ³veis pelas lojas de aplicativos.",
+    "@paymentMethodsAnswer":  {
+                                  "description":  "FAQ answer"
+                              },
+    "needHelp":  "Precisa de ajuda?",
+    "@needHelp":  {
+                      "description":  "Support section title"
+                  },
+    "contactSupportTeam":  "Entre em contato com nossa equipe de suporte para qualquer dÃºvida",
+    "@contactSupportTeam":  {
+                                "description":  "Support message"
+                            },
+    "refreshAnalytics":  "Refresh analytics",
+    "@refreshAnalytics":  {
+                              "description":  "Refresh button tooltip"
+                          },
+    "selectTimeRange":  "Select Time Range",
+    "@selectTimeRange":  {
+                             "description":  "Time range dialog title"
+                         },
+    "timeRange":  "Time Range:",
+    "@timeRange":  {
+                       "description":  "Time range label"
+                   },
+    "@retry":  {
+                   "description":  "Retry button"
+               },
+    "last24Hours":  "Last 24 hours",
+    "@last24Hours":  {
+                         "description":  "Day time range"
+                     },
+    "last7Days":  "Last 7 days",
+    "@last7Days":  {
+                       "description":  "Week time range"
+                   },
+    "last30Days":  "Last 30 days",
+    "@last30Days":  {
+                        "description":  "Month time range"
+                    },
+    "allTimeRange":  "All time",
+    "@allTimeRange":  {
+                          "description":  "All time range"
+                      },
+    "noProductsTracked":  "No products tracked",
+    "@noProductsTracked":  {
+                               "description":  "No products message"
+                           },
+    "lastUpdate":  "Last update",
+    "@lastUpdate":  {
+                        "description":  "Last update prefix"
+                    },
+    "noRecentUpdates":  "No recent updates",
+    "@noRecentUpdates":  {
+                             "description":  "No updates message"
+                         },
+    "justNow":  "Just now",
+    "@justNow":  {
+                     "description":  "Time ago label"
+                 },
+    "daysAgo":  "d ago",
+    "@daysAgo":  {
+                     "description":  "Days ago suffix"
+                 },
+    "hoursAgo":  "h ago",
+    "@hoursAgo":  {
+                      "description":  "Hours ago suffix"
+                  },
+    "minutesAgo":  "m ago",
+    "@minutesAgo":  {
+                        "description":  "Minutes ago suffix"
+                    },
+    "swipeToNavigate":  "Swipe to Navigate the App",
+    "@swipeToNavigate":  {
+                             "description":  "Swipe tutorial title"
+                         },
+    "swipeDescription":  "Swipe left or right to navigate between screens",
+    "@swipeDescription":  {
+                              "description":  "Swipe tutorial description"
+                          },
+    "gotIt":  "Got it!",
+    "@gotIt":  {
+                   "description":  "Tutorial dismiss button"
+               },
+    "tapAnywhereToDismiss":  "Tap anywhere to dismiss",
+    "@tapAnywhereToDismiss":  {
+                                  "description":  "Dismiss hint"
+                              },
+    "selectSitesToScan":  "Select Sites to Scan",
+    "@selectSitesToScan":  {
+                               "description":  "Site selection dialog title"
+                           },
+    "chooseWhichMatcha":  "Choose which matcha websites to include in this scan:",
+    "@chooseWhichMatcha":  {
+                               "description":  "Site selection description"
+                           },
+    "selectAllSites":  "Select All Sites",
+    "@selectAllSites":  {
+                            "description":  "Select all sites checkbox"
+                        },
+    "ofSelected":  "of {count} selected",
+    "@ofSelected":  {
+                        "description":  "Selected count",
+                        "placeholders":  {
+                                             "count":  {
+                                                           "type":  "int"
+                                                       }
+                                         }
+                    },
+    "estimatedTime":  "Estimated time:",
+    "@estimatedTime":  {
+                           "description":  "Scan time estimate label"
+                       },
+    "starting":  "Starting...",
+    "@starting":  {
+                      "description":  "Starting scan status"
+                  },
+    "startScan":  "Start Scan",
+    "@startScan":  {
+                       "description":  "Start scan button"
+                   },
+    "clearAll":  "Clear All",
+    "@clearAll":  {
+                      "description":  "Clear all button"
+                  },
+    "showProducts":  "Show {count} products",
+    "@showProducts":  {
+                          "description":  "Show filtered products",
+                          "placeholders":  {
+                                               "count":  {
+                                                             "type":  "int"
+                                                         }
+                                           }
+                      },
+    "sites":  "Sites",
+    "@sites":  {
+                   "description":  "Sites filter section"
+               },
+    "categories":  "Categories",
+    "@categories":  {
+                        "description":  "Categories filter section"
+                    },
+    "selectAll":  "Select All",
+    "@selectAll":  {
+                       "description":  "Select all button"
+                   },
+    "@priceRange":  {
+                        "description":  "Price range filter"
+                    },
+    "minimum":  "Minimum",
+    "@minimum":  {
+                     "description":  "Minimum price label"
+                 },
+    "maximum":  "Maximum",
+    "@maximum":  {
+                     "description":  "Maximum price label"
+                 },
+    "signInToSyncSettingsAcrossDevices":  "Entre para sincronizar suas configuraÃ§Ãµes entre dispositivos",
+    "@signInToSyncSettingsAcrossDevices":  {
+                                               "description":  "Prompt shown on settings screen when user is not signed in"
+                                           },
+    "masterSwitchForAllNotifications":  "Interruptor principal para todas as notificaÃ§Ãµes",
+    "@masterSwitchForAllNotifications":  {
+                                             "description":  "Subtitle for the master notifications toggle"
+                                         },
+    "favoriteProductAlerts":  "Alertas de produtos favoritos",
+    "@favoriteProductAlerts":  {
+                                   "description":  "Title for favorite product notifications setting"
+                               },
+    "getNotifiedAboutFavoriteChanges":  "Receba notificaÃ§Ãµes sobre alteraÃ§Ãµes nos seus produtos favoritos",
+    "@getNotifiedAboutFavoriteChanges":  {
+                                             "description":  "Subtitle for favorite product alerts"
+                                         },
+    "notifyWhenFavoritePricesChange":  "Notificar quando os preÃ§os dos produtos favoritos mudarem",
+    "@notifyWhenFavoritePricesChange":  {
+                                            "description":  "Subtitle for favorite price change notifications"
+                                        },
+    "cloudNotificationsDeliveredInstantly":  "As notificaÃ§Ãµes na nuvem sÃ£o entregues instantaneamente quando nossos servidores detectam mudanÃ§as de estoque.",
+    "@cloudNotificationsDeliveredInstantly":  {
+                                                  "description":  "Explanation text for cloud notifications"
+                                              },
+    "monitoringFavoriteProducts":  "Monitorando {count} produtos favoritos",
+    "@monitoringFavoriteProducts":  {
+                                        "description":  "Current monitored favorites count",
+                                        "placeholders":  {
+                                                             "count":  {
+                                                                           "type":  "int"
+                                                                       }
+                                                         }
+                                    },
+    "favoriteMonitoringInactive":  "Monitoramento de favoritos inativo",
+    "@favoriteMonitoringInactive":  {
+                                        "description":  "Shown when favorite monitoring is disabled"
+                                    },
+    "monitoredSites":  "Sites monitorados",
+    "@monitoredSites":  {
+                            "description":  "Settings section title for monitored sites"
+                        },
+    "serverMonitoredWebsites":  "Sites monitorados pelo servidor",
+    "@serverMonitoredWebsites":  {
+                                     "description":  "Title for server monitored websites info box"
+                                 },
+    "allSupportedSitesMonitoredByServer":  "Todos os sites de matcha suportados sÃ£o automaticamente monitorados por nossos servidores. Os dados sÃ£o sincronizados com seu dispositivo regularmente.",
+    "@allSupportedSitesMonitoredByServer":  {
+                                                "description":  "Description for server-side monitoring"
+                                            },
+    "productsCount":  "{count} produtos",
+    "@productsCount":  {
+                           "description":  "Product count label for a monitored site",
+                           "placeholders":  {
+                                                "count":  {
+                                                              "type":  "int"
+                                                          }
+                                            }
+                       },
+    "suggestNewWebsite":  "Sugerir novo site",
+    "@suggestNewWebsite":  {
+                               "description":  "Button and dialog title for suggesting a new site"
+                           },
+    "requestMonitoringForAdditionalSites":  "Solicitar monitoramento para sites adicionais de matcha",
+    "@requestMonitoringForAdditionalSites":  {
+                                                 "description":  "Subtitle for suggest new website setting"
+                                             },
+    "aboutZenRadar":  "Sobre o ZenRadar",
+    "@aboutZenRadar":  {
+                           "description":  "About card title"
+                       },
+    "aboutZenRadarDescription":  "O ZenRadar ajuda vocÃª a monitorar a disponibilidade de matcha em vÃ¡rios varejistas de chÃ¡ japoneses. Nunca perca seu matcha favorito novamente!",
+    "@aboutZenRadarDescription":  {
+                                      "description":  "About app description text"
+                                  },
+    "versionNumber":  "VersÃ£o: {version}",
+    "@versionNumber":  {
+                           "description":  "App version label with value",
+                           "placeholders":  {
+                                                "version":  {
+                                                                "type":  "String"
+                                                            }
+                                            }
+                       },
+    "showPricesInOriginalSiteCurrency":  "Mostrar preÃ§os na moeda original do site",
+    "@showPricesInOriginalSiteCurrency":  {
+                                              "description":  "Preferred currency subtitle for original currency"
+                                          },
+    "showPricesInCurrency":  "Mostrar preÃ§os em {currency}",
+    "@showPricesInCurrency":  {
+                                  "description":  "Preferred currency subtitle for selected currency",
+                                  "placeholders":  {
+                                                       "currency":  {
+                                                                        "type":  "String"
+                                                                    }
+                                                   }
+                              },
+    "contactMe":  "Entre em contato comigo",
+    "@contactMe":  {
+                       "description":  "Contact section title"
+                   },
+    "contact":  "Contato",
+    "@contact":  {
+                     "description":  "Contact action label"
+                 },
+    "github":  "GitHub",
+    "@github":  {
+                    "description":  "GitHub label"
+                },
+    "linkedIn":  "LinkedIn",
+    "@linkedIn":  {
+                      "description":  "LinkedIn label"
+                  },
+    "payPal":  "PayPal",
+    "@payPal":  {
+                    "description":  "PayPal label"
+                },
+    "feedbackAndSuggestions":  "Feedback e sugestÃµes",
+    "@feedbackAndSuggestions":  {
+                                    "description":  "Feedback section title"
+                                },
+    "submitFeedback":  "Enviar feedback",
+    "@submitFeedback":  {
+                            "description":  "Feedback list tile title"
+                        },
+    "shareIdeasOnFeedbackBoard":  "Compartilhe suas ideias e sugestÃµes em nosso quadro de feedback",
+    "@shareIdeasOnFeedbackBoard":  {
+                                       "description":  "Feedback list tile subtitle"
+                                   },
+    "feedbackImprovesZenRadar":  "Seu feedback ajuda a melhorar o ZenRadar! Vote em ideias existentes ou envie novas.",
+    "@feedbackImprovesZenRadar":  {
+                                      "description":  "Feedback encouragement text"
+                                  },
+    "helpExpandZenRadar":  "Ajude-nos a expandir o ZenRadar sugerindo um novo site de matcha para monitorar!",
+    "@helpExpandZenRadar":  {
+                                "description":  "Suggest website dialog intro"
+                            },
+    "websiteName":  "Nome do site",
+    "@websiteName":  {
+                         "description":  "Website name field label"
+                     },
+    "websiteNameHint":  "ex.: \"Uji Tea Company\"",
+    "@websiteNameHint":  {
+                             "description":  "Website name field hint"
+                         },
+    "pleaseEnterWebsiteName":  "Por favor, insira o nome do site",
+    "@pleaseEnterWebsiteName":  {
+                                    "description":  "Website name validation error"
+                                },
+    "websiteUrl":  "URL do site",
+    "@websiteUrl":  {
+                        "description":  "Website URL field label"
+                    },
+    "websiteUrlHint":  "https://exemplo.com",
+    "@websiteUrlHint":  {
+                            "description":  "Website URL field hint"
+                        },
+    "pleaseEnterWebsiteUrl":  "Por favor, insira a URL do site",
+    "@pleaseEnterWebsiteUrl":  {
+                                   "description":  "Website URL validation error"
+                               },
+    "pleaseEnterValidUrl":  "Por favor, insira uma URL vÃ¡lida",
+    "@pleaseEnterValidUrl":  {
+                                 "description":  "Website URL invalid format error"
+                             },
+    "additionalInformationOptional":  "InformaÃ§Ãµes adicionais (opcional)",
+    "@additionalInformationOptional":  {
+                                           "description":  "Additional info field label"
+                                       },
+    "additionalInformationHint":  "Recursos especiais, tipos de produtos, etc.",
+    "@additionalInformationHint":  {
+                                       "description":  "Additional info field hint"
+                                   },
+    "sendSuggestion":  "Enviar sugestÃ£o",
+    "@sendSuggestion":  {
+                            "description":  "Send suggestion button label"
+                        },
+    "thankYouSuggestionEmailOpened":  "Obrigado pela sua sugestÃ£o! O aplicativo de e-mail foi aberto.",
+    "@thankYouSuggestionEmailOpened":  {
+                                           "description":  "Success snackbar when suggestion email opens"
+                                       },
+    "couldNotOpenEmailAppWithError":  "NÃ£o foi possÃ­vel abrir o aplicativo de e-mail: {error}",
+    "@couldNotOpenEmailAppWithError":  {
+                                           "description":  "Error snackbar when email app cannot be opened",
+                                           "placeholders":  {
+                                                                "error":  {
+                                                                              "type":  "String"
+                                                                          }
+                                                            }
+                                       },
+    "chooseTheme":  "Escolher Tema",
+    "@chooseTheme":  {
+                         "description":  "Theme picker dialog title"
+                     },
+    "chooseCurrency":  "Escolher Moeda",
+    "@chooseCurrency":  {
+                            "description":  "Currency picker dialog title"
+                        },
+    "originalNativeSiteCurrency":  "Original (native site currency)",
+    "@originalNativeSiteCurrency":  {
+                                        "description":  "Label for native site currency in currency picker"
+                                    },
+    "debugTools":  "Debug Tools",
+    "@debugTools":  {
+                        "description":  "Debug section title"
+                    },
+    "testNotification":  "Test Notification",
+    "@testNotification":  {
+                              "description":  "Test notification button label"
+                          },
+    "sendTestNotificationDescription":  "Send a test notification to verify that notifications are working correctly.",
+    "@sendTestNotificationDescription":  {
+                                             "description":  "Description under test notification button"
+                                         },
+    "zenRadarTestNotificationTitle":  "ZenRadar Test Notification",
+    "@zenRadarTestNotificationTitle":  {
+                                           "description":  "Title for local test notification"
+                                       },
+    "zenRadarTestNotificationBody":  "This is a test notification to verify that notifications are working correctly.",
+    "@zenRadarTestNotificationBody":  {
+                                          "description":  "Body for local test notification"
+                                      },
+    "testNotificationSent":  "Test notification sent!",
+    "@testNotificationSent":  {
+                                  "description":  "Success snackbar when test notification is sent"
+                              },
+    "failedToSendTestNotification":  "Failed to send test notification: {error}",
+    "@failedToSendTestNotification":  {
+                                          "description":  "Error snackbar when test notification fails",
+                                          "placeholders":  {
+                                                               "error":  {
+                                                                             "type":  "String"
+                                                                         }
+                                                           }
+                                      },
+    "contactUs":  "Fale conosco",
+    "@contactUs":  {
+                       "description":  "Contact dialog title"
+                   },
+    "yourName":  "Your Name",
+    "@yourName":  {
+                      "description":  "Name field label"
+                  },
+    "pleaseEnterYourName":  "Please enter your name",
+    "@pleaseEnterYourName":  {
+                                 "description":  "Name validation error"
+                             },
+    "yourEmail":  "Your Email",
+    "@yourEmail":  {
+                       "description":  "Email field label"
+                   },
+    "pleaseEnterYourEmail":  "Please enter your email",
+    "@pleaseEnterYourEmail":  {
+                                  "description":  "Email required validation"
+                              },
+    "pleaseEnterValidEmail":  "Please enter a valid email",
+    "@pleaseEnterValidEmail":  {
+                                   "description":  "Email format validation"
+                               },
+    "yourMessage":  "Your Message",
+    "@yourMessage":  {
+                         "description":  "Message field label"
+                     },
+    "pleaseEnterYourMessage":  "Please enter your message",
+    "@pleaseEnterYourMessage":  {
+                                    "description":  "Message required validation"
+                                },
+    "emailAppOpenedSuccessfully":  "Email app opened successfully!",
+    "@emailAppOpenedSuccessfully":  {
+                                        "description":  "Success message after opening email app"
+                                    },
+    "sendEmail":  "Send Email",
+    "@sendEmail":  {
+                       "description":  "Send email button label"
+                   },
+    "emailAddressCopiedToClipboard":  "Email address copied to clipboard!",
+    "@emailAddressCopiedToClipboard":  {
+                                           "description":  "Snackbar text after copying contact email"
+                                       },
+    "unlockFullPotentialPremium":  "Unlock the full potential of ZenRadar with Premium:",
+    "@unlockFullPotentialPremium":  {
+                                        "description":  "Upgrade dialog intro text"
+                                    },
+    "unlimitedFavoriteProducts":  "Unlimited favorite products",
+    "@unlimitedFavoriteProducts":  {
+                                       "description":  "Premium feature item"
+                                   },
+    "hourlyCheckFrequency":  "Hourly check frequency",
+    "@hourlyCheckFrequency":  {
+                                  "description":  "Premium feature item"
+                              },
+    "fullPriceAndStockHistory":  "Full price \u0026 stock history",
+    "@fullPriceAndStockHistory":  {
+                                      "description":  "Premium feature item"
+                                  },
+    "comingSoon":  "Coming soon",
+    "@comingSoon":  {
+                        "description":  "Coming soon label"
+                    },
+    "paymentIntegrationComingSoon":  "Payment integration coming soon! Follow development for updates.",
+    "@paymentIntegrationComingSoon":  {
+                                          "description":  "Upgrade dialog payment status note"
+                                      },
+    "maybeLater":  "Maybe Later",
+    "@maybeLater":  {
+                        "description":  "Dismiss action for upgrade prompt"
+                    },
+    "getPremium":  "Get Premium",
+    "@getPremium":  {
+                        "description":  "Primary action to open premium upgrade"
+                    },
+    "clearOldActivitiesConfirm":  "This will remove scan activities older than 30 days. Continue?",
+    "@clearOldActivitiesConfirm":  {
+                                       "description":  "Confirmation text for clearing old scan activities"
+                                   },
+    "clearAllActivitiesConfirm":  "This will permanently delete ALL scan activities. This action cannot be undone. Continue?",
+    "@clearAllActivitiesConfirm":  {
+                                       "description":  "Confirmation text for deleting all scan activities"
+                                   },
+    "deleteAll":  "Delete All",
+    "@deleteAll":  {
+                       "description":  "Delete all button label"
+                   },
+    "oldActivitiesClearedSuccessfully":  "Old activities cleared successfully",
+    "@oldActivitiesClearedSuccessfully":  {
+                                              "description":  "Success message after clearing old activities"
+                                          },
+    "allActivitiesClearedSuccessfully":  "All activities cleared successfully",
+    "@allActivitiesClearedSuccessfully":  {
+                                              "description":  "Success message after clearing all activities"
+                                          },
+    "errorClearingActivitiesWithError":  "Error clearing activities: {error}",
+    "@errorClearingActivitiesWithError":  {
+                                              "description":  "Error message when clearing activities fails",
+                                              "placeholders":  {
+                                                                   "error":  {
+                                                                                 "type":  "String"
+                                                                             }
+                                                               }
+                                          },
+    "refreshActivities":  "Refresh activities",
+    "@refreshActivities":  {
+                               "description":  "Tooltip for refreshing activities"
+                           },
+    "noServerScansFound":  "No server scans found",
+    "@noServerScansFound":  {
+                                "description":  "Empty state title for recent scans"
+                            },
+    "serverScanActivitiesAppearHere":  "Server scan activities will appear here",
+    "@serverScanActivitiesAppearHere":  {
+                                            "description":  "Empty state subtitle for recent scans"
+                                        },
+    "clearAllFilters":  "Clear All Filters",
+    "@clearAllFilters":  {
+                             "description":  "Button label to clear all active filters"
+                         },
+    "confirmRemoveProductsFromFavorites":  "Are you sure you want to remove {count} products from your favorites?",
+    "@confirmRemoveProductsFromFavorites":  {
+                                                "description":  "Confirmation prompt for bulk removing favorites",
+                                                "placeholders":  {
+                                                                     "count":  {
+                                                                                   "type":  "int"
+                                                                               }
+                                                                 }
+                                            },
+    "remove":  "Remove",
+    "@remove":  {
+                    "description":  "Remove action label"
+                },
+    "getUnlimitedHistoryAccess":  "Get unlimited access to price and stock history:",
+    "@getUnlimitedHistoryAccess":  {
+                                       "description":  "Intro line in premium upgrade dialog"
+                                   },
+    "bulletFullPriceAndStockHistory":  "â€¢ Full price \u0026 stock history",
+    "@bulletFullPriceAndStockHistory":  {
+                                            "description":  "Premium feature bullet"
+                                        },
+    "bulletUnlimitedFavoriteProducts":  "â€¢ Unlimited favorite products",
+    "@bulletUnlimitedFavoriteProducts":  {
+                                             "description":  "Premium feature bullet"
+                                         },
+    "bulletMonitorAllVendorSites":  "â€¢ Monitor all vendor sites",
+    "@bulletMonitorAllVendorSites":  {
+                                         "description":  "Premium feature bullet"
+                                     },
+    "bulletHourlyCheckFrequency":  "â€¢ Hourly check frequency",
+    "@bulletHourlyCheckFrequency":  {
+                                        "description":  "Premium feature bullet"
+                                    },
+    "upgradeNow":  "Upgrade Now",
+    "@upgradeNow":  {
+                        "description":  "Upgrade button label"
+                    },
+    "backToSignIn":  "Voltar para entrar",
+    "@backToSignIn":  {
+                          "description":  "Back action on email verification screen"
+                      },
+    "pleaseVerifyEmailBeforeContinuing":  "Please verify your email before continuing",
+    "@pleaseVerifyEmailBeforeContinuing":  {
+                                               "description":  "Error shown when email is not yet verified"
+                                           },
+    "enterEmailForResetLink":  "Enter your email address to receive a password reset link.",
+    "@enterEmailForResetLink":  {
+                                    "description":  "Instruction text in reset password dialog"
+                                },
+    "passwordResetEmailSentTo":  "Password reset email sent to {email}",
+    "@passwordResetEmailSentTo":  {
+                                      "description":  "Success message after sending reset email",
+                                      "placeholders":  {
+                                                           "email":  {
+                                                                         "type":  "String"
+                                                                     }
+                                                       }
+                                  },
+    "errorSendingResetEmail":  "Error sending reset email",
+    "@errorSendingResetEmail":  {
+                                    "description":  "Fallback error when reset email fails"
+                                },
+    "sendResetEmail":  "Send Reset Email",
+    "@sendResetEmail":  {
+                            "description":  "Action button in reset password dialog"
+                        },
+    "errorLoadingAnalyticsWithError":  "Error loading analytics: {error}",
+    "@errorLoadingAnalyticsWithError":  {
+                                            "description":  "Error snackbar on product detail analytics load",
+                                            "placeholders":  {
+                                                                 "error":  {
+                                                                               "type":  "String"
+                                                                           }
+                                                             }
+                                        },
+    "failedToUpdateFavorite":  "Failed to update favorite",
+    "@failedToUpdateFavorite":  {
+                                    "description":  "Error when favorite update request fails"
+                                },
+    "addedToFavoritesNotificationEnabled":  "ðŸ“± Added to favorites - you\u0027ll get notifications when it\u0027s back in stock!",
+    "@addedToFavoritesNotificationEnabled":  {
+                                                 "description":  "Snackbar when product is added to favorites"
+                                             },
+    "removedFromFavorites":  "Removed from favorites",
+    "@removedFromFavorites":  {
+                                  "description":  "Snackbar when product is removed from favorites"
+                              },
+    "errorUpdatingFavoriteWithError":  "Error updating favorite: {error}",
+    "@errorUpdatingFavoriteWithError":  {
+                                            "description":  "Error snackbar for favorite update",
+                                            "placeholders":  {
+                                                                 "error":  {
+                                                                               "type":  "String"
+                                                                           }
+                                                             }
+                                        },
+    "selectCurrency":  "Select Currency",
+    "@selectCurrency":  {
+                            "description":  "Currency selection menu title and tooltip"
+                        },
+    "priceAnalytics":  "Price Analytics",
+    "@priceAnalytics":  {
+                            "description":  "Price analytics section title"
+                        },
+    "noPriceHistoryAvailable":  "No Price History Available",
+    "@noPriceHistoryAvailable":  {
+                                     "description":  "Empty state title for missing price history"
+                                 },
+    "priceTrackingStartsNextScan":  "Price tracking will begin with the next scan",
+    "@priceTrackingStartsNextScan":  {
+                                         "description":  "Empty state subtitle for missing price history"
+                                     },
+    "current":  "Current",
+    "@current":  {
+                     "description":  "Current value label"
+                 },
+    "lowest":  "Lowest",
+    "@lowest":  {
+                    "description":  "Lowest value label"
+                },
+    "highest":  "Highest",
+    "@highest":  {
+                     "description":  "Highest value label"
+                 },
+    "average":  "Average",
+    "@average":  {
+                     "description":  "Average value label"
+                 },
+    "loadingPriceHistory":  "Loading price history...",
+    "@loadingPriceHistory":  {
+                                 "description":  "Loading label for price chart"
+                             },
+    "unknown":  "Unknown",
+    "@unknown":  {
+                     "description":  "Fallback value when data is unknown"
+                 },
+    "site":  "Site",
+    "@site":  {
+                  "description":  "Product site label"
+              },
+    "weight":  "Weight",
+    "@weight":  {
+                    "description":  "Product weight label"
+                },
+    "originalCurrency":  "Original Currency",
+    "@originalCurrency":  {
+                              "description":  "Label for original product currency"
+                          },
+    "firstSeen":  "First Seen",
+    "@firstSeen":  {
+                       "description":  "First seen timestamp label"
+                   },
+    "lastChecked":  "Last Checked",
+    "@lastChecked":  {
+                         "description":  "Last checked timestamp label"
+                     },
+    "priceDataPoints":  "Price Data Points",
+    "@priceDataPoints":  {
+                             "description":  "Label for total price data points"
+                         },
+    "availability":  "Availability",
+    "@availability":  {
+                          "description":  "Stock availability label"
+                      },
+    "volatility":  "Volatility",
+    "@volatility":  {
+                        "description":  "Stock volatility label"
+                    },
+    "high":  "High",
+    "@high":  {
+                  "description":  "High status label"
+              },
+    "stable":  "Stable",
+    "@stable":  {
+                    "description":  "Stable status label"
+                },
+    "trend":  "Trend",
+    "@trend":  {
+                   "description":  "Trend label"
+               },
+    "selectDate":  "Select Date",
+    "@selectDate":  {
+                        "description":  "Select date label"
+                    },
+    "fullAccess":  "Full Access",
+    "@fullAccess":  {
+                        "description":  "Full access badge label"
+                    },
+    "premiumAccess":  "Premium Access",
+    "@premiumAccess":  {
+                           "description":  "Premium access banner title"
+                       },
+    "viewingFullHistoryUnlimitedAccess":  "Viewing full price \u0026 stock history with unlimited access",
+    "@viewingFullHistoryUnlimitedAccess":  {
+                                               "description":  "Premium banner description"
+                                           },
+    "limitedHistoryAccess":  "Limited History Access",
+    "@limitedHistoryAccess":  {
+                                  "description":  "Limited access banner title"
+                              },
+    "freeTierHistoryLimitBanner":  "Free tier shows last {days} days. Upgrade for full history access.",
+    "@freeTierHistoryLimitBanner":  {
+                                        "description":  "Limited access banner description",
+                                        "placeholders":  {
+                                                             "days":  {
+                                                                          "type":  "int"
+                                                                      }
+                                                         }
+                                    },
+    "fullPremiumNoCardRequired":  "Get full premium access instantly. No credit card required.",
+    "@fullPremiumNoCardRequired":  {
+                                       "description":  "Trial section helper text"
+                                   },
+    "upgradeDirectlyWithPayment":  "Or upgrade directly with payment",
+    "@upgradeDirectlyWithPayment":  {
+                                        "description":  "Secondary upgrade CTA"
+                                    },
+    "freeTrialActive":  "Free Trial Active",
+    "@freeTrialActive":  {
+                             "description":  "Active trial status title"
+                         },
+    "daysRemaining":  "{days} days remaining",
+    "@daysRemaining":  {
+                           "description":  "Remaining trial days",
+                           "placeholders":  {
+                                                "days":  {
+                                                             "type":  "int"
+                                                         }
+                                            }
+                       },
+    "upgradeNowKeepPremium":  "Upgrade Now \u0026 Keep Premium",
+    "@upgradeNowKeepPremium":  {
+                                   "description":  "CTA when trial is active"
+                               },
+    "failedToLoadActivitiesWithError":  "Failed to load activities: {error}",
+    "@failedToLoadActivitiesWithError":  {
+                                             "description":  "Error snackbar when activities fail to load",
+                                             "placeholders":  {
+                                                                  "error":  {
+                                                                                "type":  "String"
+                                                                            }
+                                                              }
+                                         },
+    "failedToRefreshActivitiesWithError":  "Failed to refresh server activities: {error}",
+    "@failedToRefreshActivitiesWithError":  {
+                                                "description":  "Error snackbar when force refresh fails",
+                                                "placeholders":  {
+                                                                     "error":  {
+                                                                                   "type":  "String"
+                                                                               }
+                                                                 }
+                                            },
+    "noStockUpdateDetailsForScan":  "No stock update details available for this scan",
+    "@noStockUpdateDetailsForScan":  {
+                                         "description":  "Shown when no crawl request id is available"
+                                     },
+    "noDetailedProductUpdatesForScan":  "No detailed product updates found for this scan",
+    "@noDetailedProductUpdatesForScan":  {
+                                             "description":  "Shown when stock and price updates are empty"
+                                         },
+    "errorLoadingStockUpdatesWithError":  "Error loading stock updates: {error}",
+    "@errorLoadingStockUpdatesWithError":  {
+                                               "description":  "Error snackbar when stock updates query fails",
+                                               "placeholders":  {
+                                                                    "error":  {
+                                                                                  "type":  "String"
+                                                                              }
+                                                                }
+                                           },
+    "crawlTriggeredSuccessfully":  "Crawl triggered successfully! ID: {requestId}",
+    "@crawlTriggeredSuccessfully":  {
+                                        "description":  "Success message after triggering a manual crawl",
+                                        "placeholders":  {
+                                                             "requestId":  {
+                                                                               "type":  "String"
+                                                                           }
+                                                         }
+                                    },
+    "failedToTriggerCrawlWithError":  "Failed to trigger crawl: {error}",
+    "@failedToTriggerCrawlWithError":  {
+                                           "description":  "Error message for failed manual crawl trigger",
+                                           "placeholders":  {
+                                                                "error":  {
+                                                                              "type":  "String"
+                                                                          }
+                                                            }
+                                       },
+    "checkingServerStatus":  "Checking server status...",
+    "@checkingServerStatus":  {
+                                  "description":  "Fallback status text while server health is unknown"
+                              },
+    "failedToLoadDailyStockData":  "Failed to load daily stock data",
+    "@failedToLoadDailyStockData":  {
+                                        "description":  "Error shown when daily stock history query fails"
+                                    },
+    "addingProductsToFavorites":  "Adding {count} products to favorites...",
+    "@addingProductsToFavorites":  {
+                                       "description":  "Progress message while bulk-adding favorites",
+                                       "placeholders":  {
+                                                            "count":  {
+                                                                          "type":  "int"
+                                                                      }
+                                                        }
+                                   },
+    "errorAddingProductsToFavoritesWithError":  "Error adding products to favorites: {error}",
+    "@errorAddingProductsToFavoritesWithError":  {
+                                                     "description":  "Error snackbar when bulk add favorites fails",
+                                                     "placeholders":  {
+                                                                          "error":  {
+                                                                                        "type":  "String"
+                                                                                    }
+                                                                      }
+                                                 },
+    "errorRemovingProductsFromFavoritesWithError":  "Error removing products from favorites: {error}",
+    "@errorRemovingProductsFromFavoritesWithError":  {
+                                                         "description":  "Error snackbar when bulk remove favorites fails",
+                                                         "placeholders":  {
+                                                                              "error":  {
+                                                                                            "type":  "String"
+                                                                                        }
+                                                                          }
+                                                     },
+    "notificationsEnabledSuccessfully":  "Notifications enabled successfully!",
+    "@notificationsEnabledSuccessfully":  {
+                                              "description":  "Success message after notification permission granted"
+                                          },
+    "notificationPermissionDeniedEnableLater":  "Notification permission denied. You can enable it later in Settings.",
+    "@notificationPermissionDeniedEnableLater":  {
+                                                     "description":  "Message when notification permission is denied"
+                                                 },
+    "errorRequestingNotificationPermissionWithError":  "Error requesting notification permission: {error}",
+    "@errorRequestingNotificationPermissionWithError":  {
+                                                            "description":  "Error snackbar when requesting notifications fails",
+                                                            "placeholders":  {
+                                                                                 "error":  {
+                                                                                               "type":  "String"
+                                                                                           }
+                                                                             }
+                                                        },
+    "setupErrorWithError":  "Setup error: {error}",
+    "@setupErrorWithError":  {
+                                 "description":  "Onboarding setup error",
+                                 "placeholders":  {
+                                                      "error":  {
+                                                                    "type":  "String"
+                                                                }
+                                                  }
+                             },
+    "redirectingToSecureCheckout":  "Redirecting to secure checkout... ðŸš€",
+    "@redirectingToSecureCheckout":  {
+                                         "description":  "Snackbar shown before opening checkout"
+                                     },
+    "errorWithDetails":  "Error: {error}",
+    "@errorWithDetails":  {
+                              "description":  "Generic error snackbar with details",
+                              "placeholders":  {
+                                                   "error":  {
+                                                                 "type":  "String"
+                                                             }
+                                               }
+                          },
+    "freeTrialStartedEnjoyPremium":  "ðŸŽ‰ 7-day free trial started! Enjoy premium features!",
+    "@freeTrialStartedEnjoyPremium":  {
+                                          "description":  "Success message after starting free trial"
+                                      },
+    "errorStartingTrialWithError":  "Error starting trial: {error}",
+    "@errorStartingTrialWithError":  {
+                                         "description":  "Error message for trial start failure",
+                                         "placeholders":  {
+                                                              "error":  {
+                                                                            "type":  "String"
+                                                                        }
+                                                          }
+                                     },
+    "enterPriceForBound":  "Enter {bound} Price",
+    "@enterPriceForBound":  {
+                                "description":  "Dialog title for manual minimum/maximum price input",
+                                "placeholders":  {
+                                                     "bound":  {
+                                                                   "type":  "String"
+                                                               }
+                                                 }
+                            },
+    "unableToStartTrialMaybeUsed":  "Unable to start trial. You may have already used it.",
+    "@unableToStartTrialMaybeUsed":  {
+                                         "description":  "Message shown when trial cannot be started"
+                                     },
+    "priceInCurrency":  "Price in {currency}",
+    "@priceInCurrency":  {
+                             "description":  "Input label for manual price entry in a selected currency",
+                             "placeholders":  {
+                                                  "currency":  {
+                                                                   "type":  "String"
+                                                               }
+                                              }
+                         },
+    "displayNameOptional":  "Display Name (Optional)",
+    "@displayNameOptional":  {
+                                 "description":  "Display name field label in sign-up form"
+                             },
+    "upgrade":  "Upgrade",
+    "@upgrade":  {
+                     "description":  "Generic short upgrade action label"
+                 },
+    "youAlreadyHavePremiumAccess":  "You already have Premium access!",
+    "@youAlreadyHavePremiumAccess":  {
+                                         "description":  "Message shown when user already has premium tier"
+                                     },
+    "startingTrial":  "Starting Trial...",
+    "@startingTrial":  {
+                           "description":  "Loading label while starting free trial"
+                       },
+    "processing":  "Processando...",
+    "@processing":  {
+                        "description":  "Generic processing label"
+                    },
+    "manualCrawl":  "Manual Crawl",
+    "@manualCrawl":  {
+                         "description":  "Title for manual crawl card"
+                     },
+    "selectSitesToCrawl":  "Select sites to crawl:",
+    "@selectSitesToCrawl":  {
+                                "description":  "Label above manual crawl site selection chips"
+                            },
+    "signInLaterInSettingsToSyncData":  "VocÃª pode entrar depois nas configuraÃ§Ãµes para sincronizar seus dados",
+    "@signInLaterInSettingsToSyncData":  {
+                                             "description":  "Onboarding message shown when user skips auth"
+                                         },
+    "premiumFeaturesAvailableImmediatelyCancelAnytime":  "Recursos Premium disponÃ­veis imediatamente. Cancele a qualquer momento.",
+    "@premiumFeaturesAvailableImmediatelyCancelAnytime":  {
+                                                              "description":  "Description under premium upgrade button"
+                                                          },
+    "premiumSubscriptionQuestion":  "Pergunta sobre assinatura Premium",
+    "@premiumSubscriptionQuestion":  {
+                                         "description":  "Default subject line for support email from premium screen"
+                                     },
+    "premiumSubscriptionQuestionBody":  "OlÃ¡,\n\nTenho uma pergunta sobre a assinatura Premium.\n\n",
+    "@premiumSubscriptionQuestionBody":  {
+                                             "description":  "Default body for support email from premium screen"
+                                         },
+    "couldNotOpenEmailAppContactSupport":  "NÃ£o foi possÃ­vel abrir o app de e-mail. Entre em contato com support@zenradar.app",
+    "@couldNotOpenEmailAppContactSupport":  {
+                                                "description":  "Error shown when email app cannot be opened"
+                                            },
+    "premiumUpgradeSubtitle":  "Tenha acesso ilimitado a todos os vendedores de matcha, notificaÃ§Ãµes mais rÃ¡pidas e anÃ¡lises completas.",
+    "@premiumUpgradeSubtitle":  {
+                                    "description":  "Subtitle text in premium upgrade header"
+                                },
+    "limitReached":  "Limite atingido",
+    "@limitReached":  {
+                          "description":  "Title shown when free-tier limit is reached"
+                      },
+    "yearlyPlanSavings":  "ou $29.99/ano (economize 65%)",
+    "@yearlyPlanSavings":  {
+                               "description":  "Yearly plan pricing hint showing savings"
+                           },
+    "favoriteProductsLabel":  "Produtos favoritos",
+    "@favoriteProductsLabel":  {
+                                   "description":  "Feature comparison label for favorites"
+                               },
+    "unlimitedLabel":  "Ilimitado",
+    "@unlimitedLabel":  {
+                            "description":  "Short label for unlimited quota"
+                        },
+    "everyHours":  "A cada {hours}h",
+    "@everyHours":  {
+                        "description":  "Frequency label for checks every N hours",
+                        "placeholders":  {
+                                             "hours":  {
+                                                           "type":  "int"
+                                                       }
+                                         }
+                    },
+    "analyticsHistoryLabel":  "HistÃ³rico analÃ­tico",
+    "@analyticsHistoryLabel":  {
+                                   "description":  "Feature comparison label for analytics history"
+                               },
+    "basicLabel":  "BÃ¡sico",
+    "@basicLabel":  {
+                        "description":  "Short label for basic tier capability"
+                    },
+    "testimonialUserOneName":  "Sarah M.",
+    "@testimonialUserOneName":  {
+                                    "description":  "Name shown in first premium testimonial"
+                                },
+    "testimonialUserOneTitle":  "Entusiasta de chÃ¡",
+    "@testimonialUserOneTitle":  {
+                                     "description":  "Role/title shown in first premium testimonial"
+                                 },
+    "testimonialUserOneQuote":  "As notificaÃ§Ãµes premium me ajudaram a garantir matcha de ediÃ§Ã£o limitada de Kyoto antes de esgotar!",
+    "@testimonialUserOneQuote":  {
+                                     "description":  "Quote shown in first premium testimonial"
+                                 },
+    "testimonialUserTwoName":  "Ken T.",
+    "@testimonialUserTwoName":  {
+                                    "description":  "Name shown in second premium testimonial"
+                                },
+    "testimonialUserTwoTitle":  "Colecionador de matcha",
+    "@testimonialUserTwoTitle":  {
+                                     "description":  "Role/title shown in second premium testimonial"
+                                 },
+    "testimonialUserTwoQuote":  "Monitorar todos os vendedores ao mesmo tempo me poupou horas de verificaÃ§Ã£o manual.",
+    "@testimonialUserTwoQuote":  {
+                                     "description":  "Quote shown in second premium testimonial"
+                                 },
+    "notificationsEnabledStatus":  "NotificaÃ§Ãµes ativadas",
+    "@notificationsEnabledStatus":  {
+                                        "description":  "Short status text shown after notification permission is granted"
+                                    },
+    "permissionDeniedStatus":  "PermissÃ£o negada",
+    "@permissionDeniedStatus":  {
+                                    "description":  "Short status text shown after notification permission is denied"
+                                },
+    "webNotificationsAutoEnabled":  "As notificaÃ§Ãµes da web serÃ£o ativadas automaticamente.",
+    "@webNotificationsAutoEnabled":  {
+                                         "description":  "Onboarding helper text explaining web notification behavior"
+                                     },
+    "notificationsEnabledBackInStockMessage":  "Ã“timo! VocÃª receberÃ¡ notificaÃ§Ãµes quando seu matcha favorito voltar ao estoque.",
+    "@notificationsEnabledBackInStockMessage":  {
+                                                    "description":  "Onboarding helper text shown after notifications are enabled"
+                                                },
+    "recommendEnablingNotifications":  "Recomendamos ativar as notificaÃ§Ãµes para uma melhor experiÃªncia.",
+    "@recommendEnablingNotifications":  {
+                                            "description":  "Onboarding helper text encouraging notification permission"
+                                        },
+    "languageChangedSuccessfully":  "Idioma alterado com sucesso",
+    "@languageChangedSuccessfully":  {
+                                         "description":  "Snackbar shown after changing app language"
+                                     },
+    "settingsSavedSuccessfully":  "ConfiguraÃ§Ãµes salvas com sucesso",
+    "@settingsSavedSuccessfully":  {
+                                       "description":  "Snackbar shown after saving settings"
+                                   },
+    "settingsSaveFailedWithError":  "Falha ao salvar as configuraÃ§Ãµes: {error}",
+    "@settingsSaveFailedWithError":  {
+                                         "description":  "Snackbar shown when saving settings fails",
+                                         "placeholders":  {
+                                                              "error":  {
+                                                                            "type":  "String"
+                                                                        }
+                                                          }
+                                     },
+    "days":  "dias",
+    "@days":  {
+                  "description":  "Days label"
+              },
+    "addCountToFavorites":  "Add {count} to Favorites",
+    "@addCountToFavorites":  {
+                                 "description":  "Bulk add favorites button label",
+                                 "placeholders":  {
+                                                      "count":  {
+                                                                    "type":  "int"
+                                                                }
+                                                  }
+                             },
+    "addedCountProductsToFavorites":  "Added {count} products to favorites!",
+    "@addedCountProductsToFavorites":  {
+                                           "description":  "Bulk add favorites success message",
+                                           "placeholders":  {
+                                                                "count":  {
+                                                                              "type":  "int"
+                                                                          }
+                                                            }
+                                       },
+    "advancedOptions":  "Advanced Options",
+    "@advancedOptions":  {
+                             "description":  "Advanced options label"
+                         },
+    "allItems":  "All Items",
+    "@allItems":  {
+                      "description":  "All items filter label"
+                  },
+    "allScans":  "All Scans",
+    "@allScans":  {
+                      "description":  "All scans filter label"
+                  },
+    "authAccountDeletedSuccess":  "Account deleted successfully",
+    "@authAccountDeletedSuccess":  {
+                                       "description":  "Account deletion success message"
+                                   },
+    "authAccountDisabled":  "This account has been disabled. Please contact support.",
+    "@authAccountDisabled":  {
+                                 "description":  "Disabled user account error"
+                             },
+    "authAccountExistsWithDifferentCredential":  "An account already exists with the same email address but different sign-in credentials.",
+    "@authAccountExistsWithDifferentCredential":  {
+                                                      "description":  "Account exists with different credential error"
+                                                  },
+    "authChooseStrongerPassword":  "Please choose a stronger password.",
+    "@authChooseStrongerPassword":  {
+                                        "description":  "Weak password error"
+                                    },
+    "authCredentialAlreadyInUse":  "This Google account is already linked to another user.",
+    "@authCredentialAlreadyInUse":  {
+                                        "description":  "Credential already linked error"
+                                    },
+    "authEmailAlreadyInUse":  "An account with this email already exists. Please sign in instead.",
+    "@authEmailAlreadyInUse":  {
+                                   "description":  "Email already in use error"
+                               },
+    "authEmailAlreadyVerified":  "Email is already verified",
+    "@authEmailAlreadyVerified":  {
+                                      "description":  "Shown when verification action is attempted on already verified email"
+                                  },
+    "authEmailPasswordNotEnabled":  "Email/password accounts are not enabled. Please contact support.",
+    "@authEmailPasswordNotEnabled":  {
+                                         "description":  "Auth provider disabled error"
+                                     },
+    "authGenericError":  "An authentication error occurred. Please try again.",
+    "@authGenericError":  {
+                              "description":  "Fallback Firebase auth error"
+                          },
+    "authGoogleConfigErrorDetails":  "Google Sign-in configuration error. Please check your Firebase setup. Error: {error}",
+    "@authGoogleConfigErrorDetails":  {
+                                          "description":  "Google sign-in configuration error with details",
+                                          "placeholders":  {
+                                                               "error":  {
+                                                                             "type":  "String"
+                                                                         }
+                                                           }
+                                      },
+    "authGoogleSignInCancelled":  "Google Sign-in was cancelled",
+    "@authGoogleSignInCancelled":  {
+                                       "description":  "Shown when user cancels Google sign-in"
+                                   },
+    "authGoogleSignInErrorDetails":  "Google Sign-in error: {error}",
+    "@authGoogleSignInErrorDetails":  {
+                                          "description":  "Generic Google sign-in error with details",
+                                          "placeholders":  {
+                                                               "error":  {
+                                                                             "type":  "String"
+                                                                         }
+                                                           }
+                                      },
+    "authGoogleSignInFailedCheckConnection":  "Google Sign-in failed. Please check your internet connection and try again.",
+    "@authGoogleSignInFailedCheckConnection":  {
+                                                   "description":  "Google sign-in failed due to connectivity or provider issue"
+                                               },
+    "authGoogleSignInFailedTryAgain":  "Google Sign-in failed. Please try again.",
+    "@authGoogleSignInFailedTryAgain":  {
+                                            "description":  "Google sign-in fallback error"
+                                        },
+    "authGoogleSignInNotConfigured":  "Google Sign-in is not properly configured. Please check the setup guide.",
+    "@authGoogleSignInNotConfigured":  {
+                                           "description":  "Google sign-in missing configuration"
+                                       },
+    "authGoogleSignInRequired":  "Google Sign-in is required",
+    "@authGoogleSignInRequired":  {
+                                      "description":  "Google sign-in required message"
+                                  },
+    "authInvalidCredentials":  "Invalid email or password. Please check your credentials.",
+    "@authInvalidCredentials":  {
+                                    "description":  "Invalid credentials error"
+                                },
+    "authInvalidVerificationCode":  "Invalid verification code. Please try again.",
+    "@authInvalidVerificationCode":  {
+                                         "description":  "Invalid verification code error"
+                                     },
+    "authInvalidVerificationId":  "Invalid verification ID. Please try again.",
+    "@authInvalidVerificationId":  {
+                                       "description":  "Invalid verification id error"
+                                   },
+    "authNetworkError":  "Network error. Please check your internet connection.",
+    "@authNetworkError":  {
+                              "description":  "Auth network error"
+                          },
+    "authNetworkErrorGoogleSignIn":  "Network error during Google Sign-in. Please check your connection.",
+    "@authNetworkErrorGoogleSignIn":  {
+                                          "description":  "Google sign-in network error"
+                                      },
+    "authNoUserSignedIn":  "No user is currently signed in",
+    "@authNoUserSignedIn":  {
+                                "description":  "Shown when user-dependent action is attempted without signed in user"
+                            },
+    "authPasswordMustContainLetterAndNumber":  "Password must contain at least one letter and one number",
+    "@authPasswordMustContainLetterAndNumber":  {
+                                                    "description":  "Password complexity validation"
+                                                },
+    "authPasswordResetEmailSent":  "Password reset email sent. Please check your inbox.",
+    "@authPasswordResetEmailSent":  {
+                                        "description":  "Password reset success message"
+                                    },
+    "authPasswordTooLong":  "Password must be less than 128 characters",
+    "@authPasswordTooLong":  {
+                                 "description":  "Password length upper bound validation"
+                             },
+    "authRequiresRecentLogin":  "This operation requires recent authentication. Please sign in again.",
+    "@authRequiresRecentLogin":  {
+                                     "description":  "Recent login required error"
+                                 },
+    "authTooManyRequests":  "Too many failed attempts. Please try again later.",
+    "@authTooManyRequests":  {
+                                 "description":  "Too many auth requests error"
+                             },
+    "authUnexpectedErrorTryAgain":  "An unexpected error occurred. Please try again.",
+    "@authUnexpectedErrorTryAgain":  {
+                                         "description":  "Generic fallback auth error"
+                                     },
+    "authUserNotFound":  "No account found with this email. Please sign up first.",
+    "@authUserNotFound":  {
+                              "description":  "User not found error"
+                          },
+    "authVerificationEmailSent":  "Verification email sent. Please check your inbox.",
+    "@authVerificationEmailSent":  {
+                                       "description":  "Verification resend success message"
+                                   },
+    "authWrongPassword":  "Incorrect password. Please try again.",
+    "@authWrongPassword":  {
+                               "description":  "Wrong password error"
+                           },
+    "averagePriceLabel":  "Avg: {price}",
+    "@averagePriceLabel":  {
+                               "description":  "Average price line label",
+                               "placeholders":  {
+                                                    "price":  {
+                                                                  "type":  "String"
+                                                              }
+                                                }
+                           },
+    "averageProductPriceIs":  "The average product price is {price}",
+    "@averageProductPriceIs":  {
+                                   "description":  "Text showing average product price in filter modal",
+                                   "placeholders":  {
+                                                        "price":  {
+                                                                      "type":  "String"
+                                                                  }
+                                                    }
+                               },
+    "chartRequiresAtLeastTwoPoints":  "Chart visualization requires at least 2 data points",
+    "@chartRequiresAtLeastTwoPoints":  {
+                                           "description":  "Helper text for insufficient data state"
+                                       },
+    "currentPriceLabel":  "Current Price: {price}",
+    "@currentPriceLabel":  {
+                               "description":  "Tooltip label for current price",
+                               "placeholders":  {
+                                                    "price":  {
+                                                                  "type":  "String"
+                                                              }
+                                                }
+                           },
+    "estimatedScanTimeLong":  "2-3 minutes",
+    "@estimatedScanTimeLong":  {
+                                   "description":  "Estimated scan time for up to eight sites"
+                               },
+    "estimatedScanTimeMedium":  "1-2 minutes",
+    "@estimatedScanTimeMedium":  {
+                                     "description":  "Estimated scan time for up to five sites"
+                                 },
+    "estimatedScanTimeShort":  "30-60 seconds",
+    "@estimatedScanTimeShort":  {
+                                    "description":  "Estimated scan time for up to two sites"
+                                },
+    "estimatedScanTimeVeryLong":  "3-5 minutes",
+    "@estimatedScanTimeVeryLong":  {
+                                       "description":  "Estimated scan time for more than eight sites"
+                                   },
+    "favoritesOnly":  "Favorites only",
+    "@favoritesOnly":  {
+                           "description":  "Filter toggle label for showing favorite products only"
+                       },
+    "filterAndSortOptions":  "Filter \u0026 Sort Options",
+    "@filterAndSortOptions":  {
+                                  "description":  "Filter and sort section title"
+                              },
+    "filterByUpdates":  "Filter by Updates",
+    "@filterByUpdates":  {
+                             "description":  "Filter updates section title"
+                         },
+    "filterOptions":  "Filter Options",
+    "@filterOptions":  {
+                           "description":  "Filter options section title"
+                       },
+    "freeModeShowingLast24Scans":  "Free Mode: Showing last 24 scans",
+    "@freeModeShowingLast24Scans":  {
+                                        "description":  "Free mode notice in activity screen"
+                                    },
+    "hourlyStockStatusWithDate":  "Hourly Stock Status - {date}",
+    "@hourlyStockStatusWithDate":  {
+                                       "description":  "Header for hourly stock status grid with selected date",
+                                       "placeholders":  {
+                                                            "date":  {
+                                                                         "type":  "String"
+                                                                     }
+                                                        }
+                                   },
+    "hoursTracked":  "Hours Tracked",
+    "@hoursTracked":  {
+                          "description":  "Summary metric label for tracked hours"
+                      },
+    "inStockFraction":  "{inStock}/{total} in stock",
+    "@inStockFraction":  {
+                             "description":  "In-stock fraction chip text",
+                             "placeholders":  {
+                                                  "inStock":  {
+                                                                  "type":  "int"
+                                                              },
+                                                  "total":  {
+                                                                "type":  "int"
+                                                            }
+                                              }
+                         },
+    "includeNoLongerAvailableProducts":  "Include products that are no longer available",
+    "@includeNoLongerAvailableProducts":  {
+                                              "description":  "Subtitle for discontinued products toggle"
+                                          },
+    "insufficientDataForChart":  "Insufficient Data for Chart",
+    "@insufficientDataForChart":  {
+                                      "description":  "Title shown when too few points exist for chart"
+                                  },
+    "itemsScannedCount":  "{count} items scanned",
+    "@itemsScannedCount":  {
+                               "description":  "Items scanned count",
+                               "placeholders":  {
+                                                    "count":  {
+                                                                  "type":  "int"
+                                                              }
+                                                }
+                           },
+    "lastUpdateWithValue":  "Last update: {value}",
+    "@lastUpdateWithValue":  {
+                                 "description":  "Last update with value",
+                                 "placeholders":  {
+                                                      "value":  {
+                                                                    "type":  "String"
+                                                                }
+                                                  }
+                             },
+    "loadingDetailedAnalytics":  "Loading detailed analytics...",
+    "@loadingDetailedAnalytics":  {
+                                      "description":  "Loading text while detailed analytics are fetched"
+                                  },
+    "moreDataAvailableAfterScans":  "More data will be available as additional scans are performed",
+    "@moreDataAvailableAfterScans":  {
+                                         "description":  "Helper text for single-point stock state"
+                                     },
+    "mostActiveWithValue":  "Most active: {value}",
+    "@mostActiveWithValue":  {
+                                 "description":  "Most active website with value",
+                                 "placeholders":  {
+                                                      "value":  {
+                                                                    "type":  "String"
+                                                                }
+                                                  }
+                             },
+    "nameLabel":  "Name",
+    "@nameLabel":  {
+                       "description":  "Generic name label"
+                   },
+    "noData":  "No Data",
+    "@noData":  {
+                    "description":  "Label used where no data is available"
+                },
+    "noPriceChangesYetCurrentPrice":  "No price changes yet. Current price: {price}",
+    "@noPriceChangesYetCurrentPrice":  {
+                                           "description":  "Informational text when only current price exists",
+                                           "placeholders":  {
+                                                                "price":  {
+                                                                              "type":  "String"
+                                                                          }
+                                                            }
+                                       },
+    "noPriceChangesYetShort":  "(No price changes yet)",
+    "@noPriceChangesYetShort":  {
+                                    "description":  "Short tooltip hint when there are no price changes"
+                                },
+    "noStockHistoryAvailable":  "No stock history available",
+    "@noStockHistoryAvailable":  {
+                                     "description":  "Empty state title for stock history chart"
+                                 },
+    "noStockUpdates":  "No stock updates",
+    "@noStockUpdates":  {
+                            "description":  "Label when no stock updates are present"
+                        },
+    "noStockUpdatesInRange":  "No stock updates in {range}",
+    "@noStockUpdatesInRange":  {
+                                   "description":  "Empty state text when no stock updates exist for selected range",
+                                   "placeholders":  {
+                                                        "range":  {
+                                                                      "type":  "String"
+                                                                  }
+                                                    }
+                               },
+    "noUpdatePatternDataAvailable":  "No update pattern data available",
+    "@noUpdatePatternDataAvailable":  {
+                                          "description":  "Empty state when update pattern data is unavailable"
+                                      },
+    "onlyDataPointsAvailable":  "Only {count} data points available for this time range",
+    "@onlyDataPointsAvailable":  {
+                                     "description":  "Message showing how many points are available",
+                                     "placeholders":  {
+                                                          "count":  {
+                                                                        "type":  "int"
+                                                                    }
+                                                      }
+                                 },
+    "overallSummary":  "Overall Summary",
+    "@overallSummary":  {
+                            "description":  "Overview summary card title"
+                        },
+    "reachedSubscriptionLimitCount":  "({count} reached subscription limit)",
+    "@reachedSubscriptionLimitCount":  {
+                                           "description":  "Bulk add partial success suffix",
+                                           "placeholders":  {
+                                                                "count":  {
+                                                                              "type":  "int"
+                                                                          }
+                                                            }
+                                       },
+    "recentSearches":  "Recent Searches",
+    "@recentSearches":  {
+                            "description":  "Recent searches label"
+                        },
+    "recentUpdatesLast7Days":  "Recent Updates (Last 7 days)",
+    "@recentUpdatesLast7Days":  {
+                                    "description":  "Recent updates section title"
+                                },
+    "recommended":  "Recommended",
+    "@recommended":  {
+                         "description":  "Recommended section label"
+                     },
+    "removeCountFromFavorites":  "Remove {count} from Favorites",
+    "@removeCountFromFavorites":  {
+                                      "description":  "Bulk remove favorites button label",
+                                      "placeholders":  {
+                                                           "count":  {
+                                                                         "type":  "int"
+                                                                     }
+                                                       }
+                                  },
+    "removedCountProductsFromFavorites":  "Removed {count} products from favorites!",
+    "@removedCountProductsFromFavorites":  {
+                                               "description":  "Bulk remove favorites success message",
+                                               "placeholders":  {
+                                                                    "count":  {
+                                                                                  "type":  "int"
+                                                                              }
+                                                                }
+                                           },
+    "removingCountProductsFromFavorites":  "Removing {count} products from favorites...",
+    "@removingCountProductsFromFavorites":  {
+                                                "description":  "Bulk remove progress message",
+                                                "placeholders":  {
+                                                                     "count":  {
+                                                                                   "type":  "int"
+                                                                               }
+                                                                 }
+                                            },
+    "scanFailedWithErrors":  "Scan failed - {count} error(s)",
+    "@scanFailedWithErrors":  {
+                                  "description":  "Failed scan details with error count",
+                                  "placeholders":  {
+                                                       "count":  {
+                                                                     "type":  "int"
+                                                                 }
+                                                   }
+                              },
+    "scanInProgressProductsFound":  "Scan in progress - {count} products found so far",
+    "@scanInProgressProductsFound":  {
+                                         "description":  "Running scan details",
+                                         "placeholders":  {
+                                                              "count":  {
+                                                                            "type":  "int"
+                                                                        }
+                                                          }
+                                     },
+    "scanProductsCount":  " - {count} products",
+    "@scanProductsCount":  {
+                               "description":  "Product count suffix for scan details",
+                               "placeholders":  {
+                                                    "count":  {
+                                                                  "type":  "int"
+                                                              }
+                                                }
+                           },
+    "scanQueuedForProcessing":  "Scan queued for processing",
+    "@scanQueuedForProcessing":  {
+                                     "description":  "Pending scan details"
+                                 },
+    "scanUpdatesFound":  " - {value} updates found",
+    "@scanUpdatesFound":  {
+                              "description":  "Suffix showing scan update types",
+                              "placeholders":  {
+                                                   "value":  {
+                                                                 "type":  "String"
+                                                             }
+                                               }
+                          },
+    "scannedProductsAcrossSites":  "Scanned {products} products across {sites} sites",
+    "@scannedProductsAcrossSites":  {
+                                        "description":  "Scan summary for completed scan",
+                                        "placeholders":  {
+                                                             "products":  {
+                                                                              "type":  "int"
+                                                                          },
+                                                             "sites":  {
+                                                                           "type":  "int"
+                                                                       }
+                                                         }
+                                    },
+    "showDiscontinuedProducts":  "Show discontinued products",
+    "@showDiscontinuedProducts":  {
+                                      "description":  "Label for discontinued products toggle"
+                                  },
+    "showOnlyFavoriteProducts":  "Show only products marked as favorites",
+    "@showOnlyFavoriteProducts":  {
+                                      "description":  "Subtitle for favorites-only filter toggle"
+                                  },
+    "singleDataPointFrom":  "Single data point from {dateTime}",
+    "@singleDataPointFrom":  {
+                                 "description":  "Message shown when only one stock point exists",
+                                 "placeholders":  {
+                                                      "dateTime":  {
+                                                                       "type":  "String"
+                                                                   }
+                                                  }
+                             },
+    "siteDescriptionEnjoyemeri":  "Curated tea selection",
+    "@siteDescriptionEnjoyemeri":  {
+                                       "description":  "Description for Enjoyemeri site in site selection dialog"
+                                   },
+    "siteDescriptionHoriishichimeien":  "Modern matcha experience",
+    "@siteDescriptionHoriishichimeien":  {
+                                             "description":  "Description for Horiishichimeien site in site selection dialog"
+                                         },
+    "siteDescriptionIppodo":  "Premium tea house",
+    "@siteDescriptionIppodo":  {
+                                   "description":  "Description for Ippodo site in site selection dialog"
+                               },
+    "siteDescriptionMarukyu":  "Historic Kyoto tea company",
+    "@siteDescriptionMarukyu":  {
+                                    "description":  "Description for Marukyu site in site selection dialog"
+                                },
+    "siteDescriptionMatchaKaru":  "Organic matcha specialist",
+    "@siteDescriptionMatchaKaru":  {
+                                       "description":  "Description for Matcha Karu site in site selection dialog"
+                                   },
+    "siteDescriptionPoppatea":  "Authentic Japanese matcha sent from Sweden",
+    "@siteDescriptionPoppatea":  {
+                                     "description":  "Description for Poppatea site in site selection dialog"
+                                 },
+    "siteDescriptionSazentea":  "Japanese tea direct import",
+    "@siteDescriptionSazentea":  {
+                                     "description":  "Description for Sazentea site in site selection dialog"
+                                 },
+    "siteDescriptionShoCha":  "Artisan tea collection",
+    "@siteDescriptionShoCha":  {
+                                   "description":  "Description for Sho-Cha site in site selection dialog"
+                               },
+    "siteDescriptionTokichi":  "Traditional Japanese matcha",
+    "@siteDescriptionTokichi":  {
+                                    "description":  "Description for Tokichi site in site selection dialog"
+                                },
+    "siteDescriptionYoshien":  "German matcha retailer",
+    "@siteDescriptionYoshien":  {
+                                    "description":  "Description for Yoshien site in site selection dialog"
+                                },
+    "sitesLabel":  "Sites",
+    "@sitesLabel":  {
+                        "description":  "Sites label"
+                    },
+    "sortAsc":  "Ascending",
+    "@sortAsc":  {
+                     "description":  "Sort ascending label"
+                 },
+    "sortDesc":  "Descending",
+    "@sortDesc":  {
+                      "description":  "Sort descending label"
+                  },
+    "sortOptions":  "Sort Options",
+    "@sortOptions":  {
+                         "description":  "Sort options section title"
+                     },
+    "startTypingToSearchProducts":  "Start typing to search for matcha products...",
+    "@startTypingToSearchProducts":  {
+                                         "description":  "Empty state hint in search suggestions"
+                                     },
+    "statusWithValue":  "Status: {value}",
+    "@statusWithValue":  {
+                             "description":  "Status with dynamic value",
+                             "placeholders":  {
+                                                  "value":  {
+                                                                "type":  "String"
+                                                            }
+                                              }
+                         },
+    "stockTrackingStartsNextScan":  "Stock tracking will begin with the next scan for this time range",
+    "@stockTrackingStartsNextScan":  {
+                                         "description":  "Helper text for stock chart empty state"
+                                     },
+    "stockUpdatesCountLabel":  "{count} stock updates",
+    "@stockUpdatesCountLabel":  {
+                                    "description":  "Tooltip label showing number of stock updates",
+                                    "placeholders":  {
+                                                         "count":  {
+                                                                       "type":  "int"
+                                                                   }
+                                                     }
+                                },
+    "stockUpdatesFoundTapToView":  "Stock updates found - Tap to view",
+    "@stockUpdatesFoundTapToView":  {
+                                        "description":  "Hint shown when updates are available"
+                                    },
+    "stockUpdatesWithRange":  "Stock Updates ({range})",
+    "@stockUpdatesWithRange":  {
+                                   "description":  "Stock updates title with selected range",
+                                   "placeholders":  {
+                                                        "range":  {
+                                                                      "type":  "String"
+                                                                  }
+                                                    }
+                               },
+    "timeLabel":  "Time",
+    "@timeLabel":  {
+                       "description":  "Time label"
+                   },
+    "tryAdjustingFilters":  "Try adjusting your filters or check back later",
+    "@tryAdjustingFilters":  {
+                                 "description":  "No products helper text"
+                             },
+    "updateFrequencyWithValue":  "Update frequency: {value}",
+    "@updateFrequencyWithValue":  {
+                                      "description":  "Update frequency with value",
+                                      "placeholders":  {
+                                                           "value":  {
+                                                                         "type":  "String"
+                                                                     }
+                                                       }
+                                  },
+    "updatePattern24Hours":  "Update Pattern (24 hours)",
+    "@updatePattern24Hours":  {
+                                  "description":  "Title for 24-hour update pattern chart"
+                              },
+    "updatesCount":  "{count} updates",
+    "@updatesCount":  {
+                          "description":  "Updates count chip text",
+                          "placeholders":  {
+                                               "count":  {
+                                                             "type":  "int"
+                                                         }
+                                           }
+                      },
+    "updatesLabel":  "Updates",
+    "@updatesLabel":  {
+                          "description":  "Updates label"
+                      },
+    "websitesLabel":  "Websites",
+    "@websitesLabel":  {
+                           "description":  "Websites label"
+                       },
+    "withUpdatesOnly":  "With Updates Only",
+    "@withUpdatesOnly":  {
+                             "description":  "With updates only filter label"
+                         }
 }
