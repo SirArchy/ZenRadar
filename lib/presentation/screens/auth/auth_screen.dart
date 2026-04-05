@@ -178,37 +178,6 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                   ],
                 ),
               ),
-
-              // Error message
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: colorScheme.errorContainer,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        color: colorScheme.onErrorContainer,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _errorMessage!,
-                          style: TextStyle(
-                            color: colorScheme.onErrorContainer,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -280,6 +249,11 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
               return null;
             },
           ),
+
+          if (_errorMessage != null) ...[
+            const SizedBox(height: 12),
+            _buildInlineAuthError(colorScheme),
+          ],
 
           const SizedBox(height: 8),
 
@@ -459,6 +433,11 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
               return null;
             },
           ),
+
+          if (_errorMessage != null) ...[
+            const SizedBox(height: 12),
+            _buildInlineAuthError(colorScheme),
+          ],
 
           const SizedBox(height: 16),
 
@@ -689,6 +668,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
       return;
     }
 
+    FocusManager.instance.primaryFocus?.unfocus();
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -706,13 +687,13 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
     if (result.isSuccess) {
       _onAuthenticationSuccess();
     } else {
-      setState(() {
-        _errorMessage = result.error;
-      });
+      _showAuthError(result.error);
     }
   }
 
   Future<void> _signUp() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -736,13 +717,13 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
         _showEmailVerificationScreen = true;
       });
     } else {
-      setState(() {
-        _errorMessage = result.error;
-      });
+      _showAuthError(result.error);
     }
   }
 
   Future<void> _signInWithGoogle() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -757,13 +738,13 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
     if (result.isSuccess) {
       _onAuthenticationSuccess();
     } else {
-      setState(() {
-        _errorMessage = result.error;
-      });
+      _showAuthError(result.error);
     }
   }
 
   Future<void> _resendVerification() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -786,9 +767,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
         );
       }
     } else {
-      setState(() {
-        _errorMessage = result.error;
-      });
+      _showAuthError(result.error);
     }
   }
 
@@ -799,10 +778,50 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
       _onAuthenticationSuccess();
     } else {
       final l10n = AppLocalizations.of(context)!;
-      setState(() {
-        _errorMessage = l10n.pleaseVerifyEmailBeforeContinuing;
-      });
+      _showAuthError(l10n.pleaseVerifyEmailBeforeContinuing);
     }
+  }
+
+  void _showAuthError(String? message) {
+    if (!mounted) {
+      return;
+    }
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _errorMessage = message;
+    });
+  }
+
+  Widget _buildInlineAuthError(ColorScheme colorScheme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.error_outline,
+            color: colorScheme.onErrorContainer,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _errorMessage ?? '',
+              style: TextStyle(
+                color: colorScheme.onErrorContainer,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showForgotPasswordDialog() {

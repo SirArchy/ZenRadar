@@ -8,7 +8,6 @@ export 'filters/product_filters.dart';
 export 'filters/mobile_filter_modal.dart';
 export 'filters/site_selection_dialog.dart';
 export 'dialogs/language_selection_dialog.dart';
-export 'dialogs/app_mode_selection_dialog.dart';
 export 'charts/improved_price_chart.dart';
 export 'charts/improved_stock_chart.dart';
 export 'charts/stock_status_chart.dart';

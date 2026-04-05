@@ -2,7 +2,6 @@ export 'core/app_initializer.dart';
 export 'navigation/main_screen.dart';
 export 'home/home_screen_content.dart';
 export 'analytics/website_overview_screen.dart';
-export 'analytics/background_activity_screen.dart';
 export 'analytics/recent_scans.dart';
 export 'updates/stock_updates_screen.dart';
 export 'product/product_detail_page.dart';

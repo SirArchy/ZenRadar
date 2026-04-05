@@ -1,5 +1,8 @@
 // ignore_for_file: avoid_print
 
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:zenradar/presentation/screens/onboarding/onboarding_screen_new.dart';
@@ -64,11 +67,7 @@ class _AppInitializerState extends State<AppInitializer> {
     try {
       final authService = AuthService.instance;
       final restoredUser =
-          authService.currentUser ??
-          await authService.authStateChanges.first.timeout(
-            const Duration(seconds: 5),
-            onTimeout: () => authService.currentUser,
-          );
+          authService.currentUser ?? await _waitForRestoredUser(authService);
 
       if (restoredUser == null) {
         if (!mounted) {
@@ -109,6 +108,16 @@ class _AppInitializerState extends State<AppInitializer> {
         _needsAuth = true;
         _isLoading = false;
       });
+    }
+  }
+
+  Future<User?> _waitForRestoredUser(AuthService authService) async {
+    try {
+      return await authService.authStateChanges
+          .firstWhere((user) => user != null)
+          .timeout(const Duration(seconds: 5));
+    } on TimeoutException {
+      return authService.currentUser;
     }
   }
 
