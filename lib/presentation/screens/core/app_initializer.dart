@@ -66,10 +66,19 @@ class _AppInitializerState extends State<AppInitializer> {
 
     try {
       final authService = AuthService.instance;
-      final restoredUser =
+      User? restoredUser =
           authService.currentUser ?? await _waitForRestoredUser(authService);
 
-      if (restoredUser == null) {
+      final hadPersistedSession = await authService.hadPersistedSession();
+      if (restoredUser == null && hadPersistedSession) {
+        // On some Android starts, Firebase user restoration may lag behind app init.
+        restoredUser = await _waitForRestoredUser(
+          authService,
+          timeout: const Duration(seconds: 8),
+        );
+      }
+
+      if (restoredUser == null && !hadPersistedSession) {
         if (!mounted) {
           return;
         }
@@ -86,10 +95,12 @@ class _AppInitializerState extends State<AppInitializer> {
         });
       }
 
-      try {
-        await SubscriptionService.instance.isPremiumUser();
-      } catch (e) {
-        // Continue with app initialization even if sync fails.
+      if (restoredUser != null) {
+        try {
+          await SubscriptionService.instance.isPremiumUser();
+        } catch (e) {
+          // Continue with app initialization even if sync fails.
+        }
       }
 
       await Future.delayed(const Duration(milliseconds: 200));
@@ -111,14 +122,22 @@ class _AppInitializerState extends State<AppInitializer> {
     }
   }
 
-  Future<User?> _waitForRestoredUser(AuthService authService) async {
-    try {
-      return await authService.authStateChanges
-          .firstWhere((user) => user != null)
-          .timeout(const Duration(seconds: 5));
-    } on TimeoutException {
-      return authService.currentUser;
+  Future<User?> _waitForRestoredUser(
+    AuthService authService, {
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    final deadline = DateTime.now().add(timeout);
+
+    while (DateTime.now().isBefore(deadline)) {
+      final user = authService.currentUser;
+      if (user != null) {
+        return user;
+      }
+
+      await Future.delayed(const Duration(milliseconds: 250));
     }
+
+    return authService.currentUser;
   }
 
   @override

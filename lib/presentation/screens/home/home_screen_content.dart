@@ -919,6 +919,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       _searchQuery = trimmedQuery;
       _filter = _filter.copyWith(
         searchTerm: trimmedQuery.isEmpty ? null : trimmedQuery,
+        clearSearchTerm: trimmedQuery.isEmpty,
       );
     });
     _saveFilterToPrefs(_filter);

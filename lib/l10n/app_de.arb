@@ -30,7 +30,7 @@
     "save":  "Speichern",
     "delete":  "Löschen",
     "edit":  "Bearbeiten",
-    "close":  "SchlieÃŸen",
+    "close":  "Schließen",
     "loading":  "Lädt...",
     "noProducts":  "Keine Produkte gefunden",
     "noFavorites":  "Noch keine Favoriten",
@@ -60,7 +60,7 @@
     "freePlan":  "Kostenloser Plan",
     "premiumPlan":  "Premium-Plan",
     "manageSub":  "Abonnement verwalten",
-    "about":  "Ãœber",
+    "about":  "Über",
     "version":  "Version",
     "privacyPolicy":  "Datenschutzerklärung",
     "termsOfService":  "Nutzungsbedingungen",
@@ -74,7 +74,7 @@
     "errorLoadingData":  "Fehler beim Laden der Daten",
     "noInternetConnection":  "Keine Internetverbindung",
     "checkYourConnection":  "Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut",
-    "websiteOverview":  "Webseiten-Ãœbersicht",
+    "websiteOverview":  "Webseiten-Übersicht",
     "totalProducts":  "Gesamtprodukte",
     "productsInStock":  "Produkte auf Lager",
     "stockPercentage":  "Bestandsprozentsatz",
@@ -108,23 +108,23 @@
     "success":  "Erfolg",
     "failed":  "Fehlgeschlagen",
     "welcomeToZenRadar":  "Willkommen bei ZenRadar",
-    "premiumMatchaMonitoring":  "Ihr Premium-Begleiter zur Ãœberwachung von Matcha-Beständen",
-    "cloudMonitoring":  "Cloud-Ãœberwachung",
+    "premiumMatchaMonitoring":  "Ihr Premium-Begleiter zur Überwachung von Matcha-Beständen",
+    "cloudMonitoring":  "Cloud-Überwachung",
     "reliable247Tracking":  "Zuverlässige 24/7-Bestandsverfolgung",
     "instantAlerts":  "Sofortige Benachrichtigungen",
     "notifyBackInStock":  "Erhalten Sie Benachrichtigungen, wenn Artikel wieder auf Lager sind",
     "zeroBatteryUsage":  "Kein Batterieverbrauch",
     "cloudProcessingNoDrain":  "Cloud-Verarbeitung bedeutet keine Gerätebelastung",
-    "cloudPoweredMonitoring":  "Cloud-gestützte Ãœberwachung",
+    "cloudPoweredMonitoring":  "Cloud-gestützte Überwachung",
     "cloudServicesDescription":  "ZenRadar nutzt fortschrittliche Cloud-Dienste, um Matcha-Bestände auf mehreren Websites zu überwachen.",
-    "whyCloudMonitoring":  "Warum Cloud-Ãœberwachung?",
+    "whyCloudMonitoring":  "Warum Cloud-Überwachung?",
     "alwaysOnline":  "Immer online, auch wenn Ihr Gerät schläft",
     "noBatteryDrain":  "Kein Batterieverbrauch auf Ihrem Gerät",
     "fasterUpdates":  "Schnellere Updates und bessere Zuverlässigkeit",
     "sharedImprovements":  "Gemeinsame Verbesserungen kommen allen zugute",
     "stayInformed":  "Bleiben Sie informiert",
     "instantStockNotifications":  "Erhalten Sie sofortige Benachrichtigungen, wenn Ihre Lieblings-Matcha-Produkte wieder auf Lager sind.",
-    "skip":  "Ãœberspringen",
+    "skip":  "Überspringen",
     "next":  "Weiter",
     "getStarted":  "Los geht\u0027s",
     "choosePlan":  "Wählen Sie Ihr ZenRadar-Erlebnis",
@@ -136,10 +136,10 @@
     "foreverFree":  "Für immer kostenlos",
     "upToFavorites":  "Bis zu 42 Lieblingsprodukte",
     "allVendorSites":  "Alle Anbieter-Seiten",
-    "checkEverySixHours":  "Ãœberprüfung alle 6 Stunden",
+    "checkEverySixHours":  "Überprüfung alle 6 Stunden",
     "basicNotifications":  "Basis-Benachrichtigungen",
     "unlimitedFavorites":  "Unbegrenzte Favoriten",
-    "checkEveryHour":  "Ãœberprüfung jede Stunde",
+    "checkEveryHour":  "Überprüfung jede Stunde",
     "priorityNotifications":  "Prioritäts-Benachrichtigungen",
     "whyChoosePremium":  "Warum Premium wählen?",
     "fasterUpdatesDesc":  "Werden Sie innerhalb einer Stunde über Bestandsänderungen benachrichtigt",
@@ -236,7 +236,7 @@
     "swipeToNavigate":  "Wischen, um durch die App zu navigieren",
     "swipeDescription":  "Wischen Sie nach links oder rechts, um zwischen Bildschirmen zu navigieren",
     "gotIt":  "Verstanden!",
-    "tapAnywhereToDismiss":  "Tippen Sie irgendwo, um zu schlieÃŸen",
+    "tapAnywhereToDismiss":  "Tippen Sie irgendwo, um zu schließen",
     "selectSitesToScan":  "Websites zum Scannen auswählen",
     "chooseWhichMatcha":  "Wählen Sie, welche Matcha-Websites in diesem Scan enthalten sein sollen:",
     "selectAllSites":  "Alle Websites auswählen",
@@ -1031,7 +1031,7 @@
     "@favoriteProductAlerts":  {
                                    "description":  "Title for favorite product notifications setting"
                                },
-    "getNotifiedAboutFavoriteChanges":  "Erhalten Sie Benachrichtigungen über Ã„nderungen an Ihren Lieblingsprodukten",
+    "getNotifiedAboutFavoriteChanges":  "Erhalten Sie Benachrichtigungen über Änderungen an Ihren Lieblingsprodukten",
     "@getNotifiedAboutFavoriteChanges":  {
                                              "description":  "Subtitle for favorite product alerts"
                                          },
@@ -1043,7 +1043,7 @@
     "@cloudNotificationsDeliveredInstantly":  {
                                                   "description":  "Explanation text for cloud notifications"
                                               },
-    "monitoringFavoriteProducts":  "Ãœberwache {count} Lieblingsprodukte",
+    "monitoringFavoriteProducts":  "Überwache {count} Lieblingsprodukte",
     "@monitoringFavoriteProducts":  {
                                         "description":  "Current monitored favorites count",
                                         "placeholders":  {
@@ -1052,11 +1052,11 @@
                                                                        }
                                                          }
                                     },
-    "favoriteMonitoringInactive":  "Ãœberwachung der Lieblingsprodukte inaktiv",
+    "favoriteMonitoringInactive":  "Überwachung der Lieblingsprodukte inaktiv",
     "@favoriteMonitoringInactive":  {
                                         "description":  "Shown when favorite monitoring is disabled"
                                     },
-    "monitoredSites":  "Ãœberwachte Websites",
+    "monitoredSites":  "Überwachte Websites",
     "@monitoredSites":  {
                             "description":  "Settings section title for monitored sites"
                         },
@@ -1064,7 +1064,7 @@
     "@serverMonitoredWebsites":  {
                                      "description":  "Title for server monitored websites info box"
                                  },
-    "allSupportedSitesMonitoredByServer":  "Alle unterstützten Matcha-Websites werden automatisch von unseren Servern überwacht. Die Daten werden regelmäÃŸig mit Ihrem Gerät synchronisiert.",
+    "allSupportedSitesMonitoredByServer":  "Alle unterstützten Matcha-Websites werden automatisch von unseren Servern überwacht. Die Daten werden regelmäßig mit Ihrem Gerät synchronisiert.",
     "@allSupportedSitesMonitoredByServer":  {
                                                 "description":  "Description for server-side monitoring"
                                             },
@@ -1081,11 +1081,11 @@
     "@suggestNewWebsite":  {
                                "description":  "Button and dialog title for suggesting a new site"
                            },
-    "requestMonitoringForAdditionalSites":  "Ãœberwachung zusätzlicher Matcha-Websites anfordern",
+    "requestMonitoringForAdditionalSites":  "Überwachung zusätzlicher Matcha-Websites anfordern",
     "@requestMonitoringForAdditionalSites":  {
                                                  "description":  "Subtitle for suggest new website setting"
                                              },
-    "aboutZenRadar":  "Ãœber ZenRadar",
+    "aboutZenRadar":  "Über ZenRadar",
     "@aboutZenRadar":  {
                            "description":  "About card title"
                        },
@@ -1151,7 +1151,7 @@
     "@feedbackImprovesZenRadar":  {
                                       "description":  "Feedback encouragement text"
                                   },
-    "helpExpandZenRadar":  "Helfen Sie uns, ZenRadar zu erweitern, indem Sie eine neue Matcha-Website zur Ãœberwachung vorschlagen!",
+    "helpExpandZenRadar":  "Helfen Sie uns, ZenRadar zu erweitern, indem Sie eine neue Matcha-Website zur Überwachung vorschlagen!",
     "@helpExpandZenRadar":  {
                                 "description":  "Suggest website dialog intro"
                             },
@@ -1702,7 +1702,7 @@
                                                              }
                                                }
                           },
-    "freeTrialStartedEnjoyPremium":  "ðŸŽ‰ 7-tägige kostenlose Testversion gestartet! Viel SpaÃŸ mit den Premium-Funktionen!",
+    "freeTrialStartedEnjoyPremium":  "ðŸŽ‰ 7-tägige kostenlose Testversion gestartet! Viel Spaß mit den Premium-Funktionen!",
     "@freeTrialStartedEnjoyPremium":  {
                                           "description":  "Success message after starting free trial"
                                       },
@@ -1842,7 +1842,7 @@
     "@testimonialUserTwoTitle":  {
                                      "description":  "Role/title shown in second premium testimonial"
                                  },
-    "testimonialUserTwoQuote":  "Die gleichzeitige Ãœberwachung aller Anbieter hat mir Stunden manueller Prüfung erspart.",
+    "testimonialUserTwoQuote":  "Die gleichzeitige Überwachung aller Anbieter hat mir Stunden manueller Prüfung erspart.",
     "@testimonialUserTwoQuote":  {
                                      "description":  "Quote shown in second premium testimonial"
                                  },
@@ -2176,7 +2176,7 @@
     "@showDiscontinuedProducts":  {
                                       "description":  "Label for discontinued products toggle"
                                   },
-    "includeNoLongerAvailableProducts":  "Produkte einschlieÃŸen, die nicht mehr verfügbar sind",
+    "includeNoLongerAvailableProducts":  "Produkte einschließen, die nicht mehr verfügbar sind",
     "@includeNoLongerAvailableProducts":  {
                                               "description":  "Subtitle for discontinued products toggle"
                                           },

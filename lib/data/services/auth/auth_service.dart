@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zenradar/data/services/subscription/subscription_service.dart';
 
 /// Authentication service for server mode
@@ -15,6 +16,7 @@ class AuthService {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   late final GoogleSignIn _googleSignIn;
+  static const String _persistedSessionKey = 'auth_has_persisted_session';
 
   // Constructor calls initialization
   AuthService._internal() {
@@ -84,6 +86,8 @@ class AuthService {
       // Send email verification
       await credential.user?.sendEmailVerification();
 
+      await _setPersistedSession(credential.user != null);
+
       if (kDebugMode) {}
 
       return AuthResult.success(credential.user);
@@ -121,6 +125,8 @@ class AuthService {
 
       // Sync trial status from Firestore after successful sign-in
       await _syncUserDataAfterSignIn();
+
+      await _setPersistedSession(credential.user != null);
 
       return AuthResult.success(credential.user);
     } on FirebaseAuthException catch (e) {
@@ -176,6 +182,8 @@ class AuthService {
         // Sync trial status from Firestore after successful sign-in
         await _syncUserDataAfterSignIn();
 
+        await _setPersistedSession(userCredential.user != null);
+
         return AuthResult.success(userCredential.user);
       } else {
         // For mobile platforms, use the standard flow
@@ -209,6 +217,8 @@ class AuthService {
 
         // Sync trial status from Firestore after successful sign-in
         await _syncUserDataAfterSignIn();
+
+        await _setPersistedSession(userCredential.user != null);
 
         return AuthResult.success(userCredential.user);
       }
@@ -258,6 +268,7 @@ class AuthService {
     try {
       // Sign out from both Firebase and Google
       await Future.wait([_auth.signOut(), _googleSignIn.signOut()]);
+      await _setPersistedSession(false);
 
       if (kDebugMode) {}
     } catch (e) {
@@ -334,6 +345,7 @@ class AuthService {
       }
 
       await user.delete();
+      await _setPersistedSession(false);
 
       if (kDebugMode) {}
 
@@ -440,6 +452,16 @@ class AuthService {
     } catch (_) {
       return await AppLocalizations.delegate.load(const Locale('en'));
     }
+  }
+
+  Future<bool> hadPersistedSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_persistedSessionKey) ?? false;
+  }
+
+  Future<void> _setPersistedSession(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_persistedSessionKey, value);
   }
 }
 
