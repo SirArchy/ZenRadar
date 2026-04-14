@@ -459,6 +459,11 @@ class AuthService {
     return prefs.getBool(_persistedSessionKey) ?? false;
   }
 
+  Future<void> clearPersistedSessionHint() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_persistedSessionKey);
+  }
+
   Future<void> _setPersistedSession(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_persistedSessionKey, value);

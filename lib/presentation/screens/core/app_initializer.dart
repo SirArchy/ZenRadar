@@ -66,19 +66,23 @@ class _AppInitializerState extends State<AppInitializer> {
 
     try {
       final authService = AuthService.instance;
-      User? restoredUser =
-          authService.currentUser ?? await _waitForRestoredUser(authService);
-
       final hadPersistedSession = await authService.hadPersistedSession();
-      if (restoredUser == null && hadPersistedSession) {
-        // On some Android starts, Firebase user restoration may lag behind app init.
-        restoredUser = await _waitForRestoredUser(
-          authService,
-          timeout: const Duration(seconds: 8),
-        );
-      }
 
-      if (restoredUser == null && !hadPersistedSession) {
+      User? restoredUser = authService.currentUser;
+      restoredUser ??= await _waitForRestoredUser(
+        authService,
+        timeout:
+            hadPersistedSession
+                ? const Duration(seconds: 3)
+                : const Duration(milliseconds: 800),
+      );
+
+      if (restoredUser == null) {
+        if (hadPersistedSession) {
+          // Avoid repeated long waits on future app starts when no session exists.
+          await authService.clearPersistedSessionHint();
+        }
+
         if (!mounted) {
           return;
         }
@@ -95,12 +99,10 @@ class _AppInitializerState extends State<AppInitializer> {
         });
       }
 
-      if (restoredUser != null) {
-        try {
-          await SubscriptionService.instance.isPremiumUser();
-        } catch (e) {
-          // Continue with app initialization even if sync fails.
-        }
+      try {
+        await SubscriptionService.instance.isPremiumUser();
+      } catch (e) {
+        // Continue with app initialization even if sync fails.
       }
 
       await Future.delayed(const Duration(milliseconds: 200));
